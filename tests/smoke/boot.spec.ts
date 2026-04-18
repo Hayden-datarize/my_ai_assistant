@@ -40,16 +40,16 @@ test('all tabs load with zero CSP violations and zero page errors', async ({ pag
     pageErrors.push(err.message);
   });
 
-  await page.goto('/');
-  await page.evaluate(() => {
+  await page.addInitScript(() => {
+    (window as unknown as { __cspViolations: string[] }).__cspViolations = [];
     document.addEventListener('securitypolicyviolation', (e) => {
       const event = e as SecurityPolicyViolationEvent;
-      (window as unknown as { __cspViolations: string[] }).__cspViolations ||= [];
       (window as unknown as { __cspViolations: string[] }).__cspViolations.push(
         `${event.violatedDirective} blocked ${event.blockedURI}`,
       );
     });
   });
+  await page.goto('/');
 
   await expect(page.locator('#homeTab')).toBeVisible();
   await page.locator('#bottomNav button[data-tab-id="archive"]').click();
