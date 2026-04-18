@@ -1,0 +1,14 @@
+node_modules/
+dist/
+.vite/
+playwright-report/
+test-results/
+.sentry/
+*.tsbuildinfo
+.env
+.env.local
+.DS_Store
+.firebase/
+firebase-debug.log
+.bkit/
+.claude/
