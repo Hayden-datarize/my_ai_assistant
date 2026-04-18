@@ -4,13 +4,13 @@ export default defineConfig({
   testDir: './tests/smoke',
   timeout: 30_000,
   use: {
-    baseURL: 'http://localhost:8080',
+    baseURL: 'http://localhost:4173',
     trace: 'retain-on-failure',
   },
   webServer: {
-    command: 'npx http-server . -p 8080 -c-1',
-    url: 'http://localhost:8080/daily-growth.html',
+    command: 'npm run build && npm run preview -- --port 4173',
+    url: 'http://localhost:4173',
     reuseExistingServer: !process.env.CI,
-    timeout: 10_000,
+    timeout: 60_000,
   },
 });
