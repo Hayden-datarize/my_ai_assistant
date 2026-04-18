@@ -8,4 +8,10 @@ describe('renderHome', () => {
     expect(root.querySelector('#homeTab')).not.toBeNull();
     expect(root.querySelector('#questionContent')).not.toBeNull();
   });
+
+  it('renders no inline handler attributes', () => {
+    const root = document.createElement('div');
+    renderHome(root);
+    expect(root.querySelectorAll('[onclick],[oninput],[onkeydown]').length).toBe(0);
+  });
 });

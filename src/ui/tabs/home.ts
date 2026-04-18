@@ -1,5 +1,3 @@
-import { qs } from '../../utils/dom';
-
 /**
  * Home 탭 정적 마크업을 container에 렌더링한다.
  * 인라인 핸들러 없이 CustomEvent를 dispatch하여 Task 18에서 연결한다.
@@ -105,65 +103,77 @@ export function renderHome(container: HTMLElement): void {
 /** CustomEvent 핸들러를 등록한다. Task 18에서 실제 로직으로 교체 예정. */
 function bindHandlers(container: HTMLElement): void {
   // toggleTheme
-  qs<HTMLButtonElement>('#themeBtn', container)?.addEventListener('click', () => {
+  const themeBtn = container.querySelector<HTMLButtonElement>('#themeBtn');
+  if (themeBtn) themeBtn.addEventListener('click', () => {
     document.dispatchEvent(new CustomEvent('dg:home:toggle-theme'));
   });
 
   // exportData (backup 배너의 백업하기 링크)
-  const backupBanner = qs<HTMLElement>('#backupBanner', container);
-  backupBanner?.querySelector('a')?.addEventListener('click', () => {
+  const backupBanner = container.querySelector<HTMLElement>('#backupBanner');
+  const backupLink = backupBanner?.querySelector('a') ?? null;
+  if (backupLink) backupLink.addEventListener('click', () => {
     document.dispatchEvent(new CustomEvent('dg:home:export-data'));
   });
 
   // dismissBackupBanner
-  backupBanner?.querySelector('button.dismiss')?.addEventListener('click', () => {
+  const dismissBtn = backupBanner?.querySelector<HTMLButtonElement>('button.dismiss') ?? null;
+  if (dismissBtn) dismissBtn.addEventListener('click', () => {
     document.dispatchEvent(new CustomEvent('dg:home:dismiss-backup'));
   });
 
   // switchTab('settings', ...) — demo 배너의 설정 링크
-  qs<HTMLAnchorElement>('#demoBannerSettingsLink', container)?.addEventListener('click', () => {
+  const demoBannerSettingsLink = container.querySelector<HTMLAnchorElement>('#demoBannerSettingsLink');
+  if (demoBannerSettingsLink) demoBannerSettingsLink.addEventListener('click', () => {
     document.dispatchEvent(new CustomEvent('dg:home:switch-tab', { detail: { tab: 'settings' } }));
   });
 
   // refreshBriefings
-  qs<HTMLElement>('#refreshBriefing', container)?.addEventListener('click', () => {
+  const refreshBriefing = container.querySelector<HTMLElement>('#refreshBriefing');
+  if (refreshBriefing) refreshBriefing.addEventListener('click', () => {
     document.dispatchEvent(new CustomEvent('dg:home:refresh-briefings'));
   });
 
   // updateCharCount (oninput)
-  qs<HTMLTextAreaElement>('#answerArea', container)?.addEventListener('input', () => {
+  const answerArea = container.querySelector<HTMLTextAreaElement>('#answerArea');
+  if (answerArea) answerArea.addEventListener('input', () => {
     document.dispatchEvent(new CustomEvent('dg:home:update-char-count'));
   });
 
   // toggleHint
-  qs<HTMLButtonElement>('.hint-toggle', container)?.addEventListener('click', () => {
+  const hintToggle = container.querySelector<HTMLButtonElement>('.hint-toggle');
+  if (hintToggle) hintToggle.addEventListener('click', () => {
     document.dispatchEvent(new CustomEvent('dg:home:toggle-hint'));
   });
 
   // submitAnswer
-  qs<HTMLButtonElement>('#submitBtn', container)?.addEventListener('click', () => {
+  const submitBtn = container.querySelector<HTMLButtonElement>('#submitBtn');
+  if (submitBtn) submitBtn.addEventListener('click', () => {
     document.dispatchEvent(new CustomEvent('dg:home:submit-answer'));
   });
 
   // sendChatMessage — Enter 키
-  qs<HTMLInputElement>('#chatInput', container)?.addEventListener('keydown', (e) => {
-    if ((e as KeyboardEvent).key === 'Enter') {
+  const chatInput = container.querySelector<HTMLInputElement>('#chatInput');
+  if (chatInput) chatInput.addEventListener('keydown', (e) => {
+    if (e.key === 'Enter') {
       document.dispatchEvent(new CustomEvent('dg:home:send-chat'));
     }
   });
 
   // sendChatMessage — 전송 버튼
-  qs<HTMLButtonElement>('.chat-send-btn', container)?.addEventListener('click', () => {
+  const chatSendBtn = container.querySelector<HTMLButtonElement>('.chat-send-btn');
+  if (chatSendBtn) chatSendBtn.addEventListener('click', () => {
     document.dispatchEvent(new CustomEvent('dg:home:send-chat'));
   });
 
   // summarizeChat
-  qs<HTMLButtonElement>('#summarizeChatBtn', container)?.addEventListener('click', () => {
+  const summarizeChatBtn = container.querySelector<HTMLButtonElement>('#summarizeChatBtn');
+  if (summarizeChatBtn) summarizeChatBtn.addEventListener('click', () => {
     document.dispatchEvent(new CustomEvent('dg:home:summarize-chat'));
   });
 
   // generateInsightCard
-  qs<HTMLButtonElement>('#generateInsightBtn', container)?.addEventListener('click', () => {
+  const generateInsightBtn = container.querySelector<HTMLButtonElement>('#generateInsightBtn');
+  if (generateInsightBtn) generateInsightBtn.addEventListener('click', () => {
     document.dispatchEvent(new CustomEvent('dg:home:generate-insight-card'));
   });
 }
