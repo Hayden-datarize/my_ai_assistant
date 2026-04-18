@@ -2,7 +2,7 @@
   "name": "Daily Growth Assistant",
   "short_name": "데일리그로스",
   "description": "매일 3분, 나만의 성장 루틴",
-  "start_url": "/daily-growth.html",
+  "start_url": "/",
   "display": "standalone",
   "background_color": "#FFFFFF",
   "theme_color": "#4F46E5",
