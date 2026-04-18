@@ -1,0 +1,91 @@
+/**
+ * Archive 탭 정적 마크업을 container에 렌더링한다.
+ * 인라인 핸들러 없이 CustomEvent를 dispatch하여 Task 18에서 연결한다.
+ */
+import { loadAnswers } from '../../state/persistence';
+
+export function renderArchive(container: HTMLElement): void {
+  // eslint-disable-next-line no-restricted-syntax -- trusted static template, no interpolation
+  container.innerHTML = `
+    <div class="archive-section" id="archiveTab">
+      <h2 style="margin-bottom:4px;">📚 나의 성장 아카이브</h2>
+      <p id="archiveCount">질문 유형별로 답변을 필터링할 수 있어요</p>
+      <div class="archive-search-wrap">
+        <span class="archive-search-icon">🔍</span>
+        <input type="search" class="archive-search" id="archiveSearch" placeholder="질문, 답변, 인사이트 검색...">
+      </div>
+      <div style="display:flex;gap:8px;align-items:center;margin-bottom:12px;flex-wrap:wrap;">
+        <select class="archive-period" id="archivePeriod">
+          <option value="all">전체 기간</option>
+          <option value="week">이번 주</option>
+          <option value="month">이번 달</option>
+        </select>
+        <div class="archive-filters" id="archiveFilters" style="margin-bottom:0;">
+          <button class="filter-chip active" data-filter="all" title="답변 + 스크랩 모든 기록">전체</button>
+          <button class="filter-chip" data-filter="분석" title="현상을 분석하고 원인을 파악하는 질문">🔍 분석형</button>
+          <button class="filter-chip" data-filter="전환" title="기존 관점을 바꿔 새로운 시각으로 보는 질문">🔄 전환형</button>
+          <button class="filter-chip" data-filter="실무" title="업무에 바로 적용할 수 있는 실천 중심 질문">🛠️ 실무형</button>
+          <button class="filter-chip" data-filter="성장" title="장기적 커리어와 역량 성장을 돌아보는 질문">🌱 성장형</button>
+          <button class="filter-chip" data-filter="트렌드" title="업계 트렌드와 변화를 읽는 질문">📊 트렌드</button>
+          <button class="filter-chip" data-filter="scrap" title="브리핑에서 스크랩한 아티클 모아보기">⭐ 스크랩</button>
+        </div>
+      </div>
+      <div id="archiveList"></div>
+    </div>
+  `;
+
+  populateList(container);
+  bindHandlers(container);
+}
+
+/** localStorage에서 답변을 읽어 #archiveList를 채운다. */
+function populateList(container: HTMLElement): void {
+  const list = container.querySelector<HTMLElement>('#archiveList');
+  if (!list) return;
+
+  const answers = loadAnswers();
+  if (answers.length === 0) {
+    list.textContent = '아직 저장된 답변이 없어요. 첫 답변을 남겨보세요.';
+    return;
+  }
+
+  for (const a of answers) {
+    const card = document.createElement('article');
+    card.className = 'archive-card';
+
+    const dateEl = document.createElement('div');
+    dateEl.className = 'archive-date';
+    dateEl.textContent = new Date(a.createdAt).toLocaleDateString('ko-KR');
+
+    const textEl = document.createElement('div');
+    textEl.className = 'archive-text';
+    textEl.textContent = a.text; // textContent — XSS 안전
+
+    card.append(dateEl, textEl);
+    list.append(card);
+  }
+}
+
+/** CustomEvent 핸들러를 등록한다. Task 18에서 실제 로직으로 교체 예정. */
+function bindHandlers(container: HTMLElement): void {
+  // archiveSearch input → dg:archive:search
+  const archiveSearch = container.querySelector<HTMLInputElement>('#archiveSearch');
+  if (archiveSearch) archiveSearch.addEventListener('input', () => {
+    document.dispatchEvent(new CustomEvent('dg:archive:search'));
+  });
+
+  // archivePeriod change → dg:archive:period-change
+  const archivePeriod = container.querySelector<HTMLSelectElement>('#archivePeriod');
+  if (archivePeriod) archivePeriod.addEventListener('change', () => {
+    document.dispatchEvent(new CustomEvent('dg:archive:period-change'));
+  });
+
+  // filter-chip click → dg:archive:filter (이벤트 위임)
+  const archiveFilters = container.querySelector<HTMLElement>('#archiveFilters');
+  if (archiveFilters) archiveFilters.addEventListener('click', (e) => {
+    const chip = (e.target as HTMLElement).closest<HTMLButtonElement>('.filter-chip');
+    if (!chip) return;
+    const filter = chip.dataset['filter'] ?? 'all';
+    document.dispatchEvent(new CustomEvent('dg:archive:filter', { detail: { filter } }));
+  });
+}
