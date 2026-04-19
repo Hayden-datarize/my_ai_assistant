@@ -34,9 +34,9 @@ describe('events', () => {
     off();
   });
 
-  it('EVENT_NAMES covers exactly the 16 tab-dispatched events', () => {
-    expect(EVENT_NAMES).toHaveLength(16);
-    expect(new Set(EVENT_NAMES).size).toBe(16);
+  it('EVENT_NAMES covers all 17 wired events (16 tab-dispatched + 1 nav)', () => {
+    expect(EVENT_NAMES).toHaveLength(17);
+    expect(new Set(EVENT_NAMES).size).toBe(17);
   });
 
   it('V32_DEFERRED_EVENTS lists the 6 v3.2 stubs', () => {

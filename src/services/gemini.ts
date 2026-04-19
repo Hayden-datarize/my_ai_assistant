@@ -24,6 +24,7 @@ export async function generateText({ apiKey, prompt }: GenerateTextInput): Promi
 function parseJsonText<T>(text: string): T {
   const match = text.match(/\{[\s\S]*\}/);
   if (!match) throw new Error('gemini response: no JSON object');
+  // eslint-disable-next-line no-control-regex -- deliberately strip control chars from LLM output
   const cleaned = match[0].replace(/[\u0000-\u001F]+/g, ' ').replace(/,\s*([}\]])/g, '$1');
   return JSON.parse(cleaned) as T;
 }

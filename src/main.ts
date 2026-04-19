@@ -1,8 +1,43 @@
 import { mountNav, switchTab } from './ui/nav';
+import { mountHomeHandlers } from './ui/handlers/home';
+import { mountArchiveHandlers } from './ui/handlers/archive';
+import { mountStatsHandlers } from './ui/handlers/stats';
+import { renderOnboarding } from './ui/onboarding';
+import { qs } from './utils/dom';
 
-function boot(): void {
+const USER_STORAGE = 'user';
+
+function hasOnboarded(): boolean {
+  try {
+    const raw = localStorage.getItem(USER_STORAGE);
+    if (!raw) return false;
+    const u = JSON.parse(raw) as { interests?: unknown[] };
+    return Array.isArray(u.interests) && u.interests.length > 0;
+  } catch { return false; }
+}
+
+function bootMainApp(): void {
+  mountHomeHandlers();
+  mountArchiveHandlers();
+  mountStatsHandlers();
   mountNav();
   switchTab('home');
+}
+
+function bootOnboarding(): void {
+  const app = qs<HTMLElement>('#app');
+  renderOnboarding(app);
+  document.addEventListener('dg:onboarded', () => {
+    location.reload();
+  }, { once: true });
+}
+
+function boot(): void {
+  if (hasOnboarded()) {
+    bootMainApp();
+  } else {
+    bootOnboarding();
+  }
   registerServiceWorker();
 }
 

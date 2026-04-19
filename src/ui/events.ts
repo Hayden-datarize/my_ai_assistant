@@ -31,6 +31,9 @@ export interface EventMap {
   // stats (2) — matches tabs/stats.ts exactly
   'dg:stats:weekly-report': undefined;
   'dg:stats:growth-analysis': undefined;
+  // nav (1) — dispatched by nav.ts after a tab is switched-to; consumed by
+  // handlers/* to hydrate their own tab's dynamic content.
+  'dg:nav:tab-changed': { tab: string };
 }
 
 type EventName = keyof EventMap;
@@ -55,6 +58,7 @@ export const EVENT_NAMES: readonly EventName[] = [
   'dg:home:summarize-chat', 'dg:home:generate-insight-card',
   'dg:archive:search', 'dg:archive:period-change', 'dg:archive:filter',
   'dg:stats:weekly-report', 'dg:stats:growth-analysis',
+  'dg:nav:tab-changed',
 ] as const;
 
 /** Events deferred to v3.2 — handlers in v3.1 register a stub listener. */
