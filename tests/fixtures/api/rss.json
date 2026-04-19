@@ -1,0 +1,24 @@
+{
+  "status": "ok",
+  "feed": { "title": "mock-feed" },
+  "items": [
+    {
+      "title": "AI 생산성을 바꾸는 3가지 습관",
+      "link": "https://example.com/a1",
+      "description": "요약 텍스트 1: 팀이 AI를 채용 흐름에 접목할 때 무엇을 선행해야 하는지 짧게 정리한 글.",
+      "pubDate": "2026-04-19 08:00:00"
+    },
+    {
+      "title": "좋은 질문이 팀을 움직인다",
+      "link": "https://example.com/a2",
+      "description": "요약 텍스트 2: 1:1 미팅에서 사용할 수 있는 질문 7가지와 그 구조.",
+      "pubDate": "2026-04-19 07:30:00"
+    },
+    {
+      "title": "작게 자주 커밋하라",
+      "link": "https://example.com/a3",
+      "description": "요약 텍스트 3: 주니어 엔지니어가 리뷰어 부담을 줄이면서 빠르게 성장하는 기술.",
+      "pubDate": "2026-04-19 07:00:00"
+    }
+  ]
+}
