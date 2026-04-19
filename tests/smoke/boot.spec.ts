@@ -1,17 +1,39 @@
 import { test, expect } from '@playwright/test';
 
-test('app boots and shows home tab', async ({ page }) => {
+async function seedOnboardedUser(page: import('@playwright/test').Page): Promise<void> {
+  // No API key seeded — hydrateQuestion will show "enter key in settings" message
+  // and skip the real network call. Tests that need question flow should mock the
+  // Gemini endpoint via page.route() instead.
+  await page.addInitScript(() => {
+    localStorage.setItem('user', JSON.stringify({
+      name: 'TestUser', interests: ['recruiting', 'ai_ml'],
+      onboardedAt: '2026-04-01', streak: 0, lastActiveDate: '', xp: 0, level: 1,
+    }));
+  });
+}
+
+test('app boots and shows home tab (onboarded)', async ({ page }) => {
+  await seedOnboardedUser(page);
   await page.goto('/');
   await expect(page.locator('#homeTab')).toBeVisible();
 });
 
+test('fresh browser (no user) renders onboarding, not home', async ({ page }) => {
+  await page.addInitScript(() => localStorage.clear());
+  await page.goto('/');
+  await expect(page.locator('#onboarding')).toBeVisible();
+  await expect(page.locator('#homeTab')).toHaveCount(0);
+});
+
 test('archive tab switch works', async ({ page }) => {
+  await seedOnboardedUser(page);
   await page.goto('/');
   await page.locator('#bottomNav button[data-tab-id="archive"]').click();
   await expect(page.locator('#archiveTab')).toBeVisible();
 });
 
 test('settings tab opens api key status', async ({ page }) => {
+  await seedOnboardedUser(page);
   await page.goto('/');
   await page.locator('#bottomNav button[data-tab-id="settings"]').click();
   await expect(page.locator('#apiKeyInput')).toBeVisible();
@@ -29,6 +51,7 @@ test('PWA assets are reachable (sw.js, manifest.json)', async ({ request }) => {
 });
 
 test('all tabs load with zero CSP violations and zero page errors', async ({ page }) => {
+  await seedOnboardedUser(page);
   const consoleErrors: string[] = [];
   const pageErrors: string[] = [];
   const cspViolations: string[] = [];
