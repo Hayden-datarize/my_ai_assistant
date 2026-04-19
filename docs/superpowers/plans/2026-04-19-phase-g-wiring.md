@@ -79,7 +79,7 @@ Batch 7 (serial):       Task 23 (v2.0 compat smoke)  Task 24 (full gate run)
 - **Every task ends with a commit.** No "continue in next task" across commits.
 - **TDD per task:** write failing test → verify fails → implement → verify passes → commit.
 - **ESLint is live:** no `innerHTML`, no inline `on*=` handlers, no unescaped interpolation. Use `src/utils/dom.ts` `qs`/`qsa`/`on` helpers and `src/utils/escapeHtml.ts`.
-- **Playwright smoke** always runs against `pnpm build && pnpm preview` (not dev server).
+- **Playwright smoke** always runs against `npm run build && npm run preview` (not dev server).
 - **Legacy port rule:** match user-visible text, localStorage keys+shapes, and external API shapes exactly. Internal code may diverge.
 - **Reference legacy lines:** use `git show 9e82119^:daily-growth.html | sed -n 'N,Mp'` when porting.
 
@@ -132,7 +132,7 @@ describe('events', () => {
 - [ ] **Step 2: Run test — verify FAIL**
 
 ```bash
-pnpm vitest run tests/unit/events.spec.ts
+npx vitest run tests/unit/events.spec.ts
 ```
 Expected: FAIL (module not found).
 
@@ -190,7 +190,7 @@ export const EVENT_NAMES: EventName[] = [
 - [ ] **Step 4: Run — verify PASS**
 
 ```bash
-pnpm vitest run tests/unit/events.spec.ts
+npx vitest run tests/unit/events.spec.ts
 ```
 Expected: 3/3 PASS.
 
@@ -227,7 +227,7 @@ describe('getDateStr', () => {
 });
 ```
 
-- [ ] **Step 2: Run — FAIL** (`pnpm vitest run tests/unit/dates.spec.ts`)
+- [ ] **Step 2: Run — FAIL** (`npx vitest run tests/unit/dates.spec.ts`)
 
 - [ ] **Step 3: Implement**
 
@@ -241,7 +241,7 @@ export function getDateStr(date: Date = new Date()): string {
 }
 ```
 
-- [ ] **Step 4: Run — PASS** (`pnpm vitest run tests/unit/dates.spec.ts`) — 3/3 PASS
+- [ ] **Step 4: Run — PASS** (`npx vitest run tests/unit/dates.spec.ts`) — 3/3 PASS
 
 - [ ] **Step 5: Commit**
 
@@ -290,7 +290,7 @@ describe('categories', () => {
 });
 ```
 
-- [ ] **Step 3: Run — FAIL** (`pnpm vitest run tests/unit/categories.spec.ts`)
+- [ ] **Step 3: Run — FAIL** (`npx vitest run tests/unit/categories.spec.ts`)
 
 - [ ] **Step 4: Implement (port legacy labels verbatim)**
 
@@ -319,7 +319,7 @@ export function getCategoryLabel(id: string): string {
 
 Implementer MUST re-extract `INTERESTS` from legacy source and confirm the set matches 1:1 before committing.
 
-- [ ] **Step 5: Run — PASS** (`pnpm vitest run tests/unit/categories.spec.ts`)
+- [ ] **Step 5: Run — PASS** (`npx vitest run tests/unit/categories.spec.ts`)
 
 - [ ] **Step 6: Commit**
 
@@ -565,7 +565,7 @@ describe('wiring-gap', () => {
 - [ ] **Step 2: Run — PASS early (no handlers yet, so both sets empty)**
 
 ```bash
-pnpm vitest run tests/lint/wiring-gap.spec.ts
+npx vitest run tests/lint/wiring-gap.spec.ts
 ```
 Expected: 2/2 PASS (empty set = empty set).
 
@@ -1252,7 +1252,7 @@ test('new user completes onboarding and lands on home', async ({ page }) => {
 - [ ] **Step 3: Run vitest + playwright → PASS**
 
 ```bash
-pnpm vitest run && pnpm build && pnpm playwright test tests/smoke/onboarding.spec.ts
+npx vitest run && npm run build && npx playwright test tests/smoke/onboarding.spec.ts
 ```
 
 - [ ] **Step 4: Commit**
@@ -1409,7 +1409,7 @@ briefingsSection.append(refreshBtn, list);
 - [ ] **Step 4: Run smoke**
 
 ```bash
-pnpm vitest run && pnpm build && pnpm playwright test tests/smoke/briefings.spec.ts
+npx vitest run && npm run build && npx playwright test tests/smoke/briefings.spec.ts
 ```
 
 - [ ] **Step 4: Commit**
@@ -1587,7 +1587,7 @@ cSec.append(chatArea, chatInput, chatSend);
 - [ ] **Step 4: Run smoke**
 
 ```bash
-pnpm build && pnpm playwright test tests/smoke/question-flow.spec.ts
+npm run build && npx playwright test tests/smoke/question-flow.spec.ts
 ```
 
 - [ ] **Step 5: Commit**
@@ -1736,7 +1736,7 @@ const list = document.createElement('div'); list.id = 'archiveList';
 - [ ] **Step 4: Run smoke**
 
 ```bash
-pnpm build && pnpm playwright test tests/smoke/archive.spec.ts
+npm run build && npx playwright test tests/smoke/archive.spec.ts
 ```
 
 - [ ] **Step 5: Commit**
@@ -2196,7 +2196,7 @@ Key rules:
 - [ ] **Step 4: Run full suite**
 
 ```bash
-pnpm vitest run && pnpm build && pnpm playwright test
+npx vitest run && npm run build && npx playwright test
 ```
 
 - [ ] **Step 5: Commit**
@@ -2251,7 +2251,7 @@ test('v2.0 localStorage snapshot renders losslessly in v3.1', async ({ page }) =
 - [ ] **Step 2: Run → PASS**
 
 ```bash
-pnpm build && pnpm playwright test tests/smoke/v20-compat.spec.ts
+npm run build && npx playwright test tests/smoke/v20-compat.spec.ts
 ```
 
 - [ ] **Step 3: Commit**
@@ -2266,28 +2266,28 @@ git commit -m "test(smoke): v2.0 localStorage compat — renders losslessly in v
 - [ ] **Step 1: All vitest**
 
 ```bash
-pnpm vitest run
+npx vitest run
 ```
 Expected: all green including `tests/lint/wiring-gap.spec.ts`.
 
 - [ ] **Step 2: Build + full Playwright**
 
 ```bash
-pnpm build && pnpm playwright test
+npm run build && npx playwright test
 ```
 Expected: 8/8 smoke green.
 
 - [ ] **Step 3: Lint**
 
 ```bash
-pnpm lint
+npm run lint
 ```
 Expected: 0 errors.
 
 - [ ] **Step 4: tsc**
 
 ```bash
-pnpm tsc --noEmit
+npx tsc --noEmit
 ```
 Expected: 0 errors.
 
@@ -2300,7 +2300,7 @@ No commit; this is a verification gate.
 - [ ] **Step 1: Local preview**
 
 ```bash
-pnpm build && pnpm preview --port 4173
+npm run build && npm run preview --port 4173
 ```
 
 Open `http://localhost:4173` with real `dg_gemini_key` in localStorage (use browser devtools to paste Hayden's actual key). Run the 7 user-facing scenarios:
