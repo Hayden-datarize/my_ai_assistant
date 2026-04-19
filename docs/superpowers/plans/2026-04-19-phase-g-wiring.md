@@ -72,6 +72,54 @@ Batch 7 (serial):       Task 23 (v2.0 compat smoke)  Task 24 (full gate run)
 
 ---
 
+## Revision 2026-04-19 — Task 1 follow-up (commit `3cfaf52`)
+
+Code review after Task 1 surfaced two plan-level gaps:
+
+1. **Dispatch target**: existing `src/ui/tabs/*.ts` dispatch on `document`, not `window`. `events.ts` now uses `document` to match.
+2. **Event names diverged from tabs**: the original EventMap was aspirational; reality is what tabs already dispatch. The map now covers the **16 actual tab dispatches**.
+
+**Authoritative event names + wire status (v3.1):**
+
+| Event | Detail | v3.1 listener? | Source tab line |
+|---|---|---|---|
+| `dg:home:toggle-theme` | undefined | YES (Task 20) | home.ts:108 |
+| `dg:home:export-data` | undefined | YES (Task 21) | home.ts:115 |
+| `dg:home:dismiss-backup` | undefined | stub (Task 22 bootstrap) | home.ts:121 |
+| `dg:home:switch-tab` | `{ tab: string }` | YES (Task 22 bootstrap delegates to nav) | home.ts:127 |
+| `dg:home:refresh-briefings` | undefined | YES (Task 16) | home.ts:133 |
+| `dg:home:update-char-count` | undefined | YES (Task 17 — handler reads #answerInput.value.length) | home.ts:139 |
+| `dg:home:toggle-hint` | undefined | YES (Task 17) | home.ts:145 |
+| `dg:home:submit-answer` | undefined | YES (Task 17 — handler reads #answerInput.value) | home.ts:151 |
+| `dg:home:send-chat` | undefined | YES (Task 17 — handler reads #chatInput.value) | home.ts:158/165 |
+| `dg:home:summarize-chat` | undefined | stub | home.ts:171 |
+| `dg:home:generate-insight-card` | undefined | stub | home.ts:177 |
+| `dg:archive:search` | undefined | YES (Task 18 — handler reads #archiveSearch.value) | archive.ts:74 |
+| `dg:archive:period-change` | undefined | stub | archive.ts:80 |
+| `dg:archive:filter` | `{ filter: string }` | YES (Task 18) | archive.ts:89 |
+| `dg:stats:weekly-report` | undefined | stub | stats.ts:80 |
+| `dg:stats:growth-analysis` | undefined | stub | stats.ts:86 |
+
+**Handler-rendered DOM uses direct listeners** (NOT through EventMap): briefing card scrap/memo buttons, heatmap cells for day detail, archive card click for detail modal, settings form fields. This keeps the EventMap = tab dispatches only, which is what the gap-detector (Task 8) needs.
+
+**Stub pattern (Task 22 bootstrap):**
+
+```ts
+import { on, V32_DEFERRED_EVENTS } from './ui/events';
+import { showToast } from './ui/handlers/settings'; // or a shared toast util
+for (const name of V32_DEFERRED_EVENTS) {
+  on(name, () => showToast('v3.2에서 준비 중입니다'));
+}
+```
+
+**Implications for Tasks 16–21:**
+- Where the original task text references event names like `dg:home:chat-send`, use `dg:home:send-chat`.
+- Where a task dispatches `{ text }` or `{ query }` in the detail, the handler reads the input value from the DOM instead (this matches what the tabs already dispatch — plain events without detail).
+- Handler-internal events (scrap, memo, heatmap cell click, archive detail open) are NOT in EventMap — use `element.addEventListener`.
+- v3.2 deferred events are wired to a toast stub in Task 22 bootstrap — do NOT attempt to implement them in v3.1 tasks.
+
+---
+
 ## Conventions
 
 - **Package manager:** `npm` (matches current repo; `package-lock.json` present). Use `npm run <script>` for scripts, `npx <bin>` for direct binary invocation.
