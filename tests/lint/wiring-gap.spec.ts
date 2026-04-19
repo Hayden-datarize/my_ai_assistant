@@ -35,8 +35,14 @@ describe('wiring-gap', () => {
 
     for (const f of srcFiles) {
       const src = await readFile(f, 'utf8');
-      for (const m of src.matchAll(dispatchRe)) dispatched.add(m[1] ?? m[2]);
-      for (const m of src.matchAll(listenRe)) listened.add(m[1] ?? m[2]);
+      for (const m of src.matchAll(dispatchRe)) {
+        const name = m[1] ?? m[2];
+        if (name) dispatched.add(name);
+      }
+      for (const m of src.matchAll(listenRe)) {
+        const name = m[1] ?? m[2];
+        if (name) listened.add(name);
+      }
     }
 
     const missingListener = [...dispatched].filter(n => !listened.has(n));
@@ -54,15 +60,17 @@ describe('wiring-gap', () => {
     // 1. <div id="foo"> in index.html
     const indexHtml = await readFile(resolve(ROOT, 'index.html'), 'utf8').catch(() => '');
     const htmlIdRe = /id\s*=\s*["']([A-Za-z][\w-]*)["']/g;
-    for (const m of indexHtml.matchAll(htmlIdRe)) declared.add(m[1]);
+    for (const m of indexHtml.matchAll(htmlIdRe)) {
+      if (m[1]) declared.add(m[1]);
+    }
 
     // 2. element.id = '...' and <element id="..."> in tab + onboarding source
     const tsIdAssignRe = /\.id\s*=\s*['"]([A-Za-z][\w-]*)['"]/g;
     const tsIdAttrRe = /\bid\s*=\s*['"]([A-Za-z][\w-]*)['"]/g;
     for (const f of [...tabFiles, ...onboardingFiles]) {
       const src = await readFile(f, 'utf8');
-      for (const m of src.matchAll(tsIdAssignRe)) declared.add(m[1]);
-      for (const m of src.matchAll(tsIdAttrRe)) declared.add(m[1]);
+      for (const m of src.matchAll(tsIdAssignRe)) if (m[1]) declared.add(m[1]);
+      for (const m of src.matchAll(tsIdAttrRe)) if (m[1]) declared.add(m[1]);
     }
 
     // handler references: qs('#foo'), qs('foo'), getElementById('foo')
@@ -71,7 +79,7 @@ describe('wiring-gap', () => {
     for (const f of handlerFiles) {
       const src = await readFile(f, 'utf8');
       for (const m of src.matchAll(refRe)) {
-        if (!declared.has(m[1])) missingIds.add(m[1]);
+        if (m[1] && !declared.has(m[1])) missingIds.add(m[1]);
       }
     }
     expect([...missingIds], 'handler id refs missing from markup').toEqual([]);
