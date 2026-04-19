@@ -74,7 +74,7 @@ Batch 7 (serial):       Task 23 (v2.0 compat smoke)  Task 24 (full gate run)
 
 ## Conventions
 
-- **Package manager:** `pnpm` (matches current repo).
+- **Package manager:** `npm` (matches current repo; `package-lock.json` present). Use `npm run <script>` for scripts, `npx <bin>` for direct binary invocation.
 - **Commit format:** Conventional commits (`feat(scope): …`, `test(scope): …`, `chore(scope): …`).
 - **Every task ends with a commit.** No "continue in next task" across commits.
 - **TDD per task:** write failing test → verify fails → implement → verify passes → commit.
