@@ -1,0 +1,57 @@
+{
+  "question": {
+    "candidates": [
+      {
+        "content": {
+          "parts": [
+            { "text": "{\"type\":\"reflection\",\"question\":\"오늘 하루 중 가장 몰입했던 순간은 언제였나요?\",\"hint\":\"구체적인 상황과 그때의 감정을 떠올려보세요.\"}" }
+          ]
+        }
+      }
+    ]
+  },
+  "feedback": {
+    "candidates": [
+      {
+        "content": {
+          "parts": [
+            { "text": "좋은 관찰이에요. 한 걸음 더: 그 경험이 앞으로의 결정에 어떻게 작용할 것 같나요?" }
+          ]
+        }
+      }
+    ]
+  },
+  "chat": {
+    "candidates": [
+      {
+        "content": {
+          "parts": [
+            { "text": "더 구체적으로 말해주실 수 있을까요?" }
+          ]
+        }
+      }
+    ]
+  },
+  "evaluation": {
+    "candidates": [
+      {
+        "content": {
+          "parts": [
+            { "text": "{\"score\":4,\"feedback\":\"구체적이고 맥락이 풍부합니다.\"}" }
+          ]
+        }
+      }
+    ]
+  },
+  "keyTest": {
+    "candidates": [
+      {
+        "content": {
+          "parts": [
+            { "text": "OK" }
+          ]
+        }
+      }
+    ]
+  }
+}

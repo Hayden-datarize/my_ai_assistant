@@ -118,6 +118,94 @@ Rationale: markup/dispatch is already written for ~16 events across 3 tabs; rewr
 
 **"Legacy 1:1" defined**: user-visible UI strings, localStorage keys + record shapes, and external API request shapes (Gemini, rss2json) are structurally compatible with v2.0; `migration.ts` handles any v0→v1 schema bumps so v2.0 data renders without loss. Internal code structure is free to diverge.
 
+### 4.3-bis Existing landscape (Phase B carryover) + 3-layer schema mapping
+
+**Revision 2026-04-19 (post-Task 14):** The original §4.3 omitted the fact that Phase B (prior session) already shipped `src/state/{schema,migration,persistence}.ts` with a **namespaced `dg.*` key scheme + Phase B shape**. The archive tab (`src/ui/tabs/archive.ts`) already consumes Phase B via `loadAnswers()` (reads `a.text`, `a.createdAt`). This means THREE concepts of "answer" coexist in the codebase. The authoritative reconciliation rule, adopted in Phase G-2, is:
+
+**All runtime state goes through Phase B `src/state/persistence.ts`. Legacy keys (if present) are migrated on first load.**
+
+#### Key-by-key plan
+
+| Storage Key | v2.0 (legacy) shape | Phase B (current) shape | v3.1 target | Migration |
+|---|---|---|---|---|
+| `answers` (legacy) | `{id, date, type, answer, evaluation?}[]` | — | read once, migrate to `dg.answers`, delete | `persistence.ts` auto on first load |
+| `dg.answers` | — | `{id, questionId, text, authorId, createdAt, schemaVersion}[]` | Phase B shape **+ optional `type`, `evaluation`, `date` fields** added in v3.1 | forward-only; v2.0 entries map `answer→text`, `date→createdAt`, `type`/`evaluation` preserved |
+| `user` | `{name, interests, onboardedAt, streak, lastActiveDate, xp, level}` | (no Phase B analog — this is profile, not opt-ins) | Phase G state/user.ts owns this key (unchanged) | none — shape preserved |
+| `dg.userSettings.{userId}` | — | `{userId, optIns, policyVersion, schemaVersion}` | Phase B keeps it; v3.1 doesn't add features here | none |
+| `briefings` | `{id, date, url, title, summary, scrapped, read, memo}[]` | — | Phase G state/briefings.ts owns this key (unchanged) | none |
+| `chat_{YYYY-MM-DD}` | `{role, text, at}[]` | — | Phase G state/chat.ts owns this key (unchanged) | none |
+| `theme` | `'light' \| 'dark'` | — | settings handler owns this key (unchanged) | none |
+| `dg_gemini_key` | string | — | settings tab owns this key (unchanged — already on disk) | none |
+
+**Rationale for key-split ownership:**
+- Phase B `UserSettings` is a different concept (opt-ins, policy versions for future privacy features) than legacy `user` (profile: name, interests, xp). They do not overlap; both keys coexist.
+- `answers` is the only key with a schema collision because Phase B already replaced it.
+
+#### Answer schema migration contract
+
+```ts
+// schema.ts — extended in Phase G-2
+export interface Answer extends Versioned {
+  id: string;
+  questionId: string;
+  text: string;           // primary answer body (was legacy `answer`)
+  authorId: string;       // 'self' for single-user v3.1
+  createdAt: string;      // ISO string (derived from legacy `date` if present)
+  type?: string;          // legacy: question type ('분석' | '전환' | ...); optional
+  evaluation?: { score: number; feedback: string }; // legacy AI score; optional
+  date?: string;          // legacy 'YYYY-MM-DD'; optional, kept for archive filter by day
+}
+```
+
+```ts
+// migration.ts — extended in Phase G-2
+export function migrateAnswer(raw: unknown): Answer {
+  const r = (raw ?? {}) as Record<string, unknown>;
+  if (isVersioned(r) && r.schemaVersion === CURRENT_SCHEMA_VERSION && typeof r.text === 'string') {
+    return r as Answer;
+  }
+  // Legacy v2.0 → Phase B mapping
+  const legacyAnswer = (r.answer as string | undefined) ?? '';
+  const legacyDate = (r.date as string | undefined) ?? new Date().toISOString().slice(0, 10);
+  const legacyType = r.type as string | undefined;
+  const legacyEval = r.evaluation as { score: number; feedback: string } | undefined;
+  return {
+    id: String(r.id ?? `a_${Date.now()}_${Math.random().toString(36).slice(2, 8)}`),
+    questionId: String(r.questionId ?? ''),
+    text: String(r.text ?? legacyAnswer),
+    authorId: String(r.authorId ?? 'self'),
+    createdAt: String(r.createdAt ?? (legacyDate ? `${legacyDate}T00:00:00.000Z` : new Date().toISOString())),
+    type: legacyType,
+    evaluation: legacyEval,
+    date: legacyDate,
+    schemaVersion: CURRENT_SCHEMA_VERSION,
+  };
+}
+```
+
+```ts
+// persistence.ts — extended in Phase G-2
+export function loadAnswers(): Answer[] {
+  // 1. Try Phase B key first
+  const phaseB = readJson<unknown[]>('dg.answers', []);
+  if (Array.isArray(phaseB) && phaseB.length > 0) {
+    return phaseB.map(migrateAnswer);
+  }
+  // 2. Fall back to legacy key if Phase B empty
+  const legacy = readJson<unknown[]>('answers', []);
+  if (!Array.isArray(legacy) || legacy.length === 0) return [];
+  const migrated = legacy.map(migrateAnswer);
+  // 3. Upgrade on first load: write to Phase B, delete legacy
+  saveAnswers(migrated);
+  localStorage.removeItem('answers');
+  return migrated;
+}
+```
+
+#### Task 10 disposition
+
+The Phase G Task 10 output (`src/state/answers.ts` + `tests/unit/state-answers.spec.ts`, commit `f53a2fc`) conflicts with this reconciliation because it writes to the legacy `answers` key with legacy shape. It will be **removed** in Phase G-2, replaced by direct use of `persistence.ts` in handlers. The Task 10 test cases are preserved semantically via new tests in `tests/unit/persistence.spec.ts` (expanded as part of Phase G-2).
+
 ## 5. Safety gates
 
 ### 5.1 Gate A — unit TDD

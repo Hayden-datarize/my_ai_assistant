@@ -1,0 +1,47 @@
+{
+  "dg_gemini_key": "TEST_KEY_V2",
+  "user": {
+    "name": "Hayden",
+    "interests": ["recruiting", "ai_ml", "leadership"],
+    "onboardedAt": "2026-03-01",
+    "streak": 12,
+    "lastActiveDate": "2026-04-18",
+    "xp": 640,
+    "level": 7
+  },
+  "answers": [
+    {
+      "id": "a1",
+      "date": "2026-04-18",
+      "questionId": "q1",
+      "type": "reflection",
+      "answer": "어제는 팀 1:1에서 비언어적 신호를 의식적으로 살폈다. 집중도가 떨어지는 순간 말속도를 늦추고 질문으로 바꿨더니 대화의 밀도가 높아졌다.",
+      "evaluation": { "score": 4, "feedback": "구체적이고 맥락이 풍부합니다." }
+    },
+    {
+      "id": "a2",
+      "date": "2026-04-17",
+      "questionId": "q2",
+      "type": "action",
+      "answer": "30분 딥워크 블록을 하루에 두 번 시도했다. 첫 블록은 성공적, 두 번째는 알림 차단이 부족했다.",
+      "evaluation": { "score": 3, "feedback": "원인 분석을 한 줄 더 붙이면 좋겠습니다." }
+    }
+  ],
+  "briefings": [
+    {
+      "id": "b1",
+      "date": "2026-04-18",
+      "url": "https://example.com/x",
+      "title": "좋은 피드백의 조건",
+      "summary": "사실-관찰-제안 순서로 주면 받는 사람이 방어적으로 반응하지 않는다.",
+      "scrapped": true,
+      "read": true,
+      "memo": "매주 회고에 적용"
+    }
+  ],
+  "theme": "dark",
+  "chat_2026-04-18": [
+    { "role": "user", "text": "어제 1:1이 좋았어", "at": 1713446400000 },
+    { "role": "ai", "text": "무엇이 다르게 느껴졌나요?", "at": 1713446410000 }
+  ]
+}

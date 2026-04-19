@@ -72,14 +72,62 @@ Batch 7 (serial):       Task 23 (v2.0 compat smoke)  Task 24 (full gate run)
 
 ---
 
+## Revision 2026-04-19 — Task 1 follow-up (commit `3cfaf52`)
+
+Code review after Task 1 surfaced two plan-level gaps:
+
+1. **Dispatch target**: existing `src/ui/tabs/*.ts` dispatch on `document`, not `window`. `events.ts` now uses `document` to match.
+2. **Event names diverged from tabs**: the original EventMap was aspirational; reality is what tabs already dispatch. The map now covers the **16 actual tab dispatches**.
+
+**Authoritative event names + wire status (v3.1):**
+
+| Event | Detail | v3.1 listener? | Source tab line |
+|---|---|---|---|
+| `dg:home:toggle-theme` | undefined | YES (Task 20) | home.ts:108 |
+| `dg:home:export-data` | undefined | YES (Task 21) | home.ts:115 |
+| `dg:home:dismiss-backup` | undefined | stub (Task 22 bootstrap) | home.ts:121 |
+| `dg:home:switch-tab` | `{ tab: string }` | YES (Task 22 bootstrap delegates to nav) | home.ts:127 |
+| `dg:home:refresh-briefings` | undefined | YES (Task 16) | home.ts:133 |
+| `dg:home:update-char-count` | undefined | YES (Task 17 — handler reads #answerInput.value.length) | home.ts:139 |
+| `dg:home:toggle-hint` | undefined | YES (Task 17) | home.ts:145 |
+| `dg:home:submit-answer` | undefined | YES (Task 17 — handler reads #answerInput.value) | home.ts:151 |
+| `dg:home:send-chat` | undefined | YES (Task 17 — handler reads #chatInput.value) | home.ts:158/165 |
+| `dg:home:summarize-chat` | undefined | stub | home.ts:171 |
+| `dg:home:generate-insight-card` | undefined | stub | home.ts:177 |
+| `dg:archive:search` | undefined | YES (Task 18 — handler reads #archiveSearch.value) | archive.ts:74 |
+| `dg:archive:period-change` | undefined | stub | archive.ts:80 |
+| `dg:archive:filter` | `{ filter: string }` | YES (Task 18) | archive.ts:89 |
+| `dg:stats:weekly-report` | undefined | stub | stats.ts:80 |
+| `dg:stats:growth-analysis` | undefined | stub | stats.ts:86 |
+
+**Handler-rendered DOM uses direct listeners** (NOT through EventMap): briefing card scrap/memo buttons, heatmap cells for day detail, archive card click for detail modal, settings form fields. This keeps the EventMap = tab dispatches only, which is what the gap-detector (Task 8) needs.
+
+**Stub pattern (Task 22 bootstrap):**
+
+```ts
+import { on, V32_DEFERRED_EVENTS } from './ui/events';
+import { showToast } from './ui/handlers/settings'; // or a shared toast util
+for (const name of V32_DEFERRED_EVENTS) {
+  on(name, () => showToast('v3.2에서 준비 중입니다'));
+}
+```
+
+**Implications for Tasks 16–21:**
+- Where the original task text references event names like `dg:home:chat-send`, use `dg:home:send-chat`.
+- Where a task dispatches `{ text }` or `{ query }` in the detail, the handler reads the input value from the DOM instead (this matches what the tabs already dispatch — plain events without detail).
+- Handler-internal events (scrap, memo, heatmap cell click, archive detail open) are NOT in EventMap — use `element.addEventListener`.
+- v3.2 deferred events are wired to a toast stub in Task 22 bootstrap — do NOT attempt to implement them in v3.1 tasks.
+
+---
+
 ## Conventions
 
-- **Package manager:** `pnpm` (matches current repo).
+- **Package manager:** `npm` (matches current repo; `package-lock.json` present). Use `npm run <script>` for scripts, `npx <bin>` for direct binary invocation.
 - **Commit format:** Conventional commits (`feat(scope): …`, `test(scope): …`, `chore(scope): …`).
 - **Every task ends with a commit.** No "continue in next task" across commits.
 - **TDD per task:** write failing test → verify fails → implement → verify passes → commit.
 - **ESLint is live:** no `innerHTML`, no inline `on*=` handlers, no unescaped interpolation. Use `src/utils/dom.ts` `qs`/`qsa`/`on` helpers and `src/utils/escapeHtml.ts`.
-- **Playwright smoke** always runs against `pnpm build && pnpm preview` (not dev server).
+- **Playwright smoke** always runs against `npm run build && npm run preview` (not dev server).
 - **Legacy port rule:** match user-visible text, localStorage keys+shapes, and external API shapes exactly. Internal code may diverge.
 - **Reference legacy lines:** use `git show 9e82119^:daily-growth.html | sed -n 'N,Mp'` when porting.
 
@@ -132,7 +180,7 @@ describe('events', () => {
 - [ ] **Step 2: Run test — verify FAIL**
 
 ```bash
-pnpm vitest run tests/unit/events.spec.ts
+npx vitest run tests/unit/events.spec.ts
 ```
 Expected: FAIL (module not found).
 
@@ -190,7 +238,7 @@ export const EVENT_NAMES: EventName[] = [
 - [ ] **Step 4: Run — verify PASS**
 
 ```bash
-pnpm vitest run tests/unit/events.spec.ts
+npx vitest run tests/unit/events.spec.ts
 ```
 Expected: 3/3 PASS.
 
@@ -227,7 +275,7 @@ describe('getDateStr', () => {
 });
 ```
 
-- [ ] **Step 2: Run — FAIL** (`pnpm vitest run tests/unit/dates.spec.ts`)
+- [ ] **Step 2: Run — FAIL** (`npx vitest run tests/unit/dates.spec.ts`)
 
 - [ ] **Step 3: Implement**
 
@@ -241,7 +289,7 @@ export function getDateStr(date: Date = new Date()): string {
 }
 ```
 
-- [ ] **Step 4: Run — PASS** (`pnpm vitest run tests/unit/dates.spec.ts`) — 3/3 PASS
+- [ ] **Step 4: Run — PASS** (`npx vitest run tests/unit/dates.spec.ts`) — 3/3 PASS
 
 - [ ] **Step 5: Commit**
 
@@ -290,7 +338,7 @@ describe('categories', () => {
 });
 ```
 
-- [ ] **Step 3: Run — FAIL** (`pnpm vitest run tests/unit/categories.spec.ts`)
+- [ ] **Step 3: Run — FAIL** (`npx vitest run tests/unit/categories.spec.ts`)
 
 - [ ] **Step 4: Implement (port legacy labels verbatim)**
 
@@ -319,7 +367,7 @@ export function getCategoryLabel(id: string): string {
 
 Implementer MUST re-extract `INTERESTS` from legacy source and confirm the set matches 1:1 before committing.
 
-- [ ] **Step 5: Run — PASS** (`pnpm vitest run tests/unit/categories.spec.ts`)
+- [ ] **Step 5: Run — PASS** (`npx vitest run tests/unit/categories.spec.ts`)
 
 - [ ] **Step 6: Commit**
 
@@ -565,7 +613,7 @@ describe('wiring-gap', () => {
 - [ ] **Step 2: Run — PASS early (no handlers yet, so both sets empty)**
 
 ```bash
-pnpm vitest run tests/lint/wiring-gap.spec.ts
+npx vitest run tests/lint/wiring-gap.spec.ts
 ```
 Expected: 2/2 PASS (empty set = empty set).
 
@@ -1252,7 +1300,7 @@ test('new user completes onboarding and lands on home', async ({ page }) => {
 - [ ] **Step 3: Run vitest + playwright → PASS**
 
 ```bash
-pnpm vitest run && pnpm build && pnpm playwright test tests/smoke/onboarding.spec.ts
+npx vitest run && npm run build && npx playwright test tests/smoke/onboarding.spec.ts
 ```
 
 - [ ] **Step 4: Commit**
@@ -1409,7 +1457,7 @@ briefingsSection.append(refreshBtn, list);
 - [ ] **Step 4: Run smoke**
 
 ```bash
-pnpm vitest run && pnpm build && pnpm playwright test tests/smoke/briefings.spec.ts
+npx vitest run && npm run build && npx playwright test tests/smoke/briefings.spec.ts
 ```
 
 - [ ] **Step 4: Commit**
@@ -1587,7 +1635,7 @@ cSec.append(chatArea, chatInput, chatSend);
 - [ ] **Step 4: Run smoke**
 
 ```bash
-pnpm build && pnpm playwright test tests/smoke/question-flow.spec.ts
+npm run build && npx playwright test tests/smoke/question-flow.spec.ts
 ```
 
 - [ ] **Step 5: Commit**
@@ -1736,7 +1784,7 @@ const list = document.createElement('div'); list.id = 'archiveList';
 - [ ] **Step 4: Run smoke**
 
 ```bash
-pnpm build && pnpm playwright test tests/smoke/archive.spec.ts
+npm run build && npx playwright test tests/smoke/archive.spec.ts
 ```
 
 - [ ] **Step 5: Commit**
@@ -2196,7 +2244,7 @@ Key rules:
 - [ ] **Step 4: Run full suite**
 
 ```bash
-pnpm vitest run && pnpm build && pnpm playwright test
+npx vitest run && npm run build && npx playwright test
 ```
 
 - [ ] **Step 5: Commit**
@@ -2251,7 +2299,7 @@ test('v2.0 localStorage snapshot renders losslessly in v3.1', async ({ page }) =
 - [ ] **Step 2: Run → PASS**
 
 ```bash
-pnpm build && pnpm playwright test tests/smoke/v20-compat.spec.ts
+npm run build && npx playwright test tests/smoke/v20-compat.spec.ts
 ```
 
 - [ ] **Step 3: Commit**
@@ -2266,28 +2314,28 @@ git commit -m "test(smoke): v2.0 localStorage compat — renders losslessly in v
 - [ ] **Step 1: All vitest**
 
 ```bash
-pnpm vitest run
+npx vitest run
 ```
 Expected: all green including `tests/lint/wiring-gap.spec.ts`.
 
 - [ ] **Step 2: Build + full Playwright**
 
 ```bash
-pnpm build && pnpm playwright test
+npm run build && npx playwright test
 ```
 Expected: 8/8 smoke green.
 
 - [ ] **Step 3: Lint**
 
 ```bash
-pnpm lint
+npm run lint
 ```
 Expected: 0 errors.
 
 - [ ] **Step 4: tsc**
 
 ```bash
-pnpm tsc --noEmit
+npx tsc --noEmit
 ```
 Expected: 0 errors.
 
@@ -2300,7 +2348,7 @@ No commit; this is a verification gate.
 - [ ] **Step 1: Local preview**
 
 ```bash
-pnpm build && pnpm preview --port 4173
+npm run build && npm run preview --port 4173
 ```
 
 Open `http://localhost:4173` with real `dg_gemini_key` in localStorage (use browser devtools to paste Hayden's actual key). Run the 7 user-facing scenarios:

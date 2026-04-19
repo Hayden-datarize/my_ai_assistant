@@ -34,4 +34,8 @@ export function switchTab(id: TabId): void {
   const app = qs<HTMLElement>('#app');
   app.replaceChildren();
   tab.render(app);
+  // Notify handlers so they can hydrate the newly rendered markup.
+  // Using raw dispatchEvent instead of the typed helper to avoid a cycle
+  // (events.ts has no dependency on nav.ts).
+  document.dispatchEvent(new CustomEvent('dg:nav:tab-changed', { detail: { tab: id } }));
 }

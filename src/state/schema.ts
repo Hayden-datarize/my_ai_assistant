@@ -9,9 +9,15 @@ export interface Versioned {
 export interface Answer extends Versioned {
   id: string;
   questionId: string;
-  text: string;
-  authorId: string;
-  createdAt: string;
+  text: string;          // primary answer body (was legacy `answer`)
+  authorId: string;      // 'self' for single-user v3.1
+  createdAt: string;     // ISO string
+  /** legacy: question type label ('분석' | '전환' | '실무' | '성장' | '트렌드' | etc.). optional, kept for archive filter + stats breakdown. */
+  type?: string;
+  /** legacy AI evaluation score + feedback. optional. */
+  evaluation?: { score: number; feedback: string };
+  /** legacy 'YYYY-MM-DD'. optional, kept for archive daily grouping. */
+  date?: string;
 }
 
 export interface UserSettings extends Versioned {
