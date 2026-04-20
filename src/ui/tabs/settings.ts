@@ -1,9 +1,9 @@
+import { loadSlackSettings, saveSlackSettings, clearSlackSettings } from '../../state/slack';
+import { sendToSlack, buildAnswerBlocks } from '../../services/slack';
+import { showToast } from '../../utils/toast';
+
 const STORAGE_KEY_APIKEY = 'dg_gemini_key'; // legacy storage key — preserved for cutover compat
 
-/**
- * Settings 탭 — Task 14에서는 API 키 + Slack Webhook 2개 섹션만 다룬다.
- * 프로필/알림/Notion/테마/데이터 초기화 등 legacy 설정은 Task 18에서 확장된다.
- */
 export function renderSettings(container: HTMLElement): void {
   // eslint-disable-next-line no-restricted-syntax -- trusted static template, no interpolation
   container.innerHTML = `
@@ -18,20 +18,37 @@ export function renderSettings(container: HTMLElement): void {
       <section class="settings-group">
         <div class="settings-group-title">Slack Webhook</div>
         <input type="url" id="slackWebhookInput" placeholder="https://hooks.slack.com/services/..." style="width:100%;padding:10px;border:1px solid var(--border);border-radius:var(--radius-sm);background:var(--bg-input);color:var(--text-primary);" />
-        <button type="button" id="testSlackBtn" class="btn btn-secondary btn-block" style="margin-top:8px;">테스트</button>
+        <div style="display:flex;gap:8px;margin-top:8px;">
+          <button type="button" id="testSlackBtn" class="btn btn-secondary" style="flex:1;">🔗 테스트</button>
+          <button type="button" id="saveSlackBtn" class="btn btn-primary" style="flex:1;">💾 저장</button>
+        </div>
+        <div id="slackAutoRow" style="display:none;align-items:center;justify-content:space-between;margin-top:12px;">
+          <label for="slackAutoToggle" style="font-size:0.9rem;">답변 제출 시 자동 전송</label>
+          <input type="checkbox" id="slackAutoToggle" />
+        </div>
+        <button type="button" id="clearSlackBtn" class="btn btn-secondary" style="display:none;margin-top:8px;width:100%;">🗑️ 연결 해제</button>
         <div id="slackTestResult" style="margin-top:8px;font-size:0.85rem;"></div>
+        <details style="margin-top:12px;">
+          <summary style="cursor:pointer;font-size:0.9rem;">Webhook URL 만들기</summary>
+          <ol style="font-size:0.85rem;margin-top:8px;line-height:1.6;padding-left:20px;">
+            <li><a href="https://api.slack.com/apps" target="_blank" rel="noopener">Slack API</a>에서 "Create New App" → "From scratch"</li>
+            <li>Features → Incoming Webhooks 활성화</li>
+            <li>"Add New Webhook to Workspace" → 채널 선택</li>
+            <li>생성된 Webhook URL을 위 입력란에 붙여넣기</li>
+            <li>"💾 저장" 버튼 클릭</li>
+          </ol>
+          <p style="font-size:0.8rem;color:var(--text-secondary);margin-top:8px;">※ 이 Webhook URL은 이 브라우저에만 저장됩니다.</p>
+        </details>
       </section>
     </div>
   `;
   bindHandlers(container);
+  bindSlackHandlers(container);
 }
 
 function bindHandlers(container: HTMLElement): void {
   const saveBtn = container.querySelector<HTMLButtonElement>('#saveApiKeyBtn');
   if (saveBtn) saveBtn.addEventListener('click', () => onSaveKey(container));
-
-  const testBtn = container.querySelector<HTMLButtonElement>('#testSlackBtn');
-  if (testBtn) testBtn.addEventListener('click', () => onTestSlack(container));
 }
 
 function onSaveKey(container: HTMLElement): void {
@@ -51,15 +68,90 @@ function onSaveKey(container: HTMLElement): void {
   }
 }
 
-function onTestSlack(container: HTMLElement): void {
+function isValidWebhookUrl(url: string): boolean {
+  return url.startsWith('https://hooks.slack.com/services/');
+}
+
+function bindSlackHandlers(container: HTMLElement): void {
   const input = container.querySelector<HTMLInputElement>('#slackWebhookInput');
+  const testBtn = container.querySelector<HTMLButtonElement>('#testSlackBtn');
+  const saveBtn = container.querySelector<HTMLButtonElement>('#saveSlackBtn');
+  const toggle = container.querySelector<HTMLInputElement>('#slackAutoToggle');
+  const toggleRow = container.querySelector<HTMLElement>('#slackAutoRow');
+  const clearBtn = container.querySelector<HTMLButtonElement>('#clearSlackBtn');
   const result = container.querySelector<HTMLDivElement>('#slackTestResult');
-  if (!input || !result) return;
-  const webhook = input.value.trim();
-  if (!webhook) {
-    result.textContent = 'Webhook URL을 입력하세요.';
-    return;
+  if (!input || !testBtn || !saveBtn || !toggle || !toggleRow || !clearBtn || !result) return;
+
+  // Hydrate from storage
+  const existing = loadSlackSettings();
+  if (existing) {
+    input.value = existing.webhook;
+    toggle.checked = existing.autoSend;
+    toggleRow.style.display = 'flex';
+    clearBtn.style.display = 'block';
   }
-  result.textContent = '테스트 전송 준비 중... (Task 16에서 실제 전송 연결)';
-  // Real fetch to Slack is wired up in Task 16 (services/slack.ts). This task does UI only.
+
+  const setResult = (text: string, kind: 'info' | 'ok' | 'err' = 'info'): void => {
+    result.textContent = text;
+    result.style.color = kind === 'ok' ? 'var(--accent, #059669)' : kind === 'err' ? 'var(--danger, #dc2626)' : '';
+  };
+
+  testBtn.addEventListener('click', () => {
+    void (async () => {
+      const webhook = input.value.trim();
+      if (!webhook) { setResult('Webhook URL을 입력하세요.'); return; }
+      if (!isValidWebhookUrl(webhook)) { setResult('Slack Incoming Webhook URL 형식이 아닙니다.', 'err'); return; }
+      setResult('전송 중…');
+      try {
+        await sendToSlack(webhook, buildAnswerBlocks({
+          question: '샘플 — Daily Growth Slack 연결 테스트',
+          answer: '이 메시지가 보이면 연결이 정상입니다.',
+        }));
+        setResult('✅ 전송 성공', 'ok');
+      } catch (e) {
+        const msg = e instanceof Error ? e.message : String(e);
+        setResult(`❌ 전송 실패 — ${msg}`, 'err');
+      }
+    })();
+  });
+
+  saveBtn.addEventListener('click', () => {
+    const webhook = input.value.trim();
+    if (!webhook) { showToast('Webhook URL을 입력하세요'); return; }
+    if (!isValidWebhookUrl(webhook)) { setResult('Slack Incoming Webhook URL 형식이 아닙니다.', 'err'); return; }
+    const prev = loadSlackSettings();
+    const nextAutoSend = prev?.autoSend ?? false;
+    try {
+      saveSlackSettings({ webhook, autoSend: nextAutoSend });
+    } catch (_e) {
+      setResult('저장 실패 — 브라우저 저장 공간을 확인해주세요.', 'err');
+      return;
+    }
+    toggle.checked = nextAutoSend;
+    toggleRow.style.display = 'flex';
+    clearBtn.style.display = 'block';
+    setResult('');
+    showToast('✅ Slack Webhook 저장됨');
+  });
+
+  toggle.addEventListener('change', () => {
+    const current = loadSlackSettings();
+    if (!current) {
+      toggle.checked = false;
+      showToast('먼저 Webhook URL을 저장하세요');
+      return;
+    }
+    saveSlackSettings({ webhook: current.webhook, autoSend: toggle.checked });
+    showToast(toggle.checked ? '✅ 자동 전송 켜짐' : '🔕 자동 전송 꺼짐');
+  });
+
+  clearBtn.addEventListener('click', () => {
+    clearSlackSettings();
+    input.value = '';
+    toggle.checked = false;
+    toggleRow.style.display = 'none';
+    clearBtn.style.display = 'none';
+    setResult('');
+    showToast('🗑️ Slack 연결 해제됨');
+  });
 }
