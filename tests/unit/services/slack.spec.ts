@@ -166,7 +166,12 @@ describe('services/slack.sendToSlack', () => {
     localStorage.clear();
   });
 
-  it('POSTs JSON payload with content-type header', async () => {
+  it('POSTs JSON body WITHOUT setting headers (avoids CORS preflight against Slack)', async () => {
+    // Regression: v3.2a set `content-type: application/json` which makes the
+    // request non-simple and triggers a preflight OPTIONS. hooks.slack.com does
+    // not answer preflight → browser blocks with TypeError: Failed to fetch.
+    // Legacy v2.0 sent no headers, letting the browser default to
+    // `text/plain;charset=UTF-8` (simple request). Slack parses JSON regardless.
     (global.fetch as ReturnType<typeof vi.fn>).mockResolvedValue({ ok: true, status: 200 });
     const payload = { text: 'hi', blocks: [] as Array<never> };
     await sendToSlack('https://hooks.slack.com/services/X/Y/Z', payload);
@@ -175,7 +180,7 @@ describe('services/slack.sendToSlack', () => {
     expect(call?.[0]).toBe('https://hooks.slack.com/services/X/Y/Z');
     const init = call?.[1] as RequestInit;
     expect(init.method).toBe('POST');
-    expect((init.headers as Record<string, string>)['content-type']).toBe('application/json');
+    expect(init.headers, 'headers must be unset so browser assigns text/plain (simple request)').toBeUndefined();
     expect(JSON.parse(init.body as string)).toEqual(payload);
   });
 
