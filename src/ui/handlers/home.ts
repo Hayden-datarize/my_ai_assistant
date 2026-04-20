@@ -272,25 +272,27 @@ async function refreshBriefings(): Promise<void> {
     scroll.append(loading);
   }
 
+  // v3.2b-ui: dedup via pickBriefings + surface sourceTitle chip
   const picks = user.interests.slice(0, 3);
-  const feeds = picks.map(interestToFeed).filter(Boolean) as string[];
-  const fetched: FeedItem[] = [];
-  for (const feedUrl of feeds) {
-    const items = await fetchFeed(feedUrl, { timeoutMs: 5000 });
-    const first = items[0];
-    if (first) fetched.push(first);
-  }
+  const feedUrls = Array.from(
+    new Set(picks.map(interestToFeed).filter((u): u is string => !!u)),
+  );
+  const fetched = await Promise.all(
+    feedUrls.map((u) => fetchFeed(u, { timeoutMs: 5000 })),
+  );
+  const chosen = pickBriefings(fetched, 3);
 
   const today = getDateStr();
-  const stored = fetched.map((it, i) => ({
+  const stored: Briefing[] = chosen.map(({ item, sourceTitle }, i) => ({
     id: `b_${Date.now()}_${i}`,
     date: today,
-    url: it.link,
-    title: it.title,
-    summary: stripTags(it.description).slice(0, 200),
+    url: item.link,
+    title: item.title,
+    summary: stripTags(item.description).slice(0, 200),
     scrapped: false,
     read: false,
     memo: '',
+    ...(sourceTitle ? { sourceTitle } : {}),
   }));
   saveBriefings(stored);
   hydrateBriefings();
