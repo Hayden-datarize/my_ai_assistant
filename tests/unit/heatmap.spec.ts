@@ -1,6 +1,7 @@
 import { describe, it, expect, beforeEach, afterEach, vi } from 'vitest';
 
 function mountHeatmapDom(): void {
+  // eslint-disable-next-line no-restricted-syntax -- jsdom DOM fixture; static template, no user interpolation
   document.body.innerHTML = `
     <div id="statsTab">
       <div class="heatmap-labels" id="heatmapLabels"></div>
