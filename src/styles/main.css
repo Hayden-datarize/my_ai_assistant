@@ -28,6 +28,7 @@
   --font-body: 'Noto Sans KR', sans-serif;
   --nav-height: 64px;
   --safe-bottom: env(safe-area-inset-bottom, 0px);
+  --content-bottom-pad: calc(var(--nav-height) + var(--safe-bottom) + 24px);
 }
 
 [data-theme="dark"] {
@@ -82,7 +83,6 @@ h3 { font-size: 1.1rem; }
   margin: 0 auto;
   min-height: 100dvh;
   position: relative;
-  padding-bottom: calc(var(--nav-height) + var(--safe-bottom) + 24px);
 }
 
 /* ============================================
@@ -907,9 +907,9 @@ h3 { font-size: 1.1rem; }
   .app-container { border-left: 1px solid var(--border); border-right: 1px solid var(--border); }
 }
 @media (min-width: 768px) {
+  :root { --content-bottom-pad: 24px; }
   .app-container {
     max-width: 960px;
-    padding-bottom: calc(var(--nav-height) + var(--safe-bottom) + 8px);
   }
   #homeTab {
     display: grid;
@@ -934,4 +934,13 @@ h3 { font-size: 1.1rem; }
   .briefing-card { min-width: 280px; }
   .stat-grid { grid-template-columns: repeat(4, 1fr); }
   .onboarding-grid { grid-template-columns: repeat(3, 1fr); }
+}
+
+/* v3.2b-ui: tabs carry the bottom safe-area pad so .app-container doesn't double it. */
+#homeTab,
+#archiveTab,
+#statsTab,
+#insightsTab,
+#settingsTab {
+  padding-bottom: var(--content-bottom-pad);
 }
