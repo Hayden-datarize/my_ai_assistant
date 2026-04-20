@@ -349,6 +349,16 @@ h3 { font-size: 1.1rem; }
 }
 .briefing-scroll::-webkit-scrollbar { display: none; }
 
+.briefing-empty {
+  flex: 1; min-height: 120px;
+  display: flex; align-items: center; justify-content: center;
+  padding: 24px 20px; margin: 0 20px;
+  background: var(--bg-card); border: 1px dashed var(--border);
+  border-radius: var(--radius-lg);
+  font-size: 0.875rem; color: var(--text-tertiary);
+  text-align: center; line-height: 1.5;
+}
+
 .briefing-card {
   min-width: 300px; max-width: 320px;
   background: var(--bg-card); border-radius: var(--radius-lg);

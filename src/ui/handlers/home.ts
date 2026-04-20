@@ -270,28 +270,45 @@ async function refreshBriefings(): Promise<void> {
   saveBriefings(stored);
   hydrateBriefings();
 
-  if (stored.length === 0) showToast('브리핑을 가져오지 못했어요. 잠시 후 다시 시도해 주세요');
+  if (stored.length === 0) {
+    // Replace the "브리핑을 불러오는 중…" loading text with an explicit
+    // empty state so the UI does not appear permanently stuck when every
+    // RSS source returns an error (e.g. rate limit, source down).
+    const scrollEl = document.getElementById('briefingScroll');
+    if (scrollEl) {
+      scrollEl.replaceChildren();
+      const empty = document.createElement('div');
+      empty.className = 'briefing-empty';
+      empty.textContent = '오늘 표시할 브리핑을 가져오지 못했어요. 잠시 후 다시 시도해 주세요.';
+      scrollEl.append(empty);
+    }
+    showToast('브리핑을 가져오지 못했어요. 잠시 후 다시 시도해 주세요');
+  }
 }
 
 function stripTags(s: string): string { return s.replace(/<[^>]*>/g, '').trim(); }
 
+// Verified working RSS sources (2026-04-20). brunch.co.kr/* and
+// wanted.co.kr/events/tech/rss returned 4xx/5xx via rss2json and were
+// removed in v3.2a-hotfix3. Keep this list in sync with
+// tests/lint/rss-source-allowlist.spec.ts so the lint catches drift.
 function interestToFeed(interestId: string): string | null {
   const map: Record<string, string> = {
-    recruiting: 'https://www.wanted.co.kr/events/tech/rss',
-    onboarding: 'https://www.wanted.co.kr/events/tech/rss',
-    culture: 'https://brunch.co.kr/rss/magazine-hr',
-    hr_system: 'https://brunch.co.kr/rss/magazine-hr',
-    labor_law: 'https://brunch.co.kr/rss/magazine-hr',
-    leadership: 'https://brunch.co.kr/rss/magazine-biz',
-    pm: 'https://techblog.woowahan.com/feed/',
-    ai_ml: 'https://techblog.woowahan.com/feed/',
-    data: 'https://techblog.woowahan.com/feed/',
-    startup: 'https://brunch.co.kr/rss/magazine-biz',
-    marketing: 'https://brunch.co.kr/rss/magazine-biz',
-    productivity: 'https://brunch.co.kr/rss/magazine-growth',
-    career: 'https://brunch.co.kr/rss/magazine-growth',
-    communication: 'https://brunch.co.kr/rss/magazine-communication',
-    self_dev: 'https://brunch.co.kr/rss/magazine-growth',
+    recruiting: 'https://medium.com/feed/daangn',
+    onboarding: 'https://medium.com/feed/daangn',
+    culture: 'https://medium.com/feed/daangn',
+    hr_system: 'https://outstanding.kr/feed',
+    labor_law: 'https://outstanding.kr/feed',
+    leadership: 'https://medium.com/feed/daangn',
+    pm: 'https://toss.tech/rss.xml',
+    ai_ml: 'https://tech.kakao.com/feed/',
+    data: 'https://d2.naver.com/d2.atom',
+    startup: 'https://outstanding.kr/feed',
+    marketing: 'https://www.mobiinside.co.kr/feed',
+    productivity: 'https://www.lifehacker.co.kr/feed',
+    career: 'https://www.lifehacker.co.kr/feed',
+    communication: 'https://www.lifehacker.co.kr/feed',
+    self_dev: 'https://www.lifehacker.co.kr/feed',
   };
   return map[interestId] ?? null;
 }
