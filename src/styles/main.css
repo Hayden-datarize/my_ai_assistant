@@ -909,8 +909,33 @@ h3 { font-size: 1.1rem; }
 @media (min-width: 768px) {
   :root { --content-bottom-pad: 24px; }
   .app-container {
-    max-width: 960px;
+    max-width: 1200px;
+    padding-left: 240px;
   }
+  .bottom-nav {
+    top: 0; bottom: 0; left: 0;
+    transform: none;
+    width: 240px; max-width: 240px;
+    flex-direction: column;
+    border-top: none;
+    border-right: 1px solid var(--border);
+    padding: 24px 0;
+    padding-bottom: 24px;
+  }
+  .nav-item {
+    flex: 0 0 auto;
+    flex-direction: row;
+    gap: 12px;
+    justify-content: flex-start;
+    padding: 12px 20px 12px 16px;
+    font-size: 0.85rem;
+    border-left: 4px solid transparent;
+  }
+  .nav-item.active {
+    border-left-color: var(--primary);
+    background: var(--primary-ultra-light);
+  }
+  .nav-item .nav-icon { font-size: 1.15rem; }
   #homeTab {
     display: grid;
     grid-template-columns: 1fr 1fr;
