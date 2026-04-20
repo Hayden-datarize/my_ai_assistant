@@ -51,3 +51,12 @@ export function buildAnswerBlocks(data: AnswerData): SlackPayload {
   blocks.push({ type: 'context', elements: [{ type: 'mrkdwn', text: `🔥 연속 ${streak}일 · ⭐ ${xp} XP` }] });
   return { text: headerText, blocks };
 }
+
+export async function sendToSlack(webhook: string, payload: SlackPayload): Promise<void> {
+  const res = await fetch(webhook, {
+    method: 'POST',
+    headers: { 'content-type': 'application/json' },
+    body: JSON.stringify(payload),
+  });
+  if (!res.ok) throw new Error(`Slack webhook ${res.status}`);
+}

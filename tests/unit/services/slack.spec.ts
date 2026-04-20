@@ -1,5 +1,5 @@
-import { describe, it, expect, beforeEach } from 'vitest';
-import { buildAnswerBlocks } from '../../../src/services/slack';
+import { describe, it, expect, beforeEach, vi } from 'vitest';
+import { buildAnswerBlocks, sendToSlack } from '../../../src/services/slack';
 
 function seedUser(overrides: Partial<{ streak: number; xp: number }> = {}): void {
   localStorage.setItem('user', JSON.stringify({
@@ -162,5 +162,39 @@ describe('services/slack.buildAnswerBlocks escaping', () => {
     expect(aUserPart).not.toMatch(/(^|[^\\])\*/);
     // And the escaped form is present
     expect(aUserPart).toContain('\\*');
+  });
+});
+
+describe('services/slack.sendToSlack', () => {
+  beforeEach(() => {
+    global.fetch = vi.fn();
+    localStorage.clear();
+  });
+
+  it('POSTs JSON payload with content-type header', async () => {
+    (global.fetch as ReturnType<typeof vi.fn>).mockResolvedValue({ ok: true, status: 200 });
+    const payload = { text: 'hi', blocks: [] as Array<never> };
+    await sendToSlack('https://hooks.slack.com/services/X/Y/Z', payload);
+    expect(global.fetch).toHaveBeenCalledTimes(1);
+    const call = (global.fetch as ReturnType<typeof vi.fn>).mock.calls[0];
+    expect(call?.[0]).toBe('https://hooks.slack.com/services/X/Y/Z');
+    const init = call?.[1] as RequestInit;
+    expect(init.method).toBe('POST');
+    expect((init.headers as Record<string, string>)['content-type']).toBe('application/json');
+    expect(JSON.parse(init.body as string)).toEqual(payload);
+  });
+
+  it('throws Error with status on non-200 response', async () => {
+    (global.fetch as ReturnType<typeof vi.fn>).mockResolvedValue({ ok: false, status: 404 });
+    await expect(
+      sendToSlack('https://hooks.slack.com/services/X', { text: '', blocks: [] as Array<never> })
+    ).rejects.toThrow(/Slack webhook 404/);
+  });
+
+  it('propagates network errors (fetch rejection)', async () => {
+    (global.fetch as ReturnType<typeof vi.fn>).mockRejectedValue(new Error('offline'));
+    await expect(
+      sendToSlack('https://hooks.slack.com/services/X', { text: '', blocks: [] as Array<never> })
+    ).rejects.toThrow(/offline/);
   });
 });
