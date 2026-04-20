@@ -23,8 +23,12 @@ export interface SlackPayload {
 const ANSWER_CAP = 500;
 
 function escapeMrkdwn(s: string): string {
+  // Slack mrkdwn requires escaping `<` and `>` (link syntax <url|label>).
+  // `&` is NOT HTML-entity-decoded by Slack, so escaping it produces double-encoded
+  // output like `&amp;` in the channel — we keep it literal.
+  // Formatting marks (* _ ` ~) are backslash-escaped to prevent user `*foo*` from
+  // becoming bold and to prevent the 500-char cap from splitting a `*...*` pair.
   return s
-    .replace(/&/g, '&amp;')
     .replace(/</g, '&lt;')
     .replace(/>/g, '&gt;')
     .replace(/\*/g, '\\*')
@@ -59,7 +63,13 @@ export async function sendToSlack(webhook: string, payload: SlackPayload): Promi
     headers: { 'content-type': 'application/json' },
     body: JSON.stringify(payload),
   });
-  if (!res.ok) throw new Error(`Slack webhook ${res.status}`);
+  if (!res.ok) {
+    // Slack returns plain-text diagnostics on error (e.g. `no_service`, `no_team`,
+    // `invalid_payload`). Include up to 120 chars to aid manual QA debugging.
+    const body = await res.text().catch(() => '');
+    const hint = body ? `: ${body.slice(0, 120)}` : '';
+    throw new Error(`Slack webhook ${res.status}${hint}`);
+  }
 }
 
 export async function autoSendAnswer(data: AnswerData): Promise<void> {

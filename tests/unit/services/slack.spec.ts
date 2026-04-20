@@ -84,7 +84,7 @@ describe('services/slack.buildAnswerBlocks escaping', () => {
     seedUser();
   });
 
-  it('escapes HTML entities in question/answer/insight', () => {
+  it('escapes < and > but preserves & literally in question/answer/insight', () => {
     const p = buildAnswerBlocks({ question: 'Q <a&b>?', answer: 'A<>&', insight: 'I&amp;' });
     const qSection = p.blocks[1];
     const aSection = p.blocks[2];
@@ -97,23 +97,18 @@ describe('services/slack.buildAnswerBlocks escaping', () => {
     const aText = aSection.text.text;
     const iText = iSection.text.text;
 
-    // Expected escaped sequences present
-    expect(qText).toContain('Q &lt;a&amp;b&gt;?');
-    expect(aText).toContain('A&lt;&gt;&amp;');
-    expect(iText).toContain('I&amp;amp;');
+    // < > are escaped (Slack mrkdwn link syntax); & is preserved literally
+    // (Slack does not decode HTML entities, so escaping & would double-encode).
+    expect(qText).toContain('Q &lt;a&b&gt;?');
+    expect(aText).toContain('A&lt;&gt;&');
+    expect(iText).toContain('I&amp;');
 
-    // No raw user-supplied < > remain in the user-supplied portions
-    // (header's `❓ *오늘의 질문*\n` is static/safe; the rest comes from user)
     const qUserPart = qText.substring(qText.indexOf('\n') + 1);
     const aUserPart = aText.substring(aText.indexOf('\n') + 1);
     const iUserPart = iText.substring(iText.indexOf('\n') + 1);
     expect(qUserPart).not.toMatch(/[<>]/);
     expect(aUserPart).not.toMatch(/[<>]/);
     expect(iUserPart).not.toMatch(/[<>]/);
-    // Any '&' in user parts must be part of an entity (&amp;, &lt;, &gt;)
-    expect(qUserPart).not.toMatch(/&(?!(amp|lt|gt);)/);
-    expect(aUserPart).not.toMatch(/&(?!(amp|lt|gt);)/);
-    expect(iUserPart).not.toMatch(/&(?!(amp|lt|gt);)/);
   });
 
   it('escapes mrkdwn formatting marks (* _ ` ~) in user fields', () => {
@@ -184,11 +179,26 @@ describe('services/slack.sendToSlack', () => {
     expect(JSON.parse(init.body as string)).toEqual(payload);
   });
 
-  it('throws Error with status on non-200 response', async () => {
-    (global.fetch as ReturnType<typeof vi.fn>).mockResolvedValue({ ok: false, status: 404 });
+  it('throws Error with status + body hint on non-200 response', async () => {
+    (global.fetch as ReturnType<typeof vi.fn>).mockResolvedValue({
+      ok: false,
+      status: 404,
+      text: async () => 'no_service',
+    });
     await expect(
       sendToSlack('https://hooks.slack.com/services/X', { text: '', blocks: [] as Array<never> })
-    ).rejects.toThrow(/Slack webhook 404/);
+    ).rejects.toThrow(/Slack webhook 404: no_service/);
+  });
+
+  it('throws with only status when response body read fails', async () => {
+    (global.fetch as ReturnType<typeof vi.fn>).mockResolvedValue({
+      ok: false,
+      status: 500,
+      text: async () => { throw new Error('body-read-fail'); },
+    });
+    await expect(
+      sendToSlack('https://hooks.slack.com/services/X', { text: '', blocks: [] as Array<never> })
+    ).rejects.toThrow(/^Slack webhook 500$/);
   });
 
   it('propagates network errors (fetch rejection)', async () => {
