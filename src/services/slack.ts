@@ -1,3 +1,4 @@
+import { loadSlackSettings } from '../state/slack';
 import { loadUserData } from '../state/user';
 import { getDateStr } from '../utils/dates';
 
@@ -57,6 +58,18 @@ export async function sendToSlack(webhook: string, payload: SlackPayload): Promi
     method: 'POST',
     headers: { 'content-type': 'application/json' },
     body: JSON.stringify(payload),
+    keepalive: true,
+    signal: AbortSignal.timeout(5000),
   });
   if (!res.ok) throw new Error(`Slack webhook ${res.status}`);
+}
+
+export async function autoSendAnswer(data: AnswerData): Promise<void> {
+  const s = loadSlackSettings();
+  if (!s || !s.webhook || !s.autoSend) return;
+  try {
+    await sendToSlack(s.webhook, buildAnswerBlocks(data));
+  } catch (e) {
+    console.warn('Slack auto-send failed:', e);
+  }
 }

@@ -1,5 +1,5 @@
 import { describe, it, expect, beforeEach, vi } from 'vitest';
-import { buildAnswerBlocks, sendToSlack } from '../../../src/services/slack';
+import { autoSendAnswer, buildAnswerBlocks, sendToSlack } from '../../../src/services/slack';
 
 function seedUser(overrides: Partial<{ streak: number; xp: number }> = {}): void {
   localStorage.setItem('user', JSON.stringify({
@@ -196,5 +196,69 @@ describe('services/slack.sendToSlack', () => {
     await expect(
       sendToSlack('https://hooks.slack.com/services/X', { text: '', blocks: [] as Array<never> })
     ).rejects.toThrow(/offline/);
+  });
+
+  it('sets keepalive and AbortSignal timeout on fetch options', async () => {
+    (global.fetch as ReturnType<typeof vi.fn>).mockResolvedValue({ ok: true, status: 200 });
+    await sendToSlack('https://hooks.slack.com/services/X/Y/Z', { text: 't', blocks: [] as Array<never> });
+    const call = (global.fetch as ReturnType<typeof vi.fn>).mock.calls[0];
+    const init = call?.[1] as RequestInit;
+    expect(init.keepalive).toBe(true);
+    expect(init.signal).toBeInstanceOf(AbortSignal);
+  });
+
+  it('rejects with AbortError-shaped error when AbortSignal fires', async () => {
+    // Simulate the abort path without actually waiting 5s — construct an already-aborted signal
+    // by hand and verify the rejection propagates. We do this by having fetch throw
+    // a DOMException-ish abort error, which is what AbortSignal.timeout triggers in real browsers.
+    const abortErr = new DOMException('The operation was aborted due to timeout.', 'TimeoutError');
+    (global.fetch as ReturnType<typeof vi.fn>).mockRejectedValue(abortErr);
+    await expect(
+      sendToSlack('https://hooks.slack.com/services/X', { text: '', blocks: [] as Array<never> })
+    ).rejects.toThrow(/aborted/);
+  });
+});
+
+describe('services/slack.autoSendAnswer (gating)', () => {
+  beforeEach(() => {
+    global.fetch = vi.fn();
+    localStorage.clear();
+  });
+
+  it('does nothing when no slack settings saved', async () => {
+    await autoSendAnswer({ question: 'Q', answer: 'A' });
+    expect(global.fetch).not.toHaveBeenCalled();
+  });
+
+  it('does nothing when autoSend is false', async () => {
+    localStorage.setItem('dg_slack', JSON.stringify({ webhook: 'https://hooks.slack.com/services/X', autoSend: false }));
+    await autoSendAnswer({ question: 'Q', answer: 'A' });
+    expect(global.fetch).not.toHaveBeenCalled();
+  });
+
+  it('does nothing when webhook is empty', async () => {
+    localStorage.setItem('dg_slack', JSON.stringify({ webhook: '', autoSend: true }));
+    await autoSendAnswer({ question: 'Q', answer: 'A' });
+    expect(global.fetch).not.toHaveBeenCalled();
+  });
+
+  it('sends when autoSend=true and webhook present', async () => {
+    (global.fetch as ReturnType<typeof vi.fn>).mockResolvedValue({ ok: true, status: 200 });
+    localStorage.setItem('dg_slack', JSON.stringify({ webhook: 'https://hooks.slack.com/services/X/Y/Z', autoSend: true }));
+    localStorage.setItem('user', JSON.stringify({ name: 'T', interests: [], onboardedAt: '', lastActiveDate: '', streak: 1, xp: 10, level: 1 }));
+    await autoSendAnswer({ question: 'Q', answer: 'A', insight: 'I' });
+    expect(global.fetch).toHaveBeenCalledOnce();
+    const call = (global.fetch as ReturnType<typeof vi.fn>).mock.calls[0];
+    const body = JSON.parse((call?.[1] as RequestInit).body as string) as { blocks: Array<{ type: string }> };
+    expect(body.blocks.map((b) => b.type)).toEqual(['header', 'section', 'section', 'divider', 'section', 'context']);
+  });
+
+  it('swallows fetch failures (does not throw)', async () => {
+    (global.fetch as ReturnType<typeof vi.fn>).mockRejectedValue(new Error('offline'));
+    localStorage.setItem('dg_slack', JSON.stringify({ webhook: 'https://hooks.slack.com/services/X', autoSend: true }));
+    const warnSpy = vi.spyOn(console, 'warn').mockImplementation(() => {});
+    await expect(autoSendAnswer({ question: 'Q', answer: 'A' })).resolves.toBeUndefined();
+    expect(warnSpy).toHaveBeenCalled();
+    warnSpy.mockRestore();
   });
 });
