@@ -58,9 +58,13 @@ export function buildAnswerBlocks(data: AnswerData): SlackPayload {
 }
 
 export async function sendToSlack(webhook: string, payload: SlackPayload): Promise<void> {
+  // NOTE: intentionally omit `headers`. Setting `content-type: application/json` makes the
+  // request non-simple, triggering a CORS preflight (OPTIONS) which hooks.slack.com does
+  // not answer → browser blocks with `TypeError: Failed to fetch`. With no headers, the
+  // browser defaults to `text/plain;charset=UTF-8` (simple request, no preflight). Slack
+  // parses JSON from the body regardless of content-type. This matches legacy v2.0.
   const res = await fetch(webhook, {
     method: 'POST',
-    headers: { 'content-type': 'application/json' },
     body: JSON.stringify(payload),
   });
   if (!res.ok) {
