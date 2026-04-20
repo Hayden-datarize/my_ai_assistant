@@ -826,6 +826,20 @@ h3 { font-size: 1.1rem; }
 .heatmap-cell.level-2 { background: var(--primary-light); opacity: 0.6; }
 .heatmap-cell.level-3 { background: var(--primary); opacity: 0.8; }
 .heatmap-cell.today { outline: 2px solid var(--primary); outline-offset: 1px; }
+/* v3.2b-ui: weekend + blank cell styling */
+.heatmap-cell.level-0.is-weekend {
+  background: var(--accent-light);
+}
+.heatmap-cell.is-blank {
+  background: transparent;
+  border: 1px dashed var(--border);
+  pointer-events: none;
+  cursor: default;
+}
+.heatmap-labels .weekend-label {
+  color: var(--accent);
+  font-weight: 600;
+}
 .heatmap-labels {
   display: grid;
   grid-template-columns: repeat(7, 1fr);
