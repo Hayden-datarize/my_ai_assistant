@@ -182,7 +182,7 @@ function hydrateBriefings(): void {
   list.forEach((b, i) => scroll.append(renderBriefingCard(b, i)));
 }
 
-function renderBriefingCard(b: ReturnType<typeof loadBriefings>[number], idx: number): HTMLElement {
+function renderBriefingCard(b: Briefing, idx: number): HTMLElement {
   const card = document.createElement('article');
   card.className = 'briefing-card';
   if (b.read) card.classList.add('read');
@@ -194,6 +194,13 @@ function renderBriefingCard(b: ReturnType<typeof loadBriefings>[number], idx: nu
   title.className = 'briefing-title';
   title.textContent = b.title;
   card.append(title);
+
+  if (b.sourceTitle) {
+    const chip = document.createElement('span');
+    chip.className = 'briefing-source';
+    chip.textContent = b.sourceTitle;
+    card.append(chip);
+  }
 
   const summary = document.createElement('p');
   summary.className = 'briefing-summary';

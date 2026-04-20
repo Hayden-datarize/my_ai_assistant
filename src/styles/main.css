@@ -408,6 +408,16 @@ h3 { font-size: 1.1rem; }
 .card-action-btn:hover { background: var(--primary-ultra-light); color: var(--primary); border-color: var(--primary); }
 .card-action-btn.scrapped { background: var(--accent-light); color: var(--accent); border-color: var(--accent); }
 
+.briefing-source {
+  display: inline-block;
+  font-size: 0.7rem;
+  color: var(--text-tertiary);
+  background: var(--bg-input);
+  padding: 2px 8px;
+  border-radius: 999px;
+  margin-bottom: 6px;
+}
+
 /* Scroll indicator */
 .scroll-indicator {
   display: flex; gap: 4px; justify-content: center; margin-bottom: 20px;

@@ -54,3 +54,39 @@ test('briefing refresh shows empty state when every rss2json call fails', async 
   // The legacy loading text must be gone.
   await expect(page.locator('#briefingScroll')).not.toContainText('불러오는 중');
 });
+
+test('success response renders source chip from feed.title', async ({ page }) => {
+  await page.addInitScript(() => {
+    localStorage.setItem(
+      'user',
+      JSON.stringify({
+        name: 'TestUser',
+        interests: ['pm'],
+        onboardedAt: '2026-04-01',
+        streak: 0, lastActiveDate: '', xp: 0, level: 1,
+      }),
+    );
+    localStorage.removeItem('dg.briefings');
+  });
+
+  await page.route('**/api.rss2json.com/**', (route) =>
+    route.fulfill({
+      status: 200,
+      contentType: 'application/json',
+      body: JSON.stringify({
+        feed: { title: 'toss tech' },
+        items: [
+          { title: 'T1', link: 'https://example.com/1', description: 'desc', pubDate: '' },
+        ],
+      }),
+    }),
+  );
+
+  await page.goto('/');
+  await expect(page.locator('#homeTab')).toBeVisible();
+  await page.locator('#refreshBriefing').click();
+
+  const chip = page.locator('.briefing-source').first();
+  await expect(chip).toBeVisible({ timeout: 10_000 });
+  await expect(chip).toHaveText('toss tech');
+});
