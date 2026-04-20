@@ -15,6 +15,7 @@ import { loadBriefings, saveBriefings } from '../../state/briefings';
 import { loadChatHistory, appendChatMessage } from '../../state/chat';
 import { fetchFeed, type FeedItem } from '../../services/rss';
 import { generateQuestion, chat, evaluateAnswer } from '../../services/gemini';
+import { autoSendAnswer } from '../../services/slack';
 import { escapeHtml } from '../../utils/escapeHtml';
 import { getDateStr } from '../../utils/dates';
 import { showToast } from '../../utils/toast';
@@ -449,10 +450,16 @@ async function submitAnswer(): Promise<void> {
     addBubble('ai', msg);
   }
 
-  // Background evaluation — fire and forget
+  // Background evaluation + Slack auto-send (fire and forget; never blocks UX).
   void evaluateAnswer({ apiKey: key, question: questionText, answer: text })
-    .then((ev) => setAnswerEvaluation(id, ev))
-    .catch(() => {});
+    .then((ev) => {
+      setAnswerEvaluation(id, ev);
+      void autoSendAnswer({ question: questionText, answer: text, insight: ev.feedback });
+    })
+    .catch(() => {
+      // evaluation 실패 시에도 Slack 자동 전송은 시도 (insight 없이)
+      void autoSendAnswer({ question: questionText, answer: text });
+    });
 
   updateTurnCounter(loadChatHistory(getDateStr()).length);
 }
