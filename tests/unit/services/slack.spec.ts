@@ -77,3 +77,90 @@ describe('services/slack.buildAnswerBlocks', () => {
     expect(header.text.text).toBe(p.text);
   });
 });
+
+describe('services/slack.buildAnswerBlocks escaping', () => {
+  beforeEach(() => {
+    localStorage.clear();
+    seedUser();
+  });
+
+  it('escapes HTML entities in question/answer/insight', () => {
+    const p = buildAnswerBlocks({ question: 'Q <a&b>?', answer: 'A<>&', insight: 'I&amp;' });
+    const qSection = p.blocks[1];
+    const aSection = p.blocks[2];
+    const iSection = p.blocks[4];
+    if (qSection?.type !== 'section') throw new Error('expected section at index 1');
+    if (aSection?.type !== 'section') throw new Error('expected section at index 2');
+    if (iSection?.type !== 'section') throw new Error('expected section at index 4');
+
+    const qText = qSection.text.text;
+    const aText = aSection.text.text;
+    const iText = iSection.text.text;
+
+    // Expected escaped sequences present
+    expect(qText).toContain('Q &lt;a&amp;b&gt;?');
+    expect(aText).toContain('A&lt;&gt;&amp;');
+    expect(iText).toContain('I&amp;amp;');
+
+    // No raw user-supplied < > remain in the user-supplied portions
+    // (header's `❓ *오늘의 질문*\n` is static/safe; the rest comes from user)
+    const qUserPart = qText.substring(qText.indexOf('\n') + 1);
+    const aUserPart = aText.substring(aText.indexOf('\n') + 1);
+    const iUserPart = iText.substring(iText.indexOf('\n') + 1);
+    expect(qUserPart).not.toMatch(/[<>]/);
+    expect(aUserPart).not.toMatch(/[<>]/);
+    expect(iUserPart).not.toMatch(/[<>]/);
+    // Any '&' in user parts must be part of an entity (&amp;, &lt;, &gt;)
+    expect(qUserPart).not.toMatch(/&(?!(amp|lt|gt);)/);
+    expect(aUserPart).not.toMatch(/&(?!(amp|lt|gt);)/);
+    expect(iUserPart).not.toMatch(/&(?!(amp|lt|gt);)/);
+  });
+
+  it('escapes mrkdwn formatting marks (* _ ` ~) in user fields', () => {
+    const p = buildAnswerBlocks({
+      question: 'Why *important*?',
+      answer: '`code` and ~strike~ and _italic_',
+      insight: '*bold*',
+    });
+    const qSection = p.blocks[1];
+    const aSection = p.blocks[2];
+    const iSection = p.blocks[4];
+    if (qSection?.type !== 'section') throw new Error('expected section at index 1');
+    if (aSection?.type !== 'section') throw new Error('expected section at index 2');
+    if (iSection?.type !== 'section') throw new Error('expected section at index 4');
+
+    const qUserPart = qSection.text.text.substring(qSection.text.text.indexOf('\n') + 1);
+    const aUserPart = aSection.text.text.substring(aSection.text.text.indexOf('\n') + 1);
+    const iUserPart = iSection.text.text.substring(iSection.text.text.indexOf('\n') + 1);
+
+    expect(qUserPart).toBe('Why \\*important\\*?');
+    expect(aUserPart).toBe('\\`code\\` and \\~strike\\~ and \\_italic\\_');
+    expect(iUserPart).toBe('\\*bold\\*');
+  });
+
+  it('does not escape intentional mrkdwn prefixes added by the builder', () => {
+    const p = buildAnswerBlocks({ question: 'plain Q', answer: 'plain A' });
+    const qSection = p.blocks[1];
+    const aSection = p.blocks[2];
+    if (qSection?.type !== 'section') throw new Error('expected section at index 1');
+    if (aSection?.type !== 'section') throw new Error('expected section at index 2');
+
+    // Builder's own * must be intact
+    expect(qSection.text.text).toContain('❓ *오늘의 질문*');
+    expect(aSection.text.text).toContain('✍️ *나의 답변*');
+    // And the user-supplied portions remain unchanged (no special chars to escape)
+    expect(qSection.text.text).toContain('\nplain Q');
+    expect(aSection.text.text).toContain('\nplain A');
+  });
+
+  it('runaway-bold protection: after 500-char cap, no unescaped * remains in answer section', () => {
+    const p = buildAnswerBlocks({ question: 'Q', answer: 'prefix ' + '*' + 'x'.repeat(600) });
+    const aSection = p.blocks[2];
+    if (aSection?.type !== 'section') throw new Error('expected section at index 2');
+    const aUserPart = aSection.text.text.substring(aSection.text.text.indexOf('\n') + 1);
+    // All * must be backslash-escaped (no * not preceded by a backslash)
+    expect(aUserPart).not.toMatch(/(^|[^\\])\*/);
+    // And the escaped form is present
+    expect(aUserPart).toContain('\\*');
+  });
+});
