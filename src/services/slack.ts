@@ -58,8 +58,6 @@ export async function sendToSlack(webhook: string, payload: SlackPayload): Promi
     method: 'POST',
     headers: { 'content-type': 'application/json' },
     body: JSON.stringify(payload),
-    keepalive: true,
-    signal: AbortSignal.timeout(5000),
   });
   if (!res.ok) throw new Error(`Slack webhook ${res.status}`);
 }

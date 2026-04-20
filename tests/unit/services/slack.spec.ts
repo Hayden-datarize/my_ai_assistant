@@ -197,26 +197,6 @@ describe('services/slack.sendToSlack', () => {
       sendToSlack('https://hooks.slack.com/services/X', { text: '', blocks: [] as Array<never> })
     ).rejects.toThrow(/offline/);
   });
-
-  it('sets keepalive and AbortSignal timeout on fetch options', async () => {
-    (global.fetch as ReturnType<typeof vi.fn>).mockResolvedValue({ ok: true, status: 200 });
-    await sendToSlack('https://hooks.slack.com/services/X/Y/Z', { text: 't', blocks: [] as Array<never> });
-    const call = (global.fetch as ReturnType<typeof vi.fn>).mock.calls[0];
-    const init = call?.[1] as RequestInit;
-    expect(init.keepalive).toBe(true);
-    expect(init.signal).toBeInstanceOf(AbortSignal);
-  });
-
-  it('rejects with AbortError-shaped error when AbortSignal fires', async () => {
-    // Simulate the abort path without actually waiting 5s — construct an already-aborted signal
-    // by hand and verify the rejection propagates. We do this by having fetch throw
-    // a DOMException-ish abort error, which is what AbortSignal.timeout triggers in real browsers.
-    const abortErr = new DOMException('The operation was aborted due to timeout.', 'TimeoutError');
-    (global.fetch as ReturnType<typeof vi.fn>).mockRejectedValue(abortErr);
-    await expect(
-      sendToSlack('https://hooks.slack.com/services/X', { text: '', blocks: [] as Array<never> })
-    ).rejects.toThrow(/aborted/);
-  });
 });
 
 describe('services/slack.autoSendAnswer (gating)', () => {
