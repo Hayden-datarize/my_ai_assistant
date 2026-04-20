@@ -11,9 +11,9 @@ import { on, V32_DEFERRED_EVENTS } from '../events';
 import { switchTab } from '../nav';
 import { appendAnswer, aggregateAnswerStats, setAnswerEvaluation } from '../../state/persistence';
 import { makeAnswer } from '../../state/schema';
-import { loadBriefings, saveBriefings } from '../../state/briefings';
+import { loadBriefings, saveBriefings, type Briefing } from '../../state/briefings';
 import { loadChatHistory, appendChatMessage } from '../../state/chat';
-import { fetchFeed, type FeedItem } from '../../services/rss';
+import { fetchFeed, type FeedItem, type FeedResult } from '../../services/rss';
 import { generateQuestion, chat, evaluateAnswer } from '../../services/gemini';
 import { autoSendAnswer } from '../../services/slack';
 import { escapeHtml } from '../../utils/escapeHtml';
@@ -25,6 +25,31 @@ const API_KEY_STORAGE = 'dg_gemini_key';
 const USER_STORAGE = 'user';
 const THEME_STORAGE = 'theme';
 const TODAY_QUESTION_PREFIX = 'dg.todayQuestion.';
+
+/**
+ * Round-robin across feeds, deduping by link, stopping at `target`.
+ * Pure function — exported for unit testing.
+ * @internal
+ */
+export function pickBriefings(
+  feeds: FeedResult[],
+  target: number,
+): Array<{ item: FeedItem; sourceTitle: string }> {
+  const seen = new Set<string>();
+  const picked: Array<{ item: FeedItem; sourceTitle: string }> = [];
+  const maxPerFeed = feeds.reduce((m, f) => Math.max(m, f.items.length), 0);
+  outer: for (let i = 0; i < maxPerFeed; i++) {
+    for (const feed of feeds) {
+      const item = feed.items[i];
+      if (!item) continue;
+      if (seen.has(item.link)) continue;
+      seen.add(item.link);
+      picked.push({ item, sourceTitle: feed.sourceTitle });
+      if (picked.length >= target) break outer;
+    }
+  }
+  return picked;
+}
 
 interface LegacyUser {
   name: string;
