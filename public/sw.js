@@ -1,5 +1,5 @@
 // Service Worker for Daily Growth Assistant v1.2
-const CACHE_NAME = 'daily-growth-v5';
+const CACHE_NAME = 'daily-growth-v6';
 const STATIC_ASSETS = [
   '/',
   '/index.html',
