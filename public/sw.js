@@ -27,6 +27,14 @@ self.addEventListener('activate', event => {
 self.addEventListener('fetch', event => {
   const url = new URL(event.request.url);
 
+  // Pass-through: let the browser handle Google Fonts directly so they are
+  // evaluated against CSP font-src (not connect-src via SW context).
+  // Intercepting these here causes "violates connect-src" + "Failed to convert
+  // value to 'Response'" TypeError when the fetch is blocked.
+  if (url.hostname === 'fonts.googleapis.com' || url.hostname === 'fonts.gstatic.com') {
+    return;
+  }
+
   // Network-first for API calls (Gemini, RSS) — cache successful responses
   if (url.hostname.includes('generativelanguage') ||
       url.hostname.includes('rss2json') ||
@@ -41,7 +49,7 @@ self.addEventListener('fetch', event => {
           }
           return response;
         })
-        .catch(() => caches.match(event.request))
+        .catch(() => caches.match(event.request).then(hit => hit || Response.error()))
     );
     return;
   }
@@ -55,7 +63,7 @@ self.addEventListener('fetch', event => {
           caches.open(CACHE_NAME).then(cache => cache.put(event.request, clone));
         }
         return response;
-      }).catch(() => cached);
+      }).catch(() => cached || Response.error());
 
       return cached || fetchPromise;
     })
