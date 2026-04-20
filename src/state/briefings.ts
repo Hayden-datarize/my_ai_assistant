@@ -7,6 +7,7 @@ export interface Briefing {
   scrapped: boolean;
   read: boolean;
   memo: string;
+  sourceTitle?: string;
 }
 
 const KEY = 'briefings';
