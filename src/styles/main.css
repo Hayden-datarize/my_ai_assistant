@@ -384,7 +384,10 @@ h3 { font-size: 1.1rem; }
   transition: transform 0.2s, box-shadow 0.2s;
   cursor: pointer;
 }
-.briefing-card:hover { transform: translateY(-2px); box-shadow: var(--shadow-md); }
+.briefing-card:hover {
+  transform: translateY(-2px);
+  box-shadow: var(--shadow-md), inset 3px 0 0 var(--primary);
+}
 .briefing-card .card-meta {
   display: flex; align-items: center; justify-content: space-between;
   margin-bottom: 10px;
