@@ -29,6 +29,7 @@
   --nav-height: 64px;
   --safe-bottom: env(safe-area-inset-bottom, 0px);
   --content-bottom-pad: calc(var(--nav-height) + var(--safe-bottom) + 24px);
+  --sidebar-width: 240px;
 }
 
 [data-theme="dark"] {
@@ -958,12 +959,12 @@ h3 { font-size: 1.1rem; }
   :root { --content-bottom-pad: 24px; }
   .app-container {
     max-width: 1200px;
-    padding-left: 240px;
+    padding-left: var(--sidebar-width);
   }
   .bottom-nav {
     top: 0; bottom: 0; left: 0;
     transform: none;
-    width: 240px; max-width: 240px;
+    width: var(--sidebar-width); max-width: var(--sidebar-width);
     flex-direction: column;
     border-top: none;
     border-right: 1px solid var(--border);
