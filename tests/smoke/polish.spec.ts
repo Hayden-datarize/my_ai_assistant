@@ -49,3 +49,18 @@ test('onboarding chip selected has non-default transform (scale)', async ({ page
   expect(after).not.toBe(before);
   expect(after).not.toBe('none');
 });
+
+test('focus-visible on first focusable shows visible outline (keyboard tab)', async ({ page }) => {
+  await seedUser(page);
+  await page.goto('/');
+  await page.keyboard.press('Tab');
+  const focused = await page.evaluate(() => {
+    const el = document.activeElement as HTMLElement | null;
+    if (!el || el === document.body) return null;
+    const cs = getComputedStyle(el);
+    return { tag: el.tagName, outlineStyle: cs.outlineStyle, outlineWidth: cs.outlineWidth };
+  });
+  expect(focused).not.toBeNull();
+  expect(focused!.outlineStyle).not.toBe('none');
+  expect(focused!.outlineWidth).not.toBe('0px');
+});
