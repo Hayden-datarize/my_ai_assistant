@@ -36,3 +36,16 @@ test('briefing card hover applies inset primary box-shadow (existence check)', a
   expect(afterHover).not.toBe('none');
   expect(afterHover).toContain('inset');
 });
+
+test('onboarding chip selected has non-default transform (scale)', async ({ page }) => {
+  await page.addInitScript(() => { localStorage.removeItem('user'); });
+  await page.goto('/');
+  const chip = page.locator('.onboarding-chip').first();
+  await expect(chip).toBeVisible({ timeout: 5_000 });
+  const before = await chip.evaluate((el) => getComputedStyle(el).transform);
+  await chip.click();
+  const after = await chip.evaluate((el) => getComputedStyle(el).transform);
+
+  expect(after).not.toBe(before);
+  expect(after).not.toBe('none');
+});
