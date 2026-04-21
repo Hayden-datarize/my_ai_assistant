@@ -865,6 +865,10 @@ h3 { font-size: 1.1rem; }
 .heatmap-cell.is-weekend:not(.is-blank) {
   box-shadow: inset 2px 0 0 var(--accent);
 }
+/* today indicator(외곽 outline)가 우선 — 주말이어도 오늘 cell은 inset 라인 양보 */
+.heatmap-cell.today.is-weekend {
+  box-shadow: none;
+}
 .heatmap-cell.is-blank {
   background: transparent;
   border: 1px dashed var(--border);
