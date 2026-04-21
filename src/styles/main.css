@@ -823,7 +823,7 @@ h3 { font-size: 1.1rem; }
 }
 .heatmap-cell:hover { transform: scale(1.15); z-index: 1; }
 .heatmap-cell.level-1 { background: var(--primary-ultra-light); }
-.heatmap-cell.level-2 { background: var(--primary-light); opacity: 0.6; }
+.heatmap-cell.level-2 { background: var(--primary-light); opacity: 0.85; }
 .heatmap-cell.level-3 { background: var(--primary); opacity: 0.8; }
 .heatmap-cell.today { outline: 2px solid var(--primary); outline-offset: 1px; }
 /* v3.2b-ui: weekend + blank cell styling */
