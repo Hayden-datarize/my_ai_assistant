@@ -11,9 +11,9 @@ import { on, V32_DEFERRED_EVENTS } from '../events';
 import { switchTab } from '../nav';
 import { appendAnswer, aggregateAnswerStats, setAnswerEvaluation } from '../../state/persistence';
 import { makeAnswer } from '../../state/schema';
-import { loadBriefings, saveBriefings } from '../../state/briefings';
+import { loadBriefings, saveBriefings, type Briefing } from '../../state/briefings';
 import { loadChatHistory, appendChatMessage } from '../../state/chat';
-import { fetchFeed, type FeedItem } from '../../services/rss';
+import { fetchFeed, type FeedItem, type FeedResult } from '../../services/rss';
 import { generateQuestion, chat, evaluateAnswer } from '../../services/gemini';
 import { autoSendAnswer } from '../../services/slack';
 import { escapeHtml } from '../../utils/escapeHtml';
@@ -25,6 +25,31 @@ const API_KEY_STORAGE = 'dg_gemini_key';
 const USER_STORAGE = 'user';
 const THEME_STORAGE = 'theme';
 const TODAY_QUESTION_PREFIX = 'dg.todayQuestion.';
+
+/**
+ * Round-robin across feeds, deduping by link, stopping at `target`.
+ * Pure function — exported for unit testing.
+ * @internal
+ */
+export function pickBriefings(
+  feeds: FeedResult[],
+  target: number,
+): Array<{ item: FeedItem; sourceTitle: string }> {
+  const seen = new Set<string>();
+  const picked: Array<{ item: FeedItem; sourceTitle: string }> = [];
+  const maxPerFeed = feeds.reduce((m, f) => Math.max(m, f.items.length), 0);
+  outer: for (let i = 0; i < maxPerFeed; i++) {
+    for (const feed of feeds) {
+      const item = feed.items[i];
+      if (!item) continue;
+      if (seen.has(item.link)) continue;
+      seen.add(item.link);
+      picked.push({ item, sourceTitle: feed.sourceTitle });
+      if (picked.length >= target) break outer;
+    }
+  }
+  return picked;
+}
 
 interface LegacyUser {
   name: string;
@@ -157,7 +182,7 @@ function hydrateBriefings(): void {
   list.forEach((b, i) => scroll.append(renderBriefingCard(b, i)));
 }
 
-function renderBriefingCard(b: ReturnType<typeof loadBriefings>[number], idx: number): HTMLElement {
+function renderBriefingCard(b: Briefing, idx: number): HTMLElement {
   const card = document.createElement('article');
   card.className = 'briefing-card';
   if (b.read) card.classList.add('read');
@@ -169,6 +194,13 @@ function renderBriefingCard(b: ReturnType<typeof loadBriefings>[number], idx: nu
   title.className = 'briefing-title';
   title.textContent = b.title;
   card.append(title);
+
+  if (b.sourceTitle) {
+    const chip = document.createElement('span');
+    chip.className = 'briefing-source';
+    chip.textContent = b.sourceTitle;
+    card.append(chip);
+  }
 
   const summary = document.createElement('p');
   summary.className = 'briefing-summary';
@@ -247,25 +279,27 @@ async function refreshBriefings(): Promise<void> {
     scroll.append(loading);
   }
 
+  // v3.2b-ui: dedup via pickBriefings + surface sourceTitle chip
   const picks = user.interests.slice(0, 3);
-  const feeds = picks.map(interestToFeed).filter(Boolean) as string[];
-  const fetched: FeedItem[] = [];
-  for (const feedUrl of feeds) {
-    const items = await fetchFeed(feedUrl, { timeoutMs: 5000 });
-    const first = items[0];
-    if (first) fetched.push(first);
-  }
+  const feedUrls = Array.from(
+    new Set(picks.map(interestToFeed).filter((u): u is string => !!u)),
+  );
+  const fetched = await Promise.all(
+    feedUrls.map((u) => fetchFeed(u, { timeoutMs: 5000 })),
+  );
+  const chosen = pickBriefings(fetched, 3);
 
   const today = getDateStr();
-  const stored = fetched.map((it, i) => ({
+  const stored: Briefing[] = chosen.map(({ item, sourceTitle }, i) => ({
     id: `b_${Date.now()}_${i}`,
     date: today,
-    url: it.link,
-    title: it.title,
-    summary: stripTags(it.description).slice(0, 200),
+    url: item.link,
+    title: item.title,
+    summary: stripTags(item.description).slice(0, 200),
     scrapped: false,
     read: false,
     memo: '',
+    ...(sourceTitle ? { sourceTitle } : {}),
   }));
   saveBriefings(stored);
   hydrateBriefings();
