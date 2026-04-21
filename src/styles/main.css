@@ -830,6 +830,10 @@ h3 { font-size: 1.1rem; }
 .heatmap-cell.level-0.is-weekend {
   background: var(--accent-light);
 }
+/* v3.2b-polish #6: 모든 주말 데이터 셀에 좌측 accent 라인 (level과 무관) */
+.heatmap-cell.is-weekend:not(.is-blank) {
+  box-shadow: inset 2px 0 0 var(--accent);
+}
 .heatmap-cell.is-blank {
   background: transparent;
   border: 1px dashed var(--border);
