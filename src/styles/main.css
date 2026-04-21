@@ -973,6 +973,10 @@ h3 { font-size: 1.1rem; }
     border-left-color: var(--primary);
     background: var(--primary-ultra-light);
   }
+  .nav-item:hover {
+    background: var(--primary-ultra-light);
+    color: var(--primary);
+  }
   .nav-item .nav-icon { font-size: 1.15rem; }
   #homeTab {
     display: grid;
