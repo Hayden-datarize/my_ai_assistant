@@ -64,3 +64,15 @@ test('focus-visible on first focusable shows visible outline (keyboard tab)', as
   expect(focused!.outlineStyle).not.toBe('none');
   expect(focused!.outlineWidth).not.toBe('0px');
 });
+
+test('disabled button has pointer-events: none', async ({ page }) => {
+  await seedUser(page);
+  await page.goto('/');
+  const pe = await page.evaluate(() => {
+    const btn = document.querySelector('.btn');
+    if (!btn) return null;
+    btn.setAttribute('disabled', '');
+    return getComputedStyle(btn).pointerEvents;
+  });
+  expect(pe).toBe('none');
+});
