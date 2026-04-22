@@ -62,8 +62,8 @@
 
 /* ============================================
    Tab Containers — bottom safe-area padding
-   v3.2b-ui: tabs carry the bottom safe-area pad so .app-container
-   doesn't double it.
+   Tabs carry the bottom safe-area pad so the app shell doesn't double it.
+   (historical: .app-container was removed in v3.3.1)
    ============================================ */
 #homeTab,
 #archiveTab,
@@ -75,32 +75,5 @@
 
 /* Responsive: wider screens */
 @media (min-width: 768px) {
-  .bottom-nav {
-    top: 0; bottom: 0; left: 0;
-    transform: none;
-    width: var(--sidebar-width); max-width: var(--sidebar-width);
-    flex-direction: column;
-    border-top: none;
-    border-right: 1px solid var(--border);
-    padding: 24px 0;
-    padding-bottom: 24px;
-  }
-  .nav-item {
-    flex: 0 0 auto;
-    flex-direction: row;
-    gap: 12px;
-    justify-content: flex-start;
-    padding: 12px 20px 12px 16px;
-    font-size: 0.85rem;
-    border-left: 4px solid transparent;
-  }
-  .nav-item.active {
-    border-left-color: var(--primary);
-    background: var(--primary-ultra-light);
-  }
-  .nav-item:hover {
-    background: var(--primary-ultra-light);
-    color: var(--primary);
-  }
-  .nav-item .nav-icon { font-size: 1.15rem; }
+  .bottom-nav { display: none; }
 }

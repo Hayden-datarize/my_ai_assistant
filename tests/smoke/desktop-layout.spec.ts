@@ -33,6 +33,23 @@ async function seedAll(page: import('@playwright/test').Page): Promise<void> {
   });
 }
 
+test('viewport 1440×900 — bottom-nav hidden on desktop', async ({ page }) => {
+  await page.setViewportSize({ width: 1440, height: 900 });
+  await seedAll(page);
+  await page.goto('/');
+  // user/briefings seeding already established in this file — reuse same helper/pattern
+  const nav = page.locator('#bottomNav');
+  await expect(nav).toBeHidden();
+});
+
+test('viewport 375×667 — bottom-nav visible on mobile', async ({ page }) => {
+  await page.setViewportSize({ width: 375, height: 667 });
+  await seedAll(page);
+  await page.goto('/');
+  const nav = page.locator('#bottomNav');
+  await expect(nav).toBeVisible();
+});
+
 test.describe('Desktop layout (≥768px) — briefing card not occluded by sidebar', () => {
   for (const viewport of [
     { width: 1440, height: 900 },
