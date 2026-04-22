@@ -2,3 +2,25 @@
    Component — forms
    Loaded into @layer components
    ============================================ */
+
+/* ============================================
+   Settings Tab
+   ============================================ */
+.settings-section { padding: 20px; }
+.settings-section.show { display: block; }
+.settings-group {
+  background: var(--bg-card); border-radius: var(--radius-lg);
+  border: 1px solid var(--border); margin-bottom: 16px; overflow: hidden;
+}
+.settings-group-title {
+  padding: 12px 16px; font-size: 0.8rem; color: var(--text-tertiary);
+  font-weight: 600; text-transform: uppercase; letter-spacing: 0.5px;
+}
+.settings-item {
+  padding: 14px 16px; display: flex;
+  align-items: center; justify-content: space-between;
+  border-top: 1px solid var(--border); cursor: pointer;
+}
+.settings-item:first-child { border-top: none; }
+.settings-item-label { font-size: 0.9rem; }
+.settings-item-value { font-size: 0.85rem; color: var(--text-tertiary); }

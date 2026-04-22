@@ -10,6 +10,7 @@
 @import './components/onboarding.css' layer(components);
 @import './components/buttons.css' layer(components);
 @import './components/cards.css' layer(components);
+@import './components/forms.css' layer(components);
 
 /* Scroll indicator */
 .scroll-indicator {
@@ -247,27 +248,6 @@
 .badge-icon.earned { background: var(--accent-light); border-color: var(--accent); }
 .badge-label { font-size: 0.65rem; color: var(--text-tertiary); }
 
-/* ============================================
-   Settings Tab
-   ============================================ */
-.settings-section { padding: 20px; }
-.settings-section.show { display: block; }
-.settings-group {
-  background: var(--bg-card); border-radius: var(--radius-lg);
-  border: 1px solid var(--border); margin-bottom: 16px; overflow: hidden;
-}
-.settings-group-title {
-  padding: 12px 16px; font-size: 0.8rem; color: var(--text-tertiary);
-  font-weight: 600; text-transform: uppercase; letter-spacing: 0.5px;
-}
-.settings-item {
-  padding: 14px 16px; display: flex;
-  align-items: center; justify-content: space-between;
-  border-top: 1px solid var(--border); cursor: pointer;
-}
-.settings-item:first-child { border-top: none; }
-.settings-item-label { font-size: 0.9rem; }
-.settings-item-value { font-size: 0.85rem; color: var(--text-tertiary); }
 /* Toggle switch */
 .toggle {
   width: 44px; height: 24px; border-radius: 12px;
