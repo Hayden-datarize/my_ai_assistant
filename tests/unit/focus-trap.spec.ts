@@ -66,4 +66,16 @@ describe('createFocusTrap', () => {
     // no wrap after deactivate — focus stays
     expect(document.activeElement?.id).toBe('c');
   });
+
+  it('double activate() does not leak a second listener', () => {
+    const trap = createFocusTrap(container);
+    trap.activate();
+    trap.activate(); // no-op — must not add a second listener
+    trap.deactivate();
+    // After deactivate, Tab must NOT wrap (if listener was leaked, it'd still wrap)
+    const last = container.querySelector<HTMLInputElement>('#c')!;
+    last.focus();
+    last.dispatchEvent(new KeyboardEvent('keydown', { key: 'Tab', bubbles: true, cancelable: true }));
+    expect(document.activeElement?.id).toBe('c');
+  });
 });

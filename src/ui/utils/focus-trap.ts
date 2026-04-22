@@ -21,6 +21,7 @@ export function createFocusTrap(container: HTMLElement): FocusTrap {
 
   return {
     activate() {
+      if (handler) return; // already active — double-activate is a no-op
       const items = getFocusable();
       if (items.length > 0) items[0].focus();
       handler = (e: KeyboardEvent) => {
