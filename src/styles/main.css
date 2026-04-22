@@ -11,6 +11,7 @@
 @import './components/buttons.css' layer(components);
 @import './components/cards.css' layer(components);
 @import './components/forms.css' layer(components);
+@import './components/heatmap.css' layer(components);
 
 /* Scroll indicator */
 .scroll-indicator {
@@ -342,62 +343,6 @@
   margin-bottom: 6px; display: flex; align-items: center; gap: 4px;
 }
 .action-card-text { color: var(--text-primary); }
-
-/* Weekly Activity Heatmap */
-.heatmap-wrap { margin-top: 20px; }
-.heatmap-wrap h3 { margin-bottom: 10px; font-size: 0.95rem; }
-.heatmap-grid {
-  display: grid;
-  grid-template-columns: repeat(7, 1fr);
-  gap: 3px;
-}
-.heatmap-cell {
-  aspect-ratio: 1; border-radius: 4px;
-  background: var(--bg-input);
-  position: relative;
-  min-height: 28px;
-  transition: transform 0.15s;
-}
-.heatmap-cell:hover { transform: scale(1.15); z-index: 1; }
-.heatmap-cell.level-1 { background: var(--primary-ultra-light); }
-.heatmap-cell.level-2 { background: var(--primary-light); opacity: 0.85; }
-.heatmap-cell.level-3 { background: var(--primary); opacity: 0.8; }
-.heatmap-cell.today { outline: 2px solid var(--primary); outline-offset: 1px; }
-/* v3.2b-ui: weekend + blank cell styling */
-.heatmap-cell.level-0.is-weekend {
-  background: var(--accent-light);
-}
-/* v3.2b-polish #6: 모든 주말 데이터 셀에 좌측 accent 라인 (level과 무관) */
-.heatmap-cell.is-weekend:not(.is-blank) {
-  box-shadow: inset 2px 0 0 var(--accent);
-}
-/* today indicator(외곽 outline)가 우선 — 주말이어도 오늘 cell은 inset 라인 양보 */
-.heatmap-cell.today.is-weekend {
-  box-shadow: none;
-}
-.heatmap-cell.is-blank {
-  background: transparent;
-  border: 1px dashed var(--border);
-  pointer-events: none;
-  cursor: default;
-}
-.heatmap-labels .weekend-label {
-  color: var(--accent);
-  font-weight: 600;
-}
-.heatmap-labels {
-  display: grid;
-  grid-template-columns: repeat(7, 1fr);
-  gap: 3px; margin-bottom: 4px;
-  font-size: 0.65rem; color: var(--text-tertiary); text-align: center;
-}
-.heatmap-legend {
-  display: flex; gap: 4px; align-items: center;
-  margin-top: 6px; font-size: 0.7rem; color: var(--text-tertiary);
-}
-.heatmap-legend span {
-  width: 12px; height: 12px; border-radius: 2px; display: inline-block;
-}
 
 /* Backup Reminder Banner */
 .backup-banner {
