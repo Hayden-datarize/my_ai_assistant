@@ -9,109 +9,7 @@
 @import './components/splash.css' layer(components);
 @import './components/onboarding.css' layer(components);
 @import './components/buttons.css' layer(components);
-
-/* Streak Banner */
-.streak-banner {
-  margin: 0 20px 16px; padding: 12px 16px;
-  background: linear-gradient(135deg, var(--accent-light), var(--primary-ultra-light));
-  border-radius: var(--radius-md);
-  display: flex; align-items: center; justify-content: space-between;
-  font-size: 0.9rem;
-}
-.streak-banner .streak-info {
-  display: flex; align-items: center; gap: 8px;
-}
-.streak-fire { font-size: 1.3rem; }
-.streak-count { font-weight: 700; color: var(--accent); font-family: var(--font-display); font-size: 1.1rem; }
-.streak-label { color: var(--text-secondary); font-size: 0.8rem; }
-.xp-badge {
-  padding: 4px 10px; border-radius: 12px;
-  background: var(--success-light); color: var(--success);
-  font-size: 0.8rem; font-weight: 600;
-}
-
-/* ============================================
-   Briefing Cards (Horizontal Scroll)
-   ============================================ */
-.briefing-scroll {
-  display: flex; gap: 12px; overflow-x: auto;
-  padding: 0 20px 16px; scroll-snap-type: x mandatory;
-  -webkit-overflow-scrolling: touch;
-  scrollbar-width: none;
-}
-.briefing-scroll::-webkit-scrollbar { display: none; }
-
-.briefing-empty {
-  flex: 1; min-height: 120px;
-  display: flex; align-items: center; justify-content: center;
-  padding: 24px 20px; margin: 0 20px;
-  background: var(--bg-card); border: 1px dashed var(--border);
-  border-radius: var(--radius-lg);
-  font-size: 0.875rem; color: var(--text-tertiary);
-  text-align: center; line-height: 1.5;
-}
-
-.briefing-card {
-  min-width: 300px; max-width: 320px;
-  background: var(--bg-card); border-radius: var(--radius-lg);
-  padding: 16px; border: 1px solid var(--border);
-  scroll-snap-align: start; flex-shrink: 0;
-  transition: transform 0.2s, box-shadow 0.2s;
-  cursor: pointer;
-}
-.briefing-card:hover {
-  transform: translateY(-2px);
-  box-shadow: var(--shadow-md), inset 3px 0 0 var(--primary);
-}
-.briefing-card .card-meta {
-  display: flex; align-items: center; justify-content: space-between;
-  margin-bottom: 10px;
-}
-.briefing-card .card-tag {
-  padding: 3px 10px; border-radius: 12px;
-  background: var(--primary-ultra-light); color: var(--primary);
-  font-size: 0.75rem; font-weight: 600;
-}
-.briefing-card .card-time {
-  font-size: 0.75rem; color: var(--text-tertiary);
-}
-.briefing-card .card-title {
-  font-family: var(--font-display); font-size: 0.95rem;
-  font-weight: 600; margin-bottom: 8px; line-height: 1.4;
-}
-.briefing-card .card-summary {
-  font-size: 0.85rem; color: var(--text-secondary);
-  line-height: 1.5; margin-bottom: 10px;
-  display: -webkit-box; -webkit-line-clamp: 3;
-  -webkit-box-orient: vertical; overflow: hidden;
-}
-.briefing-card .card-insight {
-  display: flex; gap: 6px; align-items: flex-start;
-  padding: 8px 10px; border-radius: var(--radius-sm);
-  background: var(--accent-light); font-size: 0.8rem;
-  line-height: 1.4;
-}
-.briefing-card .card-actions {
-  display: flex; gap: 8px; margin-top: 12px;
-}
-.card-action-btn {
-  padding: 6px 12px; border-radius: 8px;
-  border: 1px solid var(--border); background: transparent;
-  font-size: 0.8rem; cursor: pointer; transition: all 0.2s;
-  color: var(--text-secondary);
-}
-.card-action-btn:hover { background: var(--primary-ultra-light); color: var(--primary); border-color: var(--primary); }
-.card-action-btn.scrapped { background: var(--accent-light); color: var(--accent); border-color: var(--accent); }
-
-.briefing-source {
-  display: inline-block;
-  font-size: 0.7rem;
-  color: var(--text-tertiary);
-  background: var(--bg-input);
-  padding: 2px 8px;
-  border-radius: 999px;
-  margin-bottom: 6px;
-}
+@import './components/cards.css' layer(components);
 
 /* Scroll indicator */
 .scroll-indicator {
@@ -449,19 +347,6 @@
 .fade-in { animation: fadeIn 0.4s ease; }
 @keyframes fadeIn { from { opacity: 0; } to { opacity: 1; } }
 
-/* Briefing Card Read Indicator */
-.briefing-card.read {
-  border-color: var(--primary-light);
-  opacity: 0.85;
-}
-.briefing-card.read .card-meta::after {
-  content: '읽음';
-  font-size: 0.7rem; color: var(--success);
-  font-weight: 600; margin-left: auto;
-  padding: 2px 8px; border-radius: 8px;
-  background: var(--success-light);
-}
-
 /* AI Chat — full response display */
 
 /* Action Suggestion Card */
@@ -619,7 +504,6 @@
   }
   .question-section { margin: 0 20px 12px; }
   .chat-container { margin: 0 20px 20px; }
-  .briefing-card { min-width: 280px; }
   .stat-grid { grid-template-columns: repeat(4, 1fr); }
 }
 
