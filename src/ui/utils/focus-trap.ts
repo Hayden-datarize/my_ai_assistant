@@ -23,13 +23,13 @@ export function createFocusTrap(container: HTMLElement): FocusTrap {
     activate() {
       if (handler) return; // already active — double-activate is a no-op
       const items = getFocusable();
-      if (items.length > 0) items[0].focus();
+      items[0]?.focus();
       handler = (e: KeyboardEvent) => {
         if (e.key !== 'Tab') return;
         const focusable = getFocusable();
-        if (focusable.length === 0) return;
         const first = focusable[0];
         const last = focusable[focusable.length - 1];
+        if (!first || !last) return;
         if (e.shiftKey && document.activeElement === first) {
           e.preventDefault();
           last.focus();
