@@ -114,3 +114,10 @@
   --heatmap-l2: #6366F1;
   --heatmap-l3: var(--primary);
 }
+
+/* ============================================
+   Responsive root overrides
+   ============================================ */
+@media (min-width: 768px) {
+  :root { --content-bottom-pad: 24px; }
+}

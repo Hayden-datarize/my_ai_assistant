@@ -119,6 +119,23 @@
   background: var(--success-light);
 }
 
+/* Article Memo */
+.card-memo { margin-top: 10px; display: none; }
+.card-memo.show { display: block; }
+.card-memo textarea {
+  width: 100%; min-height: 50px; padding: 8px;
+  border: 1px solid var(--border); border-radius: var(--radius-sm);
+  background: var(--bg-input); font-size: 0.85rem;
+  font-family: var(--font-body); resize: vertical; color: var(--text-primary); outline: none;
+}
+.card-memo textarea:focus { border-color: var(--primary); }
+.card-memo-actions { display: flex; gap: 6px; margin-top: 6px; justify-content: flex-end; }
+.card-memo-actions button {
+  padding: 4px 12px; border-radius: 6px; border: 1px solid var(--border);
+  background: var(--primary); color: #fff; font-size: 0.8rem; cursor: pointer;
+  font-family: var(--font-body);
+}
+
 /* Responsive: wider screens */
 @media (min-width: 768px) {
   .briefing-card { min-width: 280px; }

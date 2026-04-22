@@ -70,6 +70,19 @@
 .nav-item.active { color: var(--primary); }
 .nav-item .nav-icon { font-size: 1.3rem; }
 
+/* ============================================
+   Tab Containers — bottom safe-area padding
+   v3.2b-ui: tabs carry the bottom safe-area pad so .app-container
+   doesn't double it.
+   ============================================ */
+#homeTab,
+#archiveTab,
+#statsTab,
+#insightsTab,
+#settingsTab {
+  padding-bottom: var(--content-bottom-pad);
+}
+
 /* Responsive: wider screens */
 @media (min-width: 481px) {
   .app-container { border-left: 1px solid var(--border); border-right: 1px solid var(--border); }
