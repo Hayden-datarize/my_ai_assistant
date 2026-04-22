@@ -1,4 +1,10 @@
 /* ============================================
+   v3.3.0 — Cascade Layers entry point
+   @layer order: lower = lower priority
+   ============================================ */
+@layer tokens, base, layout, components, utilities;
+
+/* ============================================
    CSS Variables & Theme System
    ============================================ */
 :root {
