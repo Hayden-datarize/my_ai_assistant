@@ -2,3 +2,33 @@
    Base — reset + typography + motion prefs
    Loaded into @layer base
    ============================================ */
+
+/* Reset */
+*, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+html { font-size: 16px; -webkit-text-size-adjust: 100%; scroll-behavior: smooth; }
+body {
+  font-family: var(--font-body);
+  background: var(--bg);
+  color: var(--text-primary);
+  line-height: 1.6;
+  min-height: 100dvh;
+  overflow-x: hidden;
+  -webkit-font-smoothing: antialiased;
+  transition: background 0.3s, color 0.3s;
+}
+
+/* Typography — base heading ramp */
+h1, h2, h3 { font-family: var(--font-display); font-weight: 600; }
+h1 { font-size: 1.5rem; }
+h2 { font-size: 1.25rem; }
+h3 { font-size: 1.1rem; }
+
+/* v3.2b-polish #7: keyboard focus visible — consistent primary outline */
+.btn:focus-visible,
+.nav-item:focus-visible,
+.briefing-card .briefing-title:focus-visible,
+.heatmap-cell:focus-visible,
+.onboarding-chip:focus-visible {
+  outline: 2px solid var(--primary);
+  outline-offset: 2px;
+}
