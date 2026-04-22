@@ -18,3 +18,9 @@ describe('css drift guards (v3.2b-polish)', () => {
     expect(matches.length).toBeGreaterThanOrEqual(2);
   });
 });
+
+describe('layout.css dead code removal (v3.3.1)', () => {
+  it('no .app-container declarations remain', () => {
+    expect(layoutCss).not.toMatch(/\.app-container\s*\{/);
+  });
+});

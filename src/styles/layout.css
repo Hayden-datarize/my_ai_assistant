@@ -4,16 +4,6 @@
    ============================================ */
 
 /* ============================================
-   App Shell
-   ============================================ */
-.app-container {
-  max-width: 480px;
-  margin: 0 auto;
-  min-height: 100dvh;
-  position: relative;
-}
-
-/* ============================================
    Header Bar
    ============================================ */
 .header {
@@ -84,14 +74,7 @@
 }
 
 /* Responsive: wider screens */
-@media (min-width: 481px) {
-  .app-container { border-left: 1px solid var(--border); border-right: 1px solid var(--border); }
-}
 @media (min-width: 768px) {
-  .app-container {
-    max-width: 1200px;
-    padding-left: var(--sidebar-width);
-  }
   .bottom-nav {
     top: 0; bottom: 0; left: 0;
     transform: none;
