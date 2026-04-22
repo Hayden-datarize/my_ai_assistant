@@ -1,0 +1,16 @@
+/* ============================================
+   Component — splash
+   Loaded into @layer components
+   ============================================ */
+
+/* Splash */
+.splash-screen {
+  position: fixed; inset: 0;
+  background: linear-gradient(135deg, #4F46E5 0%, #7C3AED 50%, #EC4899 100%);
+  display: flex; flex-direction: column; align-items: center; justify-content: center;
+  z-index: 1000; color: #fff;
+  transition: opacity 0.5s, transform 0.5s;
+}
+.splash-screen.hide { opacity: 0; transform: scale(1.05); pointer-events: none; }
+.splash-logo { font-family: var(--font-display); font-size: 2.5rem; font-weight: 700; margin-bottom: 8px; }
+.splash-sub { font-size: 1rem; opacity: 0.9; }

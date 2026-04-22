@@ -1,0 +1,123 @@
+/* ============================================
+   Design Tokens — v3.3.0
+   Loaded into @layer tokens (lowest priority)
+   ============================================ */
+:root {
+  --primary: #4F46E5;
+  --primary-light: #818CF8;
+  --primary-ultra-light: #EEF2FF;
+  --accent: #F59E0B;
+  --accent-light: #FEF3C7;
+  --success: #10B981;
+  --success-light: #D1FAE5;
+  --danger: #EF4444;
+  --bg: #F8FAFC;
+  --bg-card: #FFFFFF;
+  --bg-input: #F1F5F9;
+  --text-primary: #1E293B;
+  --text-secondary: #64748B;
+  --text-tertiary: #94A3B8;
+  --border: #E2E8F0;
+  --shadow-sm: 0 1px 2px rgba(0,0,0,0.05);
+  --shadow-md: 0 4px 12px rgba(0,0,0,0.08);
+  --shadow-lg: 0 8px 24px rgba(0,0,0,0.12);
+  --radius-sm: 8px;
+  --radius-md: 12px;
+  --radius-lg: 16px;
+  --radius-xl: 20px;
+  --font-display: 'Outfit', sans-serif;
+  --font-body: 'Noto Sans KR', sans-serif;
+  --nav-height: 64px;
+  --safe-bottom: env(safe-area-inset-bottom, 0px);
+  --content-bottom-pad: calc(var(--nav-height) + var(--safe-bottom) + 24px);
+  --sidebar-width: 240px;
+}
+
+[data-theme="dark"] {
+  --primary: #818CF8;
+  --primary-light: #A5B4FC;
+  --primary-ultra-light: #1E1B4B;
+  --accent: #FBBF24;
+  --accent-light: #422006;
+  --success: #34D399;
+  --success-light: #064E3B;
+  --bg: #0F172A;
+  --bg-card: #1E293B;
+  --bg-input: #334155;
+  --text-primary: #F1F5F9;
+  --text-secondary: #94A3B8;
+  --text-tertiary: #64748B;
+  --border: #334155;
+  --shadow-sm: 0 1px 2px rgba(0,0,0,0.3);
+  --shadow-md: 0 4px 12px rgba(0,0,0,0.4);
+  --shadow-lg: 0 8px 24px rgba(0,0,0,0.5);
+}
+
+/* ============================================
+   v3.3 New Tokens — theme-invariant
+   ============================================ */
+:root {
+  /* Spacing (4px base, 8 steps) */
+  --space-1: 4px;
+  --space-2: 8px;
+  --space-3: 12px;
+  --space-4: 16px;
+  --space-5: 20px;
+  --space-6: 24px;
+  --space-8: 32px;
+  --space-12: 48px;
+
+  /* Typography (modular scale ~1.25) */
+  --text-xs: 12px;
+  --text-sm: 14px;
+  --text-base: 16px;
+  --text-lg: 18px;
+  --text-xl: 20px;
+  --text-2xl: 24px;
+  --text-3xl: 32px;
+  --leading-tight: 1.25;
+  --leading-normal: 1.5;
+
+  /* Radius (xs added; sm/md/lg/xl already in existing :root) */
+  --radius-xs: 4px;
+
+  /* Z-index */
+  --z-base: 0;
+  --z-raised: 10;
+  --z-sticky: 20;
+  --z-sidebar: 40;
+  --z-sidebar-button: 41;
+  --z-modal: 50;
+  --z-toast: 60;
+
+  /* Focus ring + border */
+  --focus-ring: 0 0 0 2px var(--primary);
+  --border-thin: 1px;
+
+  /* Motion */
+  --duration-fast: 150ms;
+  --duration-base: 250ms;
+  --duration-slow: 400ms;
+  --ease-standard: cubic-bezier(0.4, 0, 0.2, 1);
+
+  /* Heatmap pre-computed palette (light) */
+  --heatmap-l0: var(--bg-input);
+  --heatmap-l1: #C7D2FE;
+  --heatmap-l2: #818CF8;
+  --heatmap-l3: var(--primary);
+}
+
+[data-theme="dark"] {
+  /* Heatmap palette (dark) */
+  --heatmap-l0: #1E293B;
+  --heatmap-l1: #3730A3;
+  --heatmap-l2: #6366F1;
+  --heatmap-l3: var(--primary);
+}
+
+/* ============================================
+   Responsive root overrides
+   ============================================ */
+@media (min-width: 768px) {
+  :root { --content-bottom-pad: 24px; }
+}

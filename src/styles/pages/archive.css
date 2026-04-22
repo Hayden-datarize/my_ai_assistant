@@ -1,0 +1,60 @@
+/* ============================================
+   Page — archive tab
+   Loaded into @layer components
+   ============================================ */
+
+.archive-section { padding: 20px; }
+.archive-section.show { display: block; }
+.archive-filters {
+  display: flex; gap: 8px; margin-bottom: 16px; flex-wrap: wrap;
+}
+.filter-chip {
+  padding: 6px 14px; border-radius: 16px;
+  border: 1px solid var(--border); background: var(--bg-card);
+  color: var(--text-primary);
+  font-size: 0.8rem; cursor: pointer; transition: all 0.2s;
+  font-family: var(--font-body);
+}
+.filter-chip.active { background: var(--primary); color: #fff; border-color: var(--primary); }
+.archive-item {
+  background: var(--bg-card); border-radius: var(--radius-md);
+  padding: 14px; margin-bottom: 10px; border: 1px solid var(--border);
+  cursor: pointer; transition: all 0.2s;
+}
+.archive-item:hover { box-shadow: var(--shadow-sm); }
+.archive-item .archive-date { font-size: 0.8rem; color: var(--text-tertiary); margin-bottom: 4px; }
+.archive-item .archive-q { font-size: 0.9rem; font-weight: 500; margin-bottom: 6px; line-height: 1.4; }
+.archive-item .archive-insight {
+  font-size: 0.8rem; color: var(--text-secondary);
+  display: flex; align-items: flex-start; gap: 4px;
+}
+.archive-item .archive-tags {
+  display: flex; gap: 4px; margin-top: 8px; flex-wrap: wrap;
+}
+.archive-item .archive-tags span {
+  padding: 2px 8px; border-radius: 8px;
+  background: var(--bg-input); font-size: 0.7rem; color: var(--text-secondary);
+}
+.archive-xp {
+  font-size: 0.75rem; color: var(--success); font-weight: 600;
+  margin-top: 6px;
+}
+
+/* Archive Search */
+.archive-search-wrap { position: relative; margin-bottom: 12px; }
+.archive-search {
+  width: 100%; padding: 10px 14px 10px 36px;
+  border: 1px solid var(--border); border-radius: var(--radius-md);
+  background: var(--bg-input); font-size: 0.9rem; color: var(--text-primary);
+  font-family: var(--font-body); outline: none;
+}
+.archive-search:focus { border-color: var(--primary); }
+.archive-search-icon {
+  position: absolute; left: 12px; top: 50%; transform: translateY(-50%);
+  font-size: 1rem; pointer-events: none;
+}
+.archive-period {
+  padding: 6px 12px; border-radius: var(--radius-sm);
+  border: 1px solid var(--border); background: var(--bg-card);
+  font-size: 0.8rem; color: var(--text-primary); font-family: var(--font-body);
+}
