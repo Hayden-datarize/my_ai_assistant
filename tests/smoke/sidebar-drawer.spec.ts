@@ -36,7 +36,9 @@ test.describe('Sidebar drawer (desktop)', () => {
 
   test('backdrop click closes drawer', async ({ page }) => {
     await page.locator('#sidebarToggle').click();
-    await page.locator('#sidebarBackdrop').click({ position: { x: 1000, y: 500 } });
+    // Click at element center (viewport-agnostic — backdrop is full viewport
+    // and drawer covers left 240px, so center is always outside the drawer).
+    await page.locator('#sidebarBackdrop').click();
     await expect(page.locator('#sidebarDrawer')).toHaveAttribute('data-open', 'false');
   });
 
