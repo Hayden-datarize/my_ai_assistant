@@ -38,15 +38,21 @@ export function renderStats(container: HTMLElement): void {
         <h3 style="font-size:0.95rem;margin-bottom:12px;">🎯 질문 유형별 답변</h3>
         <div id="categoryBreakdown" style="display:flex;flex-direction:column;gap:8px;"></div>
       </div>
-      <div class="heatmap-wrap" style="background:var(--bg-card);border-radius:var(--radius-lg);padding:16px;border:1px solid var(--border);margin-bottom:16px;">
-        <h3 style="margin-bottom:10px;font-size:0.95rem;">📅 최근 4주 활동</h3>
-        <div class="heatmap-labels" id="heatmapLabels"></div>
-        <div class="heatmap-grid" id="heatmapGrid"></div>
-        <div class="heatmap-legend">
-          <span style="background:var(--bg-input)"></span> 없음
-          <span style="background:var(--primary-ultra-light)"></span> 참여
-          <span style="background:var(--primary-light);opacity:0.6"></span> 답변
-          <span style="background:var(--primary);opacity:0.8"></span> 대화
+      <div class="heatmap-wrap">
+        <h3>📅 최근 4주 활동</h3>
+        <div class="heatmap-layout">
+          <ol class="heatmap-weekday-labels" aria-hidden="true">
+            <li>월</li><li>화</li><li>수</li><li>목</li><li>금</li><li>토</li><li>일</li>
+          </ol>
+          <div class="heatmap-grid" id="heatmapGrid"
+               aria-label="최근 4주 활동 히트맵. 화살표 키로 탐색, Enter로 상세 보기"></div>
+        </div>
+        <p class="heatmap-info" id="heatmapInfo" aria-live="polite"></p>
+        <div class="heatmap-legend" aria-hidden="true">
+          <span class="legend-item"><i class="legend-dot level-0"></i>없음</span>
+          <span class="legend-item"><i class="legend-dot level-1"></i>적음</span>
+          <span class="legend-item"><i class="legend-dot level-2"></i>보통</span>
+          <span class="legend-item"><i class="legend-dot level-3"></i>많음</span>
         </div>
       </div>
       <div class="badges-section" style="background:var(--bg-card);border-radius:var(--radius-lg);padding:16px;border:1px solid var(--border);margin-bottom:16px;">

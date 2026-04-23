@@ -4,8 +4,11 @@ function mountHeatmapDom(): void {
   // eslint-disable-next-line no-restricted-syntax -- jsdom DOM fixture; static template, no user interpolation
   document.body.innerHTML = `
     <div id="statsTab">
-      <div class="heatmap-labels" id="heatmapLabels"></div>
+      <ol class="heatmap-weekday-labels" aria-hidden="true">
+        <li>월</li><li>화</li><li>수</li><li>목</li><li>금</li><li>토</li><li>일</li>
+      </ol>
       <div class="heatmap-grid" id="heatmapGrid"></div>
+      <p class="heatmap-info" id="heatmapInfo" aria-live="polite"></p>
       <span id="levelIcon"></span>
       <span id="levelName"></span>
       <span id="levelXpText"></span>
@@ -24,6 +27,7 @@ function mountHeatmapDom(): void {
 describe('hydrateHeatmap column alignment', () => {
   beforeEach(() => {
     localStorage.clear();
+    sessionStorage.clear();
     mountHeatmapDom();
     vi.useFakeTimers();
   });
@@ -32,7 +36,6 @@ describe('hydrateHeatmap column alignment', () => {
     vi.resetModules();
   });
 
-  // [label, ISO date (UTC noon to avoid TZ flakiness), leading blanks, trailing blanks]
   const weekdays: Array<[string, string, number, number]> = [
     ['Mon', '2026-04-20T03:00:00Z', 1, 6],
     ['Tue', '2026-04-21T03:00:00Z', 2, 5],
@@ -52,36 +55,22 @@ describe('hydrateHeatmap column alignment', () => {
       const cells = grid.children;
       expect(cells.length % 7).toBe(0);
       expect(cells.length).toBe(leading + 28 + trailing);
-
-      for (let i = 0; i < leading; i++) {
-        expect(cells[i]!.className).toContain('is-blank');
-      }
-      for (let i = leading; i < leading + 28; i++) {
-        expect(cells[i]!.className).not.toContain('is-blank');
-      }
-      for (let i = leading + 28; i < cells.length; i++) {
-        expect(cells[i]!.className).toContain('is-blank');
-      }
+      for (let i = 0; i < leading; i++) expect(cells[i]!.className).toContain('is-blank');
+      for (let i = leading; i < leading + 28; i++) expect(cells[i]!.className).not.toContain('is-blank');
+      for (let i = leading + 28; i < cells.length; i++) expect(cells[i]!.className).toContain('is-blank');
     });
   }
 
-  it('marks exactly 8 weekend data cells', async () => {
-    vi.setSystemTime(new Date('2026-04-22T03:00:00Z')); // Wed
-    const mod = await import('../../src/ui/handlers/stats');
-    mod.hydrateStats();
-    const grid = document.getElementById('heatmapGrid')!;
-    const weekendCells = grid.querySelectorAll('.heatmap-cell.is-weekend:not(.is-blank)');
-    expect(weekendCells.length).toBe(8);
-  });
-
-  it('adds .weekend-label only to 토 and 일 label spans', async () => {
+  it('data cells have no is-weekend class (removed in v3.3.2)', async () => {
     vi.setSystemTime(new Date('2026-04-22T03:00:00Z'));
     const mod = await import('../../src/ui/handlers/stats');
     mod.hydrateStats();
-    const labels = document.getElementById('heatmapLabels')!;
-    const spans = Array.from(labels.querySelectorAll('span'));
-    expect(spans).toHaveLength(7);
-    const weekendLabels = spans.filter((s) => s.classList.contains('weekend-label'));
-    expect(weekendLabels.map((s) => s.textContent)).toEqual(['토', '일']);
+    const grid = document.getElementById('heatmapGrid')!;
+    expect(grid.querySelectorAll('.heatmap-cell.is-weekend').length).toBe(0);
+  });
+
+  it('static weekday label column has 7 <li> in 월~일 order', () => {
+    const labels = document.querySelectorAll('.heatmap-weekday-labels li');
+    expect(Array.from(labels).map((l) => l.textContent)).toEqual(['월', '화', '수', '목', '금', '토', '일']);
   });
 });

@@ -94,20 +94,8 @@ function hydrateStatGrid(): void {
 
 function hydrateHeatmap(): void {
   const grid = document.getElementById('heatmapGrid');
-  const labels = document.getElementById('heatmapLabels');
   if (!grid) return;
   grid.replaceChildren();
-
-  // labels — 토/일에는 .weekend-label 부여
-  if (labels) {
-    labels.replaceChildren();
-    for (const d of ['월', '화', '수', '목', '금', '토', '일']) {
-      const l = document.createElement('span');
-      l.textContent = d;
-      if (d === '토' || d === '일') l.classList.add('weekend-label');
-      labels.append(l);
-    }
-  }
 
   const answers = loadAnswers();
   const counts = new Map<string, number>();
@@ -117,7 +105,7 @@ function hydrateHeatmap(): void {
     counts.set(key, (counts.get(key) ?? 0) + 1);
   }
 
-  // ISO weekday: 월=0, 화=1, …, 일=6 (label array 인덱스와 매칭)
+  // ISO weekday: 월=0 ... 일=6
   const isoIdx = (d: Date): number => (d.getDay() + 6) % 7;
 
   const today = new Date();
@@ -126,9 +114,8 @@ function hydrateHeatmap(): void {
   firstDay.setDate(today.getDate() - (DAYS - 1));
   const leadingBlanks = isoIdx(firstDay);
   const trailingBlanks = 6 - isoIdx(today);
-  // Invariant: leadingBlanks + trailingBlanks ≡ 0 (mod 7) → total cells = 28 + sum = 4주 × 7 = 28 or 35.
 
-  const makeBlank = (): HTMLElement => {
+  const makeBlank = (): HTMLButtonElement => {
     const b = document.createElement('button');
     b.type = 'button';
     b.className = 'heatmap-cell is-blank';
@@ -147,9 +134,7 @@ function hydrateHeatmap(): void {
     const cell = document.createElement('button');
     cell.type = 'button';
     cell.className = `heatmap-cell level-${level}`;
-    if (isoIdx(d) >= 5) cell.classList.add('is-weekend');  // 토=5, 일=6
     cell.dataset['date'] = key;
-    cell.title = `${key}: ${n}개`;
     cell.addEventListener('click', () => showDayDetail(key));
     grid.append(cell);
   }
