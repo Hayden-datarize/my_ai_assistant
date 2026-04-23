@@ -111,7 +111,7 @@
 
 [data-theme="dark"] {
   /* Heatmap palette (dark) */
-  --heatmap-l0: #1E293B;
+  --heatmap-l0: var(--bg-card);
   --heatmap-l1: #3730A3;
   --heatmap-l2: #6366F1;
   --heatmap-l3: var(--primary);

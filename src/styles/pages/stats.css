@@ -5,6 +5,11 @@
 
 .stats-section { padding: 20px; }
 .stats-section.show { display: block; }
+/* Desktop: add left pad so sidebar-toggle (52px reach) doesn't cover headings.
+   Total 80px = aligned with #homeTab / #archiveTab / #insightsTab / #settingsTab. */
+@media (min-width: 768px) {
+  .stats-section { padding-left: 80px; }
+}
 .stat-grid {
   display: grid; grid-template-columns: 1fr 1fr; gap: 10px; margin-bottom: 20px;
 }

@@ -11,6 +11,7 @@ import { loadBriefings } from '../../state/briefings';
 import { openModal } from '../modals/shared';
 import { escapeHtml } from '../../utils/escapeHtml';
 import { showToast } from '../../utils/toast';
+import { toKoType } from '../../utils/typeLabel';
 
 const USER_STORAGE = 'user';
 
@@ -26,6 +27,40 @@ function loadUser(): LegacyUser | null {
     const raw = localStorage.getItem(USER_STORAGE);
     return raw ? (JSON.parse(raw) as LegacyUser) : null;
   } catch { return null; }
+}
+
+const WEEKDAY_KO = ['월', '화', '수', '목', '금', '토', '일'];
+
+function isoKey(d: Date): string {
+  return d.toISOString().slice(0, 10);
+}
+
+function computeTotalAndStreak(counts: Map<string, number>, firstDay: Date, days: number): { total: number; streak: number } {
+  let total = 0;
+  let streak = 0;
+  let longest = 0;
+  for (let i = 0; i < days; i++) {
+    const d = new Date(firstDay);
+    d.setDate(firstDay.getDate() + i);
+    const n = counts.get(isoKey(d)) ?? 0;
+    total += n;
+    if (n > 0) { streak += 1; if (streak > longest) longest = streak; }
+    else { streak = 0; }
+  }
+  return { total, streak: longest };
+}
+
+function formatCellLabel(dateKey: string): string {
+  const [, mm, dd] = dateKey.split('-');
+  const d = new Date(`${dateKey}T00:00:00`);
+  const wdIdx = (d.getDay() + 6) % 7;
+  return `${Number(mm)}월 ${Number(dd)}일 (${WEEKDAY_KO[wdIdx]})`;
+}
+
+function setDefaultInfo(info: HTMLElement, total: number, streak: number): void {
+  info.textContent = total === 0
+    ? '아직 기록이 없어요. 첫 답변을 남겨보세요.'
+    : `최근 28일 · ${total}개 달성 · 최장 연속 ${streak}일`;
 }
 
 export function mountStatsHandlers(): void {
@@ -94,20 +129,9 @@ function hydrateStatGrid(): void {
 
 function hydrateHeatmap(): void {
   const grid = document.getElementById('heatmapGrid');
-  const labels = document.getElementById('heatmapLabels');
   if (!grid) return;
   grid.replaceChildren();
-
-  // labels — 토/일에는 .weekend-label 부여
-  if (labels) {
-    labels.replaceChildren();
-    for (const d of ['월', '화', '수', '목', '금', '토', '일']) {
-      const l = document.createElement('span');
-      l.textContent = d;
-      if (d === '토' || d === '일') l.classList.add('weekend-label');
-      labels.append(l);
-    }
-  }
+  const info = document.getElementById('heatmapInfo');
 
   const answers = loadAnswers();
   const counts = new Map<string, number>();
@@ -117,7 +141,7 @@ function hydrateHeatmap(): void {
     counts.set(key, (counts.get(key) ?? 0) + 1);
   }
 
-  // ISO weekday: 월=0, 화=1, …, 일=6 (label array 인덱스와 매칭)
+  // ISO weekday: 월=0 ... 일=6
   const isoIdx = (d: Date): number => (d.getDay() + 6) % 7;
 
   const today = new Date();
@@ -125,15 +149,23 @@ function hydrateHeatmap(): void {
   const firstDay = new Date(today);
   firstDay.setDate(today.getDate() - (DAYS - 1));
   const leadingBlanks = isoIdx(firstDay);
+  const todayKey = today.toISOString().slice(0, 10);
   const trailingBlanks = 6 - isoIdx(today);
-  // Invariant: leadingBlanks + trailingBlanks ≡ 0 (mod 7) → total cells = 28 + sum = 4주 × 7 = 28 or 35.
 
-  const makeBlank = (): HTMLElement => {
+  const { total, streak } = computeTotalAndStreak(counts, firstDay, DAYS);
+  if (info) setDefaultInfo(info, total, streak);
+
+  const makeBlank = (): HTMLButtonElement => {
     const b = document.createElement('button');
     b.type = 'button';
     b.className = 'heatmap-cell is-blank';
     b.disabled = true;
     return b;
+  };
+
+  const openDayDetail = (cell: HTMLButtonElement): void => {
+    const date = cell.dataset['date']!;
+    showDayDetail(date, () => cell.focus());
   };
 
   for (let i = 0; i < leadingBlanks; i++) grid.append(makeBlank());
@@ -146,15 +178,55 @@ function hydrateHeatmap(): void {
     const level = Math.min(3, n);
     const cell = document.createElement('button');
     cell.type = 'button';
-    cell.className = `heatmap-cell level-${level}`;
-    if (isoIdx(d) >= 5) cell.classList.add('is-weekend');  // 토=5, 일=6
+    cell.className = `heatmap-cell level-${level}${key === todayKey ? ' is-today' : ''}`;
     cell.dataset['date'] = key;
-    cell.title = `${key}: ${n}개`;
-    cell.addEventListener('click', () => showDayDetail(key));
+    const ariaLabel = n > 0 ? `${key}, ${n}개 달성` : `${key}, 기록 없음`;
+    cell.setAttribute('aria-label', ariaLabel);
+    cell.addEventListener('click', () => openDayDetail(cell));
+    cell.addEventListener('mouseenter', () => {
+      if (info) info.textContent = n > 0
+        ? `${formatCellLabel(key)} · ${n}개 달성`
+        : `${formatCellLabel(key)} · 기록 없음`;
+    });
+    cell.addEventListener('mouseleave', () => {
+      if (info) setDefaultInfo(info, total, streak);
+    });
     grid.append(cell);
   }
 
   for (let i = 0; i < trailingBlanks; i++) grid.append(makeBlank());
+
+  const dataCells = Array.from(grid.querySelectorAll<HTMLButtonElement>('.heatmap-cell:not(.is-blank)'));
+  dataCells.forEach((c, i) => c.setAttribute('tabindex', i === 0 ? '0' : '-1'));
+
+  const moveFocus = (from: HTMLButtonElement, delta: number): void => {
+    const idx = dataCells.indexOf(from);
+    const target = idx + delta;
+    if (target < 0 || target >= dataCells.length) return;
+    from.setAttribute('tabindex', '-1');
+    const next = dataCells[target]!;
+    next.setAttribute('tabindex', '0');
+    next.focus();
+  };
+
+  dataCells.forEach((cell) => {
+    cell.addEventListener('keydown', (e) => {
+      switch (e.key) {
+        case 'ArrowUp':    e.preventDefault(); moveFocus(cell, -1); break;
+        case 'ArrowDown':  e.preventDefault(); moveFocus(cell, +1); break;
+        case 'ArrowLeft':  e.preventDefault(); moveFocus(cell, -7); break;
+        case 'ArrowRight': e.preventDefault(); moveFocus(cell, +7); break;
+        case 'Enter':
+        case ' ':          e.preventDefault(); openDayDetail(cell); break;
+      }
+    });
+  });
+
+  if (!sessionStorage.getItem('dg-heatmap-animated')) {
+    grid.classList.add('is-entering');
+    sessionStorage.setItem('dg-heatmap-animated', '1');
+    setTimeout(() => grid.classList.remove('is-entering'), 250);
+  }
 }
 
 function hydrateBadges(): void {
@@ -192,7 +264,7 @@ function hydrateCategoryBreakdown(): void {
   const answers = loadAnswers();
   const counts = new Map<string, number>();
   for (const a of answers) {
-    const k = a.type ?? '기타';
+    const k = toKoType(a.type);
     counts.set(k, (counts.get(k) ?? 0) + 1);
   }
   if (counts.size === 0) {
@@ -227,18 +299,18 @@ function hydrateGrowthSummary(): void {
   el.textContent = `최근 ${recent}개의 기록으로 레벨 ${user.level}까지 도달했어요. 오늘도 한 걸음 더 나아가 볼까요?`;
 }
 
-function showDayDetail(date: string): void {
+function showDayDetail(date: string, onClose?: () => void): void {
   const answers = loadAnswers().filter((a) => (a.date ?? (a.createdAt?.slice(0, 10) ?? '')) === date);
   if (answers.length === 0) {
-    openModal({ title: date, bodyHtml: `<p>이 날은 기록이 없어요.</p>` });
+    openModal({ title: date, bodyHtml: `<p>이 날은 기록이 없어요.</p>`, onClose });
     return;
   }
   const parts = answers.map((a) => `
     <article class="day-detail-card">
-      ${a.type ? `<span class="archive-type">${escapeHtml(a.type)}</span>` : ''}
+      ${a.type ? `<span class="archive-type">${escapeHtml(toKoType(a.type))}</span>` : ''}
       <div class="archive-detail-body">${escapeHtml(a.text).replace(/\n/g, '<br>')}</div>
       ${a.evaluation ? `<div class="archive-detail-eval">AI ${a.evaluation.score}점 · ${escapeHtml(a.evaluation.feedback)}</div>` : ''}
     </article>
   `);
-  openModal({ title: `${date} 기록 ${answers.length}개`, bodyHtml: parts.join('') });
+  openModal({ title: `${date} 기록 ${answers.length}개`, bodyHtml: parts.join(''), onClose });
 }

@@ -71,7 +71,7 @@ test.describe('Desktop layout (≥768px) — briefing card not occluded by sideb
     { width: 1440, height: 900 },
     { width: 1920, height: 1080 },
   ]) {
-    test(`viewport ${viewport.width}x${viewport.height} — first briefing card x >= 240`, async ({ page }) => {
+    test(`viewport ${viewport.width}x${viewport.height} — briefing card not occluded by closed drawer`, async ({ page }) => {
       await page.setViewportSize(viewport);
       await seedAll(page);
       await page.goto('/');

@@ -132,7 +132,9 @@
     display: grid;
     grid-template-columns: 1fr 1fr;
     gap: 12px 20px;
-    padding: 0 20px;
+    /* left pad 80px = sidebar-toggle reach (52px) + breathing room (28px);
+       right pad 20px stays as-is. Keeps headings aligned with other tabs. */
+    padding: 0 20px 0 80px;
   }
   #homeTab > .header,
   #homeTab > .demo-banner,

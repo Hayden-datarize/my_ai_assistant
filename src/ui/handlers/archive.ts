@@ -10,6 +10,7 @@ import { loadBriefings } from '../../state/briefings';
 import { openModal, closeModal } from '../modals/shared';
 import { escapeHtml } from '../../utils/escapeHtml';
 import { showToast } from '../../utils/toast';
+import { toKoType } from '../../utils/typeLabel';
 
 let currentFilter = 'all';
 let currentQuery = '';
@@ -108,7 +109,7 @@ function rerenderList(): void {
     if (a.type) {
       const tag = document.createElement('span');
       tag.className = 'archive-type';
-      tag.textContent = a.type;
+      tag.textContent = toKoType(a.type);
       card.append(tag);
     }
     card.addEventListener('click', () => showArchiveDetail({ kind: 'answer', answer: a }));
@@ -125,7 +126,7 @@ function showArchiveDetail(payload: DetailPayload): void {
   if (payload.kind === 'answer') {
     const a = payload.answer;
     const when = a.date ?? (a.createdAt ? new Date(a.createdAt).toLocaleDateString('ko-KR') : '');
-    parts.push(`<div class="archive-detail-meta">${escapeHtml(when)}${a.type ? ` · ${escapeHtml(a.type)}` : ''}</div>`);
+    parts.push(`<div class="archive-detail-meta">${escapeHtml(when)}${a.type ? ` · ${escapeHtml(toKoType(a.type))}` : ''}</div>`);
     parts.push(`<div class="archive-detail-body">${escapeHtml(a.text).replace(/\n/g, '<br>')}</div>`);
     if (a.evaluation) {
       parts.push(`<div class="archive-detail-eval">AI 평가 ${a.evaluation.score}점 — ${escapeHtml(a.evaluation.feedback)}</div>`);

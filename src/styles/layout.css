@@ -7,11 +7,11 @@
    Header Bar
    ============================================ */
 .header {
-  padding: 16px 20px 12px;
+  padding: 20px 20px 12px;
   display: flex; align-items: center; justify-content: space-between;
 }
 .header-left h1 {
-  font-size: 1.1rem; display: flex; align-items: center; gap: 6px;
+  font-size: 1.25rem; display: flex; align-items: center; gap: 6px;
 }
 .header-left .greeting {
   font-size: 0.85rem; color: var(--text-secondary); margin-top: 2px;
@@ -73,9 +73,32 @@
   padding-bottom: var(--content-bottom-pad);
 }
 
+/* Insights has no components-layer override (no pages/insights.css), so the
+   top/right pad must be set here so its heading aligns with other tabs. */
+#insightsTab {
+  padding-top: 20px;
+  padding-right: 20px;
+}
+
 /* Responsive: wider screens */
 @media (min-width: 768px) {
   .bottom-nav { display: none; }
+  /* Tab content gets left pad so sidebar-toggle (fixed 12+40 = 52px) doesn't
+     overlap tab headings. 80px = 52 (toggle reach) + 28 breathing room.
+     All tabs share this offset so tab headings align at the same x position. */
+  #homeTab,
+  #archiveTab,
+  #statsTab,
+  #insightsTab,
+  #settingsTab {
+    padding-left: 80px;
+  }
+  /* Home tab's `.header` already has its own `padding-left: 20px`.
+     On desktop the parent `#homeTab` supplies the offset, so zero out the
+     header's left padding to avoid double-offset (would be 100px). */
+  #homeTab > .header {
+    padding-left: 0;
+  }
 }
 
 /* ============================================

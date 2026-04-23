@@ -9,6 +9,7 @@
 
 import { on, V32_DEFERRED_EVENTS } from '../events';
 import { switchTab } from '../nav';
+import { toKoType } from '../../utils/typeLabel';
 import { appendAnswer, aggregateAnswerStats, setAnswerEvaluation } from '../../state/persistence';
 import { makeAnswer } from '../../state/schema';
 import { loadBriefings, saveBriefings, type Briefing } from '../../state/briefings';
@@ -391,7 +392,7 @@ function renderQuestion(content: HTMLElement, q: { type?: string; question: stri
   if (q.type) {
     const typeEl = document.createElement('span');
     typeEl.className = 'question-type';
-    typeEl.textContent = q.type;
+    typeEl.textContent = toKoType(q.type);
     content.append(typeEl);
   }
   const qEl = document.createElement('h3');
