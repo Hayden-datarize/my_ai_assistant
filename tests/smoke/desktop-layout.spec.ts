@@ -30,6 +30,8 @@ async function seedAll(page: import('@playwright/test').Page): Promise<void> {
         },
       ]),
     );
+    // drawer가 닫힌 기본 상태에서 시작하도록 보장 (이전 테스트가 open 상태로 persist했을 경우 대비)
+    localStorage.removeItem('dg-sidebar-last-state');
   });
 }
 
@@ -64,15 +66,17 @@ test.describe('Desktop layout (≥768px) — briefing card not occluded by sideb
       const firstCard = page.locator('.briefing-scroll .briefing-card').first();
       await firstCard.waitFor({ state: 'visible', timeout: 5000 });
 
-      const navBox = await page.locator('#bottomNav').boundingBox();
+      // Drawer should be off-screen (translateX(-100%)) when closed.
+      // Card should render starting at x >= 0 and NOT be inside drawer's visible bounds.
+      const drawer = page.locator('#sidebarDrawer');
+      const drawerBox = await drawer.boundingBox();
       const cardBox = await firstCard.boundingBox();
-
       expect(cardBox).not.toBeNull();
-      // bottom-nav가 데스크탑에서 좌측 컬럼(240px)으로 표시되면 overlap 발생.
-      // 버그 상태: nav fixed left column, card x=0부터 시작 → nav 뒤에 가림.
-      // 수정 후: nav는 display:none, drawer는 translateX(-100%) → card 가림 없음.
-      if (navBox && navBox.width > 0 && navBox.width < viewport.width) {
-        expect(cardBox!.x).toBeGreaterThanOrEqual(navBox.x + navBox.width - 1);
+      expect(cardBox!.x).toBeGreaterThanOrEqual(0);
+      if (drawerBox !== null && drawerBox.width > 0) {
+        // drawer right edge should be <= 0 (off-screen) when closed.
+        // If drawer accidentally visible (data-open='true'), card overlap would be drawerBox.x+width > 0.
+        expect(drawerBox.x + drawerBox.width).toBeLessThanOrEqual(0);
       }
     });
   }
