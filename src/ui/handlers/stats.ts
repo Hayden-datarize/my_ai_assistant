@@ -11,6 +11,7 @@ import { loadBriefings } from '../../state/briefings';
 import { openModal } from '../modals/shared';
 import { escapeHtml } from '../../utils/escapeHtml';
 import { showToast } from '../../utils/toast';
+import { toKoType } from '../../utils/typeLabel';
 
 const USER_STORAGE = 'user';
 
@@ -263,7 +264,7 @@ function hydrateCategoryBreakdown(): void {
   const answers = loadAnswers();
   const counts = new Map<string, number>();
   for (const a of answers) {
-    const k = a.type ?? '기타';
+    const k = toKoType(a.type);
     counts.set(k, (counts.get(k) ?? 0) + 1);
   }
   if (counts.size === 0) {
@@ -306,7 +307,7 @@ function showDayDetail(date: string, onClose?: () => void): void {
   }
   const parts = answers.map((a) => `
     <article class="day-detail-card">
-      ${a.type ? `<span class="archive-type">${escapeHtml(a.type)}</span>` : ''}
+      ${a.type ? `<span class="archive-type">${escapeHtml(toKoType(a.type))}</span>` : ''}
       <div class="archive-detail-body">${escapeHtml(a.text).replace(/\n/g, '<br>')}</div>
       ${a.evaluation ? `<div class="archive-detail-eval">AI ${a.evaluation.score}점 · ${escapeHtml(a.evaluation.feedback)}</div>` : ''}
     </article>
