@@ -7,11 +7,11 @@
    Header Bar
    ============================================ */
 .header {
-  padding: 16px 20px 12px;
+  padding: 20px 20px 12px;
   display: flex; align-items: center; justify-content: space-between;
 }
 .header-left h1 {
-  font-size: 1.1rem; display: flex; align-items: center; gap: 6px;
+  font-size: 1.25rem; display: flex; align-items: center; gap: 6px;
 }
 .header-left .greeting {
   font-size: 0.85rem; color: var(--text-secondary); margin-top: 2px;
@@ -71,6 +71,13 @@
 #insightsTab,
 #settingsTab {
   padding-bottom: var(--content-bottom-pad);
+}
+
+/* Insights has no components-layer override (no pages/insights.css), so the
+   top/right pad must be set here so its heading aligns with other tabs. */
+#insightsTab {
+  padding-top: 20px;
+  padding-right: 20px;
 }
 
 /* Responsive: wider screens */
