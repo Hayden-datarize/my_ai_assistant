@@ -151,3 +151,26 @@
   .question-section { margin: 0 20px 12px; }
   .chat-container { margin: 0 20px 20px; }
 }
+
+/* Chat bubble inline action button (v3.3.3) */
+.chat-bubble-action {
+  display: inline-block;
+  margin-left: 8px;
+  padding: 4px 10px;
+  border-radius: 12px;
+  border: 1px solid var(--primary);
+  background: var(--primary-ultra-light);
+  color: var(--primary);
+  font-size: 0.8rem;
+  font-weight: 600;
+  cursor: pointer;
+  font-family: inherit;
+}
+.chat-bubble-action:hover {
+  background: var(--primary);
+  color: #fff;
+}
+.chat-bubble-action:focus-visible {
+  outline: 2px solid var(--primary);
+  outline-offset: 2px;
+}

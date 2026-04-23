@@ -428,12 +428,35 @@ function hydrateChatHistory(): void {
   updateTurnCounter(history.length);
 }
 
-function addBubble(role: 'user' | 'ai', text: string): void {
+export interface BubbleAction {
+  label: string;
+  onClick: () => void;
+}
+
+export function addBubble(
+  role: 'user' | 'ai',
+  text: string,
+  action?: BubbleAction,
+): void {
   const msgs = document.getElementById('chatMessages');
   if (!msgs) return;
+
   const b = document.createElement('div');
   b.className = `chat-bubble chat-${role}`;
-  b.textContent = text;
+
+  const textNode = document.createElement('span');
+  textNode.textContent = text; // XSS-safe
+  b.append(textNode);
+
+  if (action) {
+    const btn = document.createElement('button');
+    btn.type = 'button';
+    btn.className = 'chat-bubble-action';
+    btn.textContent = action.label; // XSS-safe
+    btn.addEventListener('click', action.onClick);
+    b.append(btn);
+  }
+
   msgs.append(b);
   msgs.scrollTop = msgs.scrollHeight;
 }
