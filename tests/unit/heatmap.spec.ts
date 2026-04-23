@@ -190,3 +190,87 @@ describe('hydrateHeatmap inline info', () => {
     expect(info?.textContent).toBe('최근 28일 · 1개 달성 · 최장 연속 1일');
   });
 });
+
+describe('hydrateHeatmap roving tabindex + keyboard nav', () => {
+  beforeEach(() => {
+    localStorage.clear();
+    sessionStorage.clear();
+    mountHeatmapDom();
+    vi.useFakeTimers();
+    vi.setSystemTime(new Date('2026-04-22T03:00:00Z'));
+  });
+  afterEach(() => {
+    vi.useRealTimers();
+    vi.resetModules();
+  });
+
+  async function setupAndGetCells(): Promise<HTMLButtonElement[]> {
+    const mod = await import('../../src/ui/handlers/stats');
+    mod.hydrateStats();
+    return Array.from(document.querySelectorAll<HTMLButtonElement>('.heatmap-cell:not(.is-blank)'));
+  }
+
+  it('first data cell has tabindex=0, others have tabindex=-1', async () => {
+    const cells = await setupAndGetCells();
+    expect(cells[0]!.getAttribute('tabindex')).toBe('0');
+    for (let i = 1; i < cells.length; i++) expect(cells[i]!.getAttribute('tabindex')).toBe('-1');
+  });
+
+  it('ArrowDown on first cell moves focus to second data cell (next day)', async () => {
+    const cells = await setupAndGetCells();
+    cells[0]!.focus();
+    cells[0]!.dispatchEvent(new KeyboardEvent('keydown', { key: 'ArrowDown', bubbles: true }));
+    expect(document.activeElement).toBe(cells[1]);
+    expect(cells[0]!.getAttribute('tabindex')).toBe('-1');
+    expect(cells[1]!.getAttribute('tabindex')).toBe('0');
+  });
+
+  it('ArrowUp on first data cell does not move (boundary)', async () => {
+    const cells = await setupAndGetCells();
+    cells[0]!.focus();
+    cells[0]!.dispatchEvent(new KeyboardEvent('keydown', { key: 'ArrowUp', bubbles: true }));
+    expect(document.activeElement).toBe(cells[0]);
+    expect(cells[0]!.getAttribute('tabindex')).toBe('0');
+  });
+
+  it('ArrowRight moves focus 7 days forward (next week same weekday)', async () => {
+    const cells = await setupAndGetCells();
+    cells[0]!.focus();
+    cells[0]!.dispatchEvent(new KeyboardEvent('keydown', { key: 'ArrowRight', bubbles: true }));
+    expect(document.activeElement).toBe(cells[7]);
+  });
+
+  it('ArrowLeft on first week does not move (boundary)', async () => {
+    const cells = await setupAndGetCells();
+    cells[0]!.focus();
+    cells[0]!.dispatchEvent(new KeyboardEvent('keydown', { key: 'ArrowLeft', bubbles: true }));
+    expect(document.activeElement).toBe(cells[0]);
+  });
+
+  it('ArrowRight beyond last week does not move (boundary)', async () => {
+    const cells = await setupAndGetCells();
+    const last = cells[cells.length - 1]!;
+    last.setAttribute('tabindex', '0');
+    cells[0]!.setAttribute('tabindex', '-1');
+    last.focus();
+    last.dispatchEvent(new KeyboardEvent('keydown', { key: 'ArrowRight', bubbles: true }));
+    expect(document.activeElement).toBe(last);
+  });
+
+  it('Enter on focused cell opens modal (shared.ts openModal called)', async () => {
+    const cells = await setupAndGetCells();
+    cells[0]!.focus();
+    cells[0]!.dispatchEvent(new KeyboardEvent('keydown', { key: 'Enter', bubbles: true }));
+    expect(document.querySelector('.dg-modal')).not.toBeNull();
+  });
+
+  it('Modal close returns focus to the cell that opened it', async () => {
+    const cells = await setupAndGetCells();
+    cells[3]!.focus();
+    cells[3]!.dispatchEvent(new KeyboardEvent('keydown', { key: 'Enter', bubbles: true }));
+    expect(document.querySelector('.dg-modal')).not.toBeNull();
+    const { closeModal } = await import('../../src/ui/modals/shared');
+    closeModal();
+    expect(document.activeElement).toBe(cells[3]);
+  });
+});

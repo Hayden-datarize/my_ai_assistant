@@ -162,6 +162,11 @@ function hydrateHeatmap(): void {
     return b;
   };
 
+  const openDayDetail = (cell: HTMLButtonElement): void => {
+    const date = cell.dataset['date']!;
+    showDayDetail(date, () => cell.focus());
+  };
+
   for (let i = 0; i < leadingBlanks; i++) grid.append(makeBlank());
 
   for (let i = 0; i < DAYS; i++) {
@@ -176,7 +181,7 @@ function hydrateHeatmap(): void {
     cell.dataset['date'] = key;
     const ariaLabel = n > 0 ? `${key}, ${n}개 달성` : `${key}, 기록 없음`;
     cell.setAttribute('aria-label', ariaLabel);
-    cell.addEventListener('click', () => showDayDetail(key));
+    cell.addEventListener('click', () => openDayDetail(cell));
     cell.addEventListener('mouseenter', () => {
       if (info) info.textContent = n > 0
         ? `${formatCellLabel(key)} · ${n}개 달성`
@@ -189,6 +194,32 @@ function hydrateHeatmap(): void {
   }
 
   for (let i = 0; i < trailingBlanks; i++) grid.append(makeBlank());
+
+  const dataCells = Array.from(grid.querySelectorAll<HTMLButtonElement>('.heatmap-cell:not(.is-blank)'));
+  dataCells.forEach((c, i) => c.setAttribute('tabindex', i === 0 ? '0' : '-1'));
+
+  const moveFocus = (from: HTMLButtonElement, delta: number): void => {
+    const idx = dataCells.indexOf(from);
+    const target = idx + delta;
+    if (target < 0 || target >= dataCells.length) return;
+    from.setAttribute('tabindex', '-1');
+    const next = dataCells[target]!;
+    next.setAttribute('tabindex', '0');
+    next.focus();
+  };
+
+  dataCells.forEach((cell) => {
+    cell.addEventListener('keydown', (e) => {
+      switch (e.key) {
+        case 'ArrowUp':    e.preventDefault(); moveFocus(cell, -1); break;
+        case 'ArrowDown':  e.preventDefault(); moveFocus(cell, +1); break;
+        case 'ArrowLeft':  e.preventDefault(); moveFocus(cell, -7); break;
+        case 'ArrowRight': e.preventDefault(); moveFocus(cell, +7); break;
+        case 'Enter':
+        case ' ':          e.preventDefault(); openDayDetail(cell); break;
+      }
+    });
+  });
 }
 
 function hydrateBadges(): void {
@@ -261,10 +292,10 @@ function hydrateGrowthSummary(): void {
   el.textContent = `최근 ${recent}개의 기록으로 레벨 ${user.level}까지 도달했어요. 오늘도 한 걸음 더 나아가 볼까요?`;
 }
 
-function showDayDetail(date: string): void {
+function showDayDetail(date: string, onClose?: () => void): void {
   const answers = loadAnswers().filter((a) => (a.date ?? (a.createdAt?.slice(0, 10) ?? '')) === date);
   if (answers.length === 0) {
-    openModal({ title: date, bodyHtml: `<p>이 날은 기록이 없어요.</p>` });
+    openModal({ title: date, bodyHtml: `<p>이 날은 기록이 없어요.</p>`, onClose });
     return;
   }
   const parts = answers.map((a) => `
@@ -274,5 +305,5 @@ function showDayDetail(date: string): void {
       ${a.evaluation ? `<div class="archive-detail-eval">AI ${a.evaluation.score}점 · ${escapeHtml(a.evaluation.feedback)}</div>` : ''}
     </article>
   `);
-  openModal({ title: `${date} 기록 ${answers.length}개`, bodyHtml: parts.join('') });
+  openModal({ title: `${date} 기록 ${answers.length}개`, bodyHtml: parts.join(''), onClose });
 }
