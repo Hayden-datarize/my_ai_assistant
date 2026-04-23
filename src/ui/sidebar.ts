@@ -62,8 +62,11 @@ export function mountSidebar(): void {
     backdrop.dataset['open'] = 'true';
     toggle.setAttribute('aria-expanded', 'true');
     toggle.setAttribute('aria-label', '메뉴 닫기');
+    // Only remember a genuine interactive focus target. <body> counts as
+    // "nothing focused" semantically — fall back to toggle on close.
+    const current = document.activeElement;
     lastFocused =
-      document.activeElement instanceof HTMLElement ? document.activeElement : null;
+      current instanceof HTMLElement && current !== document.body ? current : null;
     trap.activate();
     try {
       localStorage.setItem(LS_KEY, 'open');
@@ -83,8 +86,10 @@ export function mountSidebar(): void {
       try {
         lastFocused.focus();
       } catch {
-        /* detached */
+        toggle.focus();
       }
+    } else {
+      toggle.focus();
     }
     try {
       localStorage.setItem(LS_KEY, 'closed');

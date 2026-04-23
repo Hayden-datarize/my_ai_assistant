@@ -89,4 +89,14 @@ describe('mountSidebar', () => {
     expect(spy).toHaveBeenCalled();
     document.removeEventListener('dg:nav:tab-changed', spy);
   });
+
+  it('restored-open drawer close refocuses toggle when no prior lastFocused', () => {
+    // Open-on-mount path: activeElement === <body>, so lastFocused is null.
+    // Close must still land focus on the toggle (WCAG 2.4.3 Focus Order).
+    localStorage.setItem(LS_KEY, 'open');
+    mountSidebar();
+    document.dispatchEvent(new KeyboardEvent('keydown', { key: 'Escape' }));
+    const toggle = document.querySelector<HTMLButtonElement>('#sidebarToggle')!;
+    expect(document.activeElement).toBe(toggle);
+  });
 });
