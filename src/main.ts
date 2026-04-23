@@ -1,4 +1,5 @@
 import { mountNav, switchTab } from './ui/nav';
+import { mountSidebar } from './ui/sidebar';
 import { mountHomeHandlers } from './ui/handlers/home';
 import { mountArchiveHandlers } from './ui/handlers/archive';
 import { mountStatsHandlers } from './ui/handlers/stats';
@@ -21,6 +22,7 @@ function bootMainApp(): void {
   mountArchiveHandlers();
   mountStatsHandlers();
   mountNav();
+  mountSidebar();
   switchTab('home');
 }
 

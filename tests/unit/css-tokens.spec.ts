@@ -8,13 +8,49 @@ const stylesDir = join(here, '..', '..', 'src', 'styles');
 // v3.3.0: tokens moved to tokens.css (@layer tokens); layout consumers moved to layout.css (@layer layout).
 const tokensCss = readFileSync(join(stylesDir, 'tokens.css'), 'utf-8');
 const layoutCss = readFileSync(join(stylesDir, 'layout.css'), 'utf-8');
+const formsCss = readFileSync(join(stylesDir, 'components', 'forms.css'), 'utf-8');
 
 describe('css drift guards (v3.2b-polish)', () => {
   it('--sidebar-width defined in :root with 240px', () => {
     expect(tokensCss).toMatch(/:root\s*\{[\s\S]*?--sidebar-width:\s*240px/);
   });
-  it('--sidebar-width used at least twice (max-width + padding-left + width)', () => {
+  // Re-enabled in Task 5: drawer CSS consumes --sidebar-width.
+  it('--sidebar-width used at least once (drawer in v3.3.1+)', () => {
     const matches = layoutCss.match(/var\(--sidebar-width\)/g) ?? [];
-    expect(matches.length).toBeGreaterThanOrEqual(2);
+    expect(matches.length).toBeGreaterThanOrEqual(1);
+  });
+});
+
+describe('layout.css dead code removal (v3.3.1)', () => {
+  it('no .app-container declarations remain', () => {
+    expect(layoutCss).not.toMatch(/\.app-container\s*\{/);
+  });
+});
+
+describe('sidebar drawer CSS (v3.3.1)', () => {
+  it('sidebar drawer styles exist in layout.css', () => {
+    expect(layoutCss).toMatch(/\.sidebar-drawer\s*\{/);
+    expect(layoutCss).toMatch(/\.sidebar-backdrop\s*\{/);
+    expect(layoutCss).toMatch(/\.sidebar-toggle\s*\{/);
+    expect(layoutCss).toMatch(/transform:\s*translateX\(-100%\)/);
+  });
+});
+
+describe('settings layout (v3.3.1)', () => {
+  it('.settings-section has max-width 560px and centered margin', () => {
+    expect(formsCss).toMatch(/\.settings-section\s*\{[^}]*max-width:\s*560px/);
+    expect(formsCss).toMatch(/\.settings-section\s*\{[^}]*margin:\s*0\s+auto/);
+  });
+});
+
+describe('font-size token rename (v3.3.1, resolves v3.3.0 open P1-A)', () => {
+  it('font-size tokens use --font-size-* naming (not --text-*)', () => {
+    expect(tokensCss).toMatch(/--font-size-base:\s*16px/);
+    expect(tokensCss).not.toMatch(/--text-base:\s*16px/);
+  });
+  it('color tokens preserve --text-primary/secondary/tertiary', () => {
+    expect(tokensCss).toMatch(/--text-primary:\s*#[0-9A-F]{6}/i);
+    expect(tokensCss).toMatch(/--text-secondary:\s*#[0-9A-F]{6}/i);
+    expect(tokensCss).toMatch(/--text-tertiary:\s*#[0-9A-F]{6}/i);
   });
 });
