@@ -16,10 +16,11 @@
   font-weight: 600;
 }
 
-/* Layout: label column + grid */
+/* Layout: label column + grid (intrinsic widths, left-aligned) */
 .heatmap-layout {
   display: grid;
-  grid-template-columns: auto 1fr;
+  grid-template-columns: auto auto;
+  justify-content: start;
   gap: var(--space-2);
 }
 
@@ -36,6 +37,10 @@
 .heatmap-weekday-labels li {
   display: flex; align-items: center; justify-content: flex-end;
   line-height: 1;
+}
+.heatmap-weekday-labels .weekend-label {
+  color: var(--accent);
+  font-weight: 600;
 }
 
 /* Grid (dynamic 4~5 columns, 7 rows) */

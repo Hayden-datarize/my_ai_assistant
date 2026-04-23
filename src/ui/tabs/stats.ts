@@ -42,7 +42,7 @@ export function renderStats(container: HTMLElement): void {
         <h3>📅 최근 4주 활동</h3>
         <div class="heatmap-layout">
           <ol class="heatmap-weekday-labels" aria-hidden="true">
-            <li>월</li><li>화</li><li>수</li><li>목</li><li>금</li><li>토</li><li>일</li>
+            <li>월</li><li>화</li><li>수</li><li>목</li><li>금</li><li class="weekend-label">토</li><li class="weekend-label">일</li>
           </ol>
           <div class="heatmap-grid" id="heatmapGrid"
                aria-label="최근 4주 활동 히트맵. 화살표 키로 탐색, Enter로 상세 보기"></div>
