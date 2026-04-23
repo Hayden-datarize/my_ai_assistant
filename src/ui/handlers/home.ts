@@ -121,7 +121,8 @@ export function mountHomeHandlers(): void {
 
   on('dg:home:toggle-hint', () => {
     const hint = document.getElementById('hintBox');
-    hint?.classList.toggle('hidden');
+    // .hint-box uses .show (display:block) — not .hidden — per home.css
+    hint?.classList.toggle('show');
   });
 
   on('dg:home:submit-answer', () => {
@@ -481,12 +482,19 @@ async function submitAnswer(): Promise<void> {
   const cc = document.getElementById('charCount');
   if (cc) cc.textContent = '0자';
 
-  // AI feedback via chat
-  const key = getApiKey();
-  if (!key) { showToast('AI 피드백을 받으려면 API 키가 필요합니다'); return; }
-
+  // Always surface the user's answer as a chat bubble so it is not "lost"
+  // after the textarea is cleared. This runs before API-key gating below.
   addBubble('user', text);
   appendChatMessage(getDateStr(), { role: 'user', text, at: Date.now() });
+  document.getElementById('chatContainer')?.scrollIntoView({ behavior: 'smooth', block: 'start' });
+  showToast('답변이 저장되었어요');
+
+  // AI feedback via chat — requires API key
+  const key = getApiKey();
+  if (!key) {
+    addBubble('ai', 'AI 피드백을 받으려면 설정에서 API 키를 등록해 주세요.');
+    return;
+  }
 
   try {
     const reply = await chat({
