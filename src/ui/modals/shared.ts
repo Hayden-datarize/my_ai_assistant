@@ -2,10 +2,13 @@ export interface ModalConfig {
   title: string;
   /** Caller-owned HTML; caller MUST escape any user interpolation before passing. */
   bodyHtml: string;
+  /** Called after the modal is closed (ESC, backdrop, close button, or programmatic). */
+  onClose?: () => void;
 }
 
 let active: HTMLDivElement | null = null;
 let escHandler: ((e: KeyboardEvent) => void) | null = null;
+let activeOnClose: (() => void) | null = null;
 
 export function openModal(cfg: ModalConfig): void {
   closeModal();
@@ -38,12 +41,14 @@ export function openModal(cfg: ModalConfig): void {
 
   root.append(wrap);
   active = wrap;
+  activeOnClose = cfg.onClose ?? null;
 
   escHandler = (e) => { if (e.key === 'Escape') closeModal(); };
   document.addEventListener('keydown', escHandler);
 }
 
 export function closeModal(): void {
+  const cb = activeOnClose;
   if (active) {
     active.remove();
     active = null;
@@ -52,4 +57,6 @@ export function closeModal(): void {
     document.removeEventListener('keydown', escHandler);
     escHandler = null;
   }
+  activeOnClose = null;
+  if (cb) cb();
 }
