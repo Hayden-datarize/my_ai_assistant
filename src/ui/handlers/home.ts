@@ -469,6 +469,24 @@ function updateTurnCounter(msgCount: number): void {
   el.textContent = `턴 ${turns}/5`;
 }
 
+export function openSettingsWithFocus(): void {
+  const active = document.querySelector('.nav-item.active');
+  const isAlreadySettings = active?.getAttribute('data-tab-id') === 'settings';
+
+  const scrollToField = (): void => {
+    const field = document.getElementById('apiKeyInput');
+    field?.scrollIntoView({ behavior: 'smooth', block: 'center' });
+  };
+
+  if (isAlreadySettings) {
+    scrollToField();
+  } else {
+    switchTab('settings');
+    // switchTab renders synchronously; rAF ensures post-paint DOM stability before scroll
+    requestAnimationFrame(scrollToField);
+  }
+}
+
 async function submitAnswer(): Promise<void> {
   const area = document.getElementById('answerArea') as HTMLTextAreaElement | null;
   const content = document.getElementById('questionContent');
@@ -515,7 +533,11 @@ async function submitAnswer(): Promise<void> {
   // AI feedback via chat — requires API key
   const key = getApiKey();
   if (!key) {
-    addBubble('ai', 'AI 피드백을 받으려면 설정에서 API 키를 등록해 주세요.');
+    addBubble('ai', 'AI 응답을 받으려면 API 키를 등록해 주세요.', {
+      label: '⚙ 설정 열기',
+      onClick: openSettingsWithFocus,
+    });
+    updateTurnCounter(loadChatHistory(getDateStr()).length);
     return;
   }
 
@@ -558,7 +580,14 @@ async function sendChatMessage(): Promise<void> {
   appendChatMessage(getDateStr(), { role: 'user', text, at: Date.now() });
 
   const key = getApiKey();
-  if (!key) { addBubble('ai', 'API 키가 설정되지 않았어요. 설정에서 등록해 주세요.'); return; }
+  if (!key) {
+    addBubble('ai', 'AI 응답을 받으려면 API 키를 등록해 주세요.', {
+      label: '⚙ 설정 열기',
+      onClick: openSettingsWithFocus,
+    });
+    updateTurnCounter(loadChatHistory(getDateStr()).length);
+    return;
+  }
 
   const history = loadChatHistory(getDateStr()).map((m) => ({ role: m.role, text: m.text }));
   try {

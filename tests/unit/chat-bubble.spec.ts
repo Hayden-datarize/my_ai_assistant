@@ -1,4 +1,13 @@
 import { describe, it, expect, beforeEach, vi } from 'vitest';
+import { switchTab } from '../../src/ui/nav';
+
+vi.mock('../../src/ui/nav', async (importOriginal) => {
+  const actual = await importOriginal<typeof import('../../src/ui/nav')>();
+  return {
+    ...actual,
+    switchTab: vi.fn(),
+  };
+});
 
 describe('addBubble (home handler)', () => {
   beforeEach(() => {
@@ -51,5 +60,41 @@ describe('addBubble (home handler)', () => {
     const bubbles = document.querySelectorAll('.chat-bubble');
     expect(bubbles[0]?.classList.contains('chat-user')).toBe(true);
     expect(bubbles[1]?.classList.contains('chat-ai')).toBe(true);
+  });
+});
+
+describe('openSettingsWithFocus', () => {
+  beforeEach(() => {
+    document.body.replaceChildren();
+    const nav = document.createElement('nav');
+    const home = document.createElement('button');
+    home.className = 'nav-item active';
+    home.dataset['tabId'] = 'home';
+    const settings = document.createElement('button');
+    settings.className = 'nav-item';
+    settings.dataset['tabId'] = 'settings';
+    nav.append(home, settings);
+    document.body.append(nav);
+
+    const app = document.createElement('div');
+    app.id = 'app';
+    document.body.append(app);
+
+    vi.clearAllMocks();
+  });
+
+  it('calls switchTab("settings") when not already on settings', async () => {
+    const { openSettingsWithFocus } = await import('../../src/ui/handlers/home');
+    openSettingsWithFocus();
+    expect(switchTab).toHaveBeenCalledWith('settings');
+  });
+
+  it('does NOT call switchTab when already on settings', async () => {
+    document.querySelector('.nav-item.active')?.classList.remove('active');
+    document.querySelector('[data-tab-id="settings"]')?.classList.add('active');
+
+    const { openSettingsWithFocus } = await import('../../src/ui/handlers/home');
+    openSettingsWithFocus();
+    expect(switchTab).not.toHaveBeenCalled();
   });
 });
