@@ -108,4 +108,85 @@ describe('hydrateHeatmap cell semantics', () => {
     expect(cell).not.toBeNull();
     expect(cell!.getAttribute('aria-label')).toBe('2026-04-20, 2개 달성');
   });
+
+  it('gives 0-count cell aria-label "YYYY-MM-DD, 기록 없음"', async () => {
+    vi.setSystemTime(new Date('2026-04-22T03:00:00Z'));
+    const mod = await import('../../src/ui/handlers/stats');
+    mod.hydrateStats();
+    // Pick any empty day in the window, e.g., 2026-04-15
+    const cell = document.querySelector<HTMLButtonElement>('.heatmap-cell[data-date="2026-04-15"]');
+    expect(cell).not.toBeNull();
+    expect(cell!.getAttribute('aria-label')).toBe('2026-04-15, 기록 없음');
+  });
+});
+
+describe('hydrateHeatmap inline info', () => {
+  beforeEach(() => {
+    localStorage.clear();
+    sessionStorage.clear();
+    mountHeatmapDom();
+    vi.useFakeTimers();
+  });
+  afterEach(() => {
+    vi.useRealTimers();
+    vi.resetModules();
+  });
+
+  it('shows empty state message when no answers in 28-day window', async () => {
+    vi.setSystemTime(new Date('2026-04-22T03:00:00Z'));
+    const mod = await import('../../src/ui/handlers/stats');
+    mod.hydrateStats();
+    const info = document.getElementById('heatmapInfo');
+    expect(info?.textContent).toBe('아직 기록이 없어요. 첫 답변을 남겨보세요.');
+  });
+
+  it('shows summary with total + streak when there are answers', async () => {
+    vi.setSystemTime(new Date('2026-04-22T03:00:00Z'));
+    localStorage.setItem('dg.answers', JSON.stringify([
+      { date: '2026-04-21', text: 'a', type: '감정' },
+      { date: '2026-04-22', text: 'b', type: '감정' },
+      { date: '2026-04-22', text: 'c', type: '감정' },
+    ]));
+    const mod = await import('../../src/ui/handlers/stats');
+    mod.hydrateStats();
+    const info = document.getElementById('heatmapInfo');
+    expect(info?.textContent).toBe('최근 28일 · 3개 달성 · 최장 연속 2일');
+  });
+
+  it('updates info on cell mouseenter: "M월 D일 (요일) · N개 달성"', async () => {
+    vi.setSystemTime(new Date('2026-04-22T03:00:00Z'));
+    localStorage.setItem('dg.answers', JSON.stringify([
+      { date: '2026-04-20', text: 'a', type: '감정' },
+    ]));
+    const mod = await import('../../src/ui/handlers/stats');
+    mod.hydrateStats();
+    const cell = document.querySelector<HTMLButtonElement>('.heatmap-cell[data-date="2026-04-20"]')!;
+    cell.dispatchEvent(new MouseEvent('mouseenter', { bubbles: true }));
+    const info = document.getElementById('heatmapInfo');
+    expect(info?.textContent).toBe('4월 20일 (월) · 1개 달성');
+  });
+
+  it('updates info on empty cell mouseenter: "기록 없음"', async () => {
+    vi.setSystemTime(new Date('2026-04-22T03:00:00Z'));
+    const mod = await import('../../src/ui/handlers/stats');
+    mod.hydrateStats();
+    const cell = document.querySelector<HTMLButtonElement>('.heatmap-cell[data-date="2026-04-15"]')!;
+    cell.dispatchEvent(new MouseEvent('mouseenter', { bubbles: true }));
+    const info = document.getElementById('heatmapInfo');
+    expect(info?.textContent).toBe('4월 15일 (수) · 기록 없음');
+  });
+
+  it('resets info to default on mouseleave', async () => {
+    vi.setSystemTime(new Date('2026-04-22T03:00:00Z'));
+    localStorage.setItem('dg.answers', JSON.stringify([
+      { date: '2026-04-22', text: 'a', type: '감정' },
+    ]));
+    const mod = await import('../../src/ui/handlers/stats');
+    mod.hydrateStats();
+    const cell = document.querySelector<HTMLButtonElement>('.heatmap-cell[data-date="2026-04-15"]')!;
+    cell.dispatchEvent(new MouseEvent('mouseenter', { bubbles: true }));
+    cell.dispatchEvent(new MouseEvent('mouseleave', { bubbles: true }));
+    const info = document.getElementById('heatmapInfo');
+    expect(info?.textContent).toBe('최근 28일 · 1개 달성 · 최장 연속 1일');
+  });
 });

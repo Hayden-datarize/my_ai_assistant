@@ -28,6 +28,40 @@ function loadUser(): LegacyUser | null {
   } catch { return null; }
 }
 
+const WEEKDAY_KO = ['월', '화', '수', '목', '금', '토', '일'];
+
+function isoKey(d: Date): string {
+  return d.toISOString().slice(0, 10);
+}
+
+function computeTotalAndStreak(counts: Map<string, number>, firstDay: Date, days: number): { total: number; streak: number } {
+  let total = 0;
+  let streak = 0;
+  let longest = 0;
+  for (let i = 0; i < days; i++) {
+    const d = new Date(firstDay);
+    d.setDate(firstDay.getDate() + i);
+    const n = counts.get(isoKey(d)) ?? 0;
+    total += n;
+    if (n > 0) { streak += 1; if (streak > longest) longest = streak; }
+    else { streak = 0; }
+  }
+  return { total, streak: longest };
+}
+
+function formatCellLabel(dateKey: string): string {
+  const [, mm, dd] = dateKey.split('-');
+  const d = new Date(`${dateKey}T00:00:00`);
+  const wdIdx = (d.getDay() + 6) % 7;
+  return `${Number(mm)}월 ${Number(dd)}일 (${WEEKDAY_KO[wdIdx]})`;
+}
+
+function setDefaultInfo(info: HTMLElement, total: number, streak: number): void {
+  info.textContent = total === 0
+    ? '아직 기록이 없어요. 첫 답변을 남겨보세요.'
+    : `최근 28일 · ${total}개 달성 · 최장 연속 ${streak}일`;
+}
+
 export function mountStatsHandlers(): void {
   on('dg:stats:weekly-report', () => showToast('주간 리포트는 v3.2에서 준비 중입니다'));
   on('dg:stats:growth-analysis', () => showToast('성장 분석은 v3.2에서 준비 중입니다'));
@@ -96,6 +130,7 @@ function hydrateHeatmap(): void {
   const grid = document.getElementById('heatmapGrid');
   if (!grid) return;
   grid.replaceChildren();
+  const info = document.getElementById('heatmapInfo');
 
   const answers = loadAnswers();
   const counts = new Map<string, number>();
@@ -115,6 +150,9 @@ function hydrateHeatmap(): void {
   const leadingBlanks = isoIdx(firstDay);
   const todayKey = today.toISOString().slice(0, 10);
   const trailingBlanks = 6 - isoIdx(today);
+
+  const { total, streak } = computeTotalAndStreak(counts, firstDay, DAYS);
+  if (info) setDefaultInfo(info, total, streak);
 
   const makeBlank = (): HTMLButtonElement => {
     const b = document.createElement('button');
@@ -136,8 +174,17 @@ function hydrateHeatmap(): void {
     cell.type = 'button';
     cell.className = `heatmap-cell level-${level}${key === todayKey ? ' is-today' : ''}`;
     cell.dataset['date'] = key;
-    cell.setAttribute('aria-label', `${key}, ${n}개 달성`);
+    const ariaLabel = n > 0 ? `${key}, ${n}개 달성` : `${key}, 기록 없음`;
+    cell.setAttribute('aria-label', ariaLabel);
     cell.addEventListener('click', () => showDayDetail(key));
+    cell.addEventListener('mouseenter', () => {
+      if (info) info.textContent = n > 0
+        ? `${formatCellLabel(key)} · ${n}개 달성`
+        : `${formatCellLabel(key)} · 기록 없음`;
+    });
+    cell.addEventListener('mouseleave', () => {
+      if (info) setDefaultInfo(info, total, streak);
+    });
     grid.append(cell);
   }
 
