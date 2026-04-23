@@ -7,7 +7,7 @@ import { renderSettings } from './tabs/settings';
 
 export type TabId = 'home' | 'archive' | 'stats' | 'insights' | 'settings';
 
-const TABS: Array<{ id: TabId; label: string; icon: string; render: (c: HTMLElement) => void }> = [
+export const TABS: Array<{ id: TabId; label: string; icon: string; render: (c: HTMLElement) => void }> = [
   { id: 'home', label: '홈', icon: '🏠', render: renderHome },
   { id: 'archive', label: '아카이브', icon: '📚', render: renderArchive },
   { id: 'stats', label: '통계', icon: '📊', render: renderStats },
@@ -45,7 +45,7 @@ export function switchTab(id: TabId): void {
   app.replaceChildren();
   tab.render(app);
 
-  const buttons = document.querySelectorAll<HTMLButtonElement>('#bottomNav .nav-item');
+  const buttons = document.querySelectorAll<HTMLButtonElement>('.nav-item');
   buttons.forEach((b) => {
     b.classList.toggle('active', b.dataset['tabId'] === id);
   });
