@@ -77,13 +77,20 @@
 @media (min-width: 768px) {
   .bottom-nav { display: none; }
   /* Tab content gets left pad so sidebar-toggle (fixed 12+40 = 52px) doesn't
-     overlap tab headings. 60px = space-3 (12) + 40 (toggle width) + space-2 (8) margin. */
+     overlap tab headings. 80px = 52 (toggle reach) + 28 breathing room.
+     All tabs share this offset so tab headings align at the same x position. */
   #homeTab,
   #archiveTab,
   #statsTab,
   #insightsTab,
   #settingsTab {
-    padding-left: 60px;
+    padding-left: 80px;
+  }
+  /* Home tab's `.header` already has its own `padding-left: 20px`.
+     On desktop the parent `#homeTab` supplies the offset, so zero out the
+     header's left padding to avoid double-offset (would be 100px). */
+  #homeTab > .header {
+    padding-left: 0;
   }
 }
 
