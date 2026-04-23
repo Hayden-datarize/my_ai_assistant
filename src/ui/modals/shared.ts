@@ -1,28 +1,48 @@
+import { createFocusTrap, type FocusTrap } from '../utils/focus-trap';
+
 export interface ModalConfig {
   title: string;
   /** Caller-owned HTML; caller MUST escape any user interpolation before passing. */
   bodyHtml: string;
-  /** Called after the modal is closed (ESC, backdrop, close button, or programmatic). */
+  /** Called after the modal is closed (ESC, backdrop, close button, or programmatic).
+   *  Use for cleanup only — do NOT rely on this for save semantics (ESC would save-on-cancel). */
   onClose?: () => void;
+}
+
+interface CloseOpts {
+  skipFocusRestore?: boolean;
 }
 
 let active: HTMLDivElement | null = null;
 let escHandler: ((e: KeyboardEvent) => void) | null = null;
 let activeOnClose: (() => void) | null = null;
+let activeFocusTrap: FocusTrap | null = null;
+let lastFocusedBeforeOpen: HTMLElement | null = null;
 
 export function openModal(cfg: ModalConfig): void {
-  closeModal();
+  // 1. Save pre-first-open focus (don't overwrite if already set — modal chain preserves original trigger)
+  if (!lastFocusedBeforeOpen) {
+    lastFocusedBeforeOpen = document.activeElement as HTMLElement | null;
+  }
+
+  // 2. Clear previous modal without restoring focus (we already saved original)
+  closeModal({ skipFocusRestore: true });
+
   const root = document.getElementById('modalRoot') ?? document.body;
   const wrap = document.createElement('div');
   wrap.className = 'dg-modal';
   wrap.setAttribute('role', 'dialog');
   wrap.setAttribute('aria-modal', 'true');
-  // eslint-disable-next-line no-restricted-syntax -- 정적 셸 구조; 사용자 입력 없음, title/body는 아래에서 별도 처리
+
+  const titleId = `dg-modal-title-${Date.now()}-${Math.random().toString(36).slice(2, 6)}`;
+  wrap.setAttribute('aria-labelledby', titleId);
+
+  // eslint-disable-next-line no-restricted-syntax -- 정적 셸; title uses textContent, body uses caller-escaped innerHTML per ModalConfig contract
   wrap.innerHTML = `
     <div class="dg-modal-backdrop"></div>
     <div class="dg-modal-card">
       <header class="dg-modal-header">
-        <h3 class="dg-modal-title"></h3>
+        <h3 class="dg-modal-title" id="${titleId}"></h3>
         <button type="button" class="dg-modal-close" aria-label="닫기">×</button>
       </header>
       <div class="dg-modal-body"></div>
@@ -36,8 +56,8 @@ export function openModal(cfg: ModalConfig): void {
   // eslint-disable-next-line no-restricted-syntax -- caller-supplied bodyHtml per ModalConfig contract; caller MUST escape interpolations
   if (bodyEl) bodyEl.innerHTML = cfg.bodyHtml;
 
-  wrap.querySelector('.dg-modal-close')?.addEventListener('click', closeModal);
-  wrap.querySelector('.dg-modal-backdrop')?.addEventListener('click', closeModal);
+  wrap.querySelector('.dg-modal-close')?.addEventListener('click', () => closeModal());
+  wrap.querySelector('.dg-modal-backdrop')?.addEventListener('click', () => closeModal());
 
   root.append(wrap);
   active = wrap;
@@ -45,10 +65,19 @@ export function openModal(cfg: ModalConfig): void {
 
   escHandler = (e) => { if (e.key === 'Escape') closeModal(); };
   document.addEventListener('keydown', escHandler);
+
+  // 3. Activate focus trap (auto-focuses first focusable inside modal)
+  activeFocusTrap = createFocusTrap(wrap);
+  activeFocusTrap.activate();
 }
 
-export function closeModal(): void {
+export function closeModal(opts?: CloseOpts): void {
   const cb = activeOnClose;
+
+  if (activeFocusTrap) {
+    activeFocusTrap.deactivate();
+    activeFocusTrap = null;
+  }
   if (active) {
     active.remove();
     active = null;
@@ -58,5 +87,11 @@ export function closeModal(): void {
     escHandler = null;
   }
   activeOnClose = null;
+
+  if (!opts?.skipFocusRestore) {
+    lastFocusedBeforeOpen?.focus();
+    lastFocusedBeforeOpen = null;
+  }
+
   if (cb) cb();
 }
