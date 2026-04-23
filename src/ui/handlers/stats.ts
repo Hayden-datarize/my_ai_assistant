@@ -113,6 +113,7 @@ function hydrateHeatmap(): void {
   const firstDay = new Date(today);
   firstDay.setDate(today.getDate() - (DAYS - 1));
   const leadingBlanks = isoIdx(firstDay);
+  const todayKey = today.toISOString().slice(0, 10);
   const trailingBlanks = 6 - isoIdx(today);
 
   const makeBlank = (): HTMLButtonElement => {
@@ -133,8 +134,9 @@ function hydrateHeatmap(): void {
     const level = Math.min(3, n);
     const cell = document.createElement('button');
     cell.type = 'button';
-    cell.className = `heatmap-cell level-${level}`;
+    cell.className = `heatmap-cell level-${level}${key === todayKey ? ' is-today' : ''}`;
     cell.dataset['date'] = key;
+    cell.setAttribute('aria-label', `${key}, ${n}개 달성`);
     cell.addEventListener('click', () => showDayDetail(key));
     grid.append(cell);
   }

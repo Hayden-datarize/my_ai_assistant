@@ -74,3 +74,38 @@ describe('hydrateHeatmap column alignment', () => {
     expect(Array.from(labels).map((l) => l.textContent)).toEqual(['월', '화', '수', '목', '금', '토', '일']);
   });
 });
+
+describe('hydrateHeatmap cell semantics', () => {
+  beforeEach(() => {
+    localStorage.clear();
+    sessionStorage.clear();
+    mountHeatmapDom();
+    vi.useFakeTimers();
+  });
+  afterEach(() => {
+    vi.useRealTimers();
+    vi.resetModules();
+  });
+
+  it('marks today cell with .is-today', async () => {
+    vi.setSystemTime(new Date('2026-04-22T03:00:00Z'));
+    const mod = await import('../../src/ui/handlers/stats');
+    mod.hydrateStats();
+    const todayCells = document.querySelectorAll('.heatmap-cell.is-today');
+    expect(todayCells.length).toBe(1);
+    expect((todayCells[0] as HTMLButtonElement).dataset['date']).toBe('2026-04-22');
+  });
+
+  it('gives each data cell aria-label "YYYY-MM-DD, N개 달성"', async () => {
+    vi.setSystemTime(new Date('2026-04-22T03:00:00Z'));
+    localStorage.setItem('dg.answers', JSON.stringify([
+      { date: '2026-04-20', text: 'a', type: '감정' },
+      { date: '2026-04-20', text: 'b', type: '감정' },
+    ]));
+    const mod = await import('../../src/ui/handlers/stats');
+    mod.hydrateStats();
+    const cell = document.querySelector<HTMLButtonElement>('.heatmap-cell[data-date="2026-04-20"]');
+    expect(cell).not.toBeNull();
+    expect(cell!.getAttribute('aria-label')).toBe('2026-04-20, 2개 달성');
+  });
+});
