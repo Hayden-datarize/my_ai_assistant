@@ -8,6 +8,7 @@ export interface Briefing {
   read: boolean;
   memo: string;
   sourceTitle?: string;
+  imageUrl?: string;  // v3.3.3 — persisted from RSS extractImage()
 }
 
 const KEY = 'briefings';

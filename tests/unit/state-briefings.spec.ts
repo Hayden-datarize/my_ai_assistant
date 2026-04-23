@@ -37,3 +37,31 @@ describe('state/briefings', () => {
     expect(loadBriefings()[0]?.scrapped).toBe(false);
   });
 });
+
+describe('v3.3.3 Briefing.imageUrl', () => {
+  beforeEach(() => {
+    localStorage.clear();
+  });
+
+  it('is optional — legacy briefings without imageUrl still load', () => {
+    const legacy = {
+      id: '1', date: '2026-04-23', url: 'https://x.com', title: 't',
+      summary: 's', scrapped: false, read: false, memo: '',
+    };
+    localStorage.setItem('briefings', JSON.stringify([legacy]));
+    const loaded = loadBriefings();
+    expect(loaded[0]?.imageUrl).toBeUndefined();
+    expect(loaded[0]?.title).toBe('t');
+  });
+
+  it('persists imageUrl when set', () => {
+    const b: Briefing = {
+      id: '1', date: '2026-04-23', url: 'https://x.com', title: 't',
+      summary: 's', scrapped: false, read: false, memo: '',
+      imageUrl: 'https://x.com/img.jpg',
+    };
+    saveBriefings([b]);
+    const loaded = loadBriefings();
+    expect(loaded[0]?.imageUrl).toBe('https://x.com/img.jpg');
+  });
+});

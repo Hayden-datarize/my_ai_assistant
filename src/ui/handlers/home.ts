@@ -289,7 +289,7 @@ async function refreshBriefings(): Promise<void> {
   const fetched = await Promise.all(
     feedUrls.map((u) => fetchFeed(u, { timeoutMs: 5000 })),
   );
-  const chosen = pickBriefings(fetched, 3);
+  const chosen = pickBriefings(fetched, 5);
 
   const today = getDateStr();
   const stored: Briefing[] = chosen.map(({ item, sourceTitle }, i) => ({
@@ -302,6 +302,7 @@ async function refreshBriefings(): Promise<void> {
     read: false,
     memo: '',
     ...(sourceTitle ? { sourceTitle } : {}),
+    ...(item.image ? { imageUrl: item.image } : {}),
   }));
   saveBriefings(stored);
   hydrateBriefings();

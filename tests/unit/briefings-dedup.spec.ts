@@ -52,3 +52,29 @@ describe('pickBriefings (v3.2b-ui dedup)', () => {
     expect(out.map((p) => p.item.link)).toEqual(['b1']);
   });
 });
+
+describe('v3.3.3 pickBriefings(feeds, 5)', () => {
+  it('returns up to 5 items when available', () => {
+    const feeds: FeedResult[] = [
+      {
+        sourceTitle: 'A',
+        items: Array.from({ length: 10 }, (_, i) => ({
+          title: `a${i}`, link: `https://a.com/${i}`,
+          description: '', pubDate: '',
+        })),
+      },
+    ];
+    const picked = pickBriefings(feeds, 5);
+    expect(picked).toHaveLength(5);
+  });
+
+  it('dedups by link even at target=5', () => {
+    const feeds: FeedResult[] = [
+      { sourceTitle: 'A', items: [{ title: 'dup', link: 'https://x.com/1', description: '', pubDate: '' }] },
+      { sourceTitle: 'B', items: [{ title: 'dup', link: 'https://x.com/1', description: '', pubDate: '' }] },
+      { sourceTitle: 'C', items: [{ title: 'u', link: 'https://x.com/2', description: '', pubDate: '' }] },
+    ];
+    const picked = pickBriefings(feeds, 5);
+    expect(picked).toHaveLength(2); // 1 dup removed
+  });
+});
