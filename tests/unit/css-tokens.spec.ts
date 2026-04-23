@@ -42,3 +42,15 @@ describe('settings layout (v3.3.1)', () => {
     expect(formsCss).toMatch(/\.settings-section\s*\{[^}]*margin:\s*0\s+auto/);
   });
 });
+
+describe('font-size token rename (v3.3.1, resolves v3.3.0 open P1-A)', () => {
+  it('font-size tokens use --font-size-* naming (not --text-*)', () => {
+    expect(tokensCss).toMatch(/--font-size-base:\s*16px/);
+    expect(tokensCss).not.toMatch(/--text-base:\s*16px/);
+  });
+  it('color tokens preserve --text-primary/secondary/tertiary', () => {
+    expect(tokensCss).toMatch(/--text-primary:\s*#[0-9A-F]{6}/i);
+    expect(tokensCss).toMatch(/--text-secondary:\s*#[0-9A-F]{6}/i);
+    expect(tokensCss).toMatch(/--text-tertiary:\s*#[0-9A-F]{6}/i);
+  });
+});
