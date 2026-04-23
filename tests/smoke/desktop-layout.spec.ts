@@ -52,6 +52,20 @@ test('viewport 375×667 — bottom-nav visible on mobile', async ({ page }) => {
   await expect(nav).toBeVisible();
 });
 
+test('viewport 1920×1080 — settings section width <= 560px', async ({ page }) => {
+  await page.setViewportSize({ width: 1920, height: 1080 });
+  await seedAll(page);
+  await page.goto('/');
+  // Open drawer via hamburger, click settings tab
+  await page.locator('#sidebarToggle').click();
+  await page.locator('#sidebarDrawer .nav-item[data-tab-id="settings"]').click();
+  const section = page.locator('#settingsTab');
+  await expect(section).toBeVisible();
+  const box = await section.boundingBox();
+  expect(box).not.toBeNull();
+  expect(box!.width).toBeLessThanOrEqual(560);
+});
+
 test.describe('Desktop layout (≥768px) — briefing card not occluded by sidebar', () => {
   for (const viewport of [
     { width: 1440, height: 900 },

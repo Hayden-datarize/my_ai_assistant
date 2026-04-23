@@ -8,6 +8,7 @@ const stylesDir = join(here, '..', '..', 'src', 'styles');
 // v3.3.0: tokens moved to tokens.css (@layer tokens); layout consumers moved to layout.css (@layer layout).
 const tokensCss = readFileSync(join(stylesDir, 'tokens.css'), 'utf-8');
 const layoutCss = readFileSync(join(stylesDir, 'layout.css'), 'utf-8');
+const formsCss = readFileSync(join(stylesDir, 'components', 'forms.css'), 'utf-8');
 
 describe('css drift guards (v3.2b-polish)', () => {
   it('--sidebar-width defined in :root with 240px', () => {
@@ -32,5 +33,12 @@ describe('sidebar drawer CSS (v3.3.1)', () => {
     expect(layoutCss).toMatch(/\.sidebar-backdrop\s*\{/);
     expect(layoutCss).toMatch(/\.sidebar-toggle\s*\{/);
     expect(layoutCss).toMatch(/transform:\s*translateX\(-100%\)/);
+  });
+});
+
+describe('settings layout (v3.3.1)', () => {
+  it('.settings-section has max-width 560px and centered margin', () => {
+    expect(formsCss).toMatch(/\.settings-section\s*\{[^}]*max-width:\s*560px/);
+    expect(formsCss).toMatch(/\.settings-section\s*\{[^}]*margin:\s*0\s+auto/);
   });
 });
