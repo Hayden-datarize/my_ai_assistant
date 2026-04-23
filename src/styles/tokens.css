@@ -107,10 +107,10 @@
   --duration-slow: 400ms;
   --ease-standard: cubic-bezier(0.4, 0, 0.2, 1);
 
-  /* Heatmap pre-computed palette (light) */
-  --heatmap-l0: var(--bg-input);
-  --heatmap-l1: #C7D2FE;
-  --heatmap-l2: #818CF8;
+  /* Heatmap pre-computed palette (light) — v3.3.3 ramp B */
+  --heatmap-l0: #E2E8F0;   /* was var(--bg-input) — slate-200 for clear empty state */
+  --heatmap-l1: #A5B4FC;   /* was #C7D2FE — indigo-300, stronger l0↔l1 contrast */
+  --heatmap-l2: #818CF8;   /* unchanged */
   --heatmap-l3: var(--primary);
 
   /* Modal backdrop (Material 3 token — light) */
@@ -118,9 +118,9 @@
 }
 
 [data-theme="dark"] {
-  /* Heatmap palette (dark) */
-  --heatmap-l0: var(--bg-card);
-  --heatmap-l1: #3730A3;
+  /* Heatmap palette (dark) — v3.3.3 ramp B */
+  --heatmap-l0: #0F172A;   /* was var(--bg-card) — slate-900, distinct from card bg */
+  --heatmap-l1: #4338CA;   /* was #3730A3 — indigo-700, lifts l1 */
   --heatmap-l2: #6366F1;
   --heatmap-l3: var(--primary);
 }
