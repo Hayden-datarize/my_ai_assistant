@@ -220,6 +220,12 @@ function hydrateHeatmap(): void {
       }
     });
   });
+
+  if (!sessionStorage.getItem('dg-heatmap-animated')) {
+    grid.classList.add('is-entering');
+    sessionStorage.setItem('dg-heatmap-animated', '1');
+    setTimeout(() => grid.classList.remove('is-entering'), 250);
+  }
 }
 
 function hydrateBadges(): void {

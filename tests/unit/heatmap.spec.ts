@@ -274,3 +274,35 @@ describe('hydrateHeatmap roving tabindex + keyboard nav', () => {
     expect(document.activeElement).toBe(cells[3]);
   });
 });
+
+describe('hydrateHeatmap entrance animation', () => {
+  beforeEach(() => {
+    localStorage.clear();
+    sessionStorage.clear();
+    mountHeatmapDom();
+    vi.useFakeTimers();
+    vi.setSystemTime(new Date('2026-04-22T03:00:00Z'));
+  });
+  afterEach(() => {
+    vi.useRealTimers();
+    vi.resetModules();
+  });
+
+  it('first visit: adds .is-entering, sets sessionStorage, removes class after 250ms', async () => {
+    const mod = await import('../../src/ui/handlers/stats');
+    mod.hydrateStats();
+    const grid = document.getElementById('heatmapGrid')!;
+    expect(grid.classList.contains('is-entering')).toBe(true);
+    expect(sessionStorage.getItem('dg-heatmap-animated')).toBe('1');
+    vi.advanceTimersByTime(250);
+    expect(grid.classList.contains('is-entering')).toBe(false);
+  });
+
+  it('second visit (sessionStorage set): no .is-entering', async () => {
+    sessionStorage.setItem('dg-heatmap-animated', '1');
+    const mod = await import('../../src/ui/handlers/stats');
+    mod.hydrateStats();
+    const grid = document.getElementById('heatmapGrid')!;
+    expect(grid.classList.contains('is-entering')).toBe(false);
+  });
+});
