@@ -51,3 +51,43 @@ test('desktop centers dialog (≥640px)', async ({ page }) => {
   const align = await page.locator('.dg-modal').evaluate((el) => getComputedStyle(el).alignItems);
   expect(align).toBe('center');
 });
+
+test('modal: close button has initial focus on open', async ({ page }) => {
+  await seedUserAndAnswer(page);
+  await page.goto('/');
+  await openArchiveModal(page, 'mobile');
+
+  await expect(page.locator('.dg-modal')).toBeVisible();
+  const close = page.locator('.dg-modal-close');
+  await expect(close).toBeFocused();
+});
+
+test('modal: ESC closes modal', async ({ page }) => {
+  await seedUserAndAnswer(page);
+  await page.goto('/');
+  await openArchiveModal(page, 'mobile');
+
+  await expect(page.locator('.dg-modal')).toBeVisible();
+  await page.keyboard.press('Escape');
+  await expect(page.locator('.dg-modal')).toHaveCount(0);
+});
+
+test('modal: backdrop click closes modal', async ({ page }) => {
+  await seedUserAndAnswer(page);
+  await page.goto('/');
+  await openArchiveModal(page, 'mobile');
+
+  await expect(page.locator('.dg-modal')).toBeVisible();
+  await page.locator('.dg-modal-backdrop').click();
+  await expect(page.locator('.dg-modal')).toHaveCount(0);
+});
+
+test('modal: close (×) button closes modal', async ({ page }) => {
+  await seedUserAndAnswer(page);
+  await page.goto('/');
+  await openArchiveModal(page, 'mobile');
+
+  await expect(page.locator('.dg-modal')).toBeVisible();
+  await page.locator('.dg-modal-close').click();
+  await expect(page.locator('.dg-modal')).toHaveCount(0);
+});
