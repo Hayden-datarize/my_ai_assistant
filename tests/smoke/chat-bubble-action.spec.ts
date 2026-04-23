@@ -9,14 +9,10 @@ import { test, expect, type Page } from '@playwright/test';
 //   - user   → plain 'user' key (see boot/heatmap/modal-overhaul specs)
 //   - apiKey → 'dg_gemini_key' (see src/ui/onboarding.ts, src/ui/tabs/settings.ts)
 //
-// Visibility note (B4 finding): `#chatContainer` in src/ui/tabs/home.ts starts
-// with `display:none` (CSS: `.chat-container { display:none } .show { display:block }`)
-// but nothing in src/ui/handlers/home.ts ever adds the `.show` class when
-// `addBubble` inserts a message. So the action button is attached but not
-// visible. These smokes assert DOM attachment + correct click wiring with
-// `force:true` so the behavior contract is pinned now; once the `.show`
-// visibility toggle is added, we can tighten the first assertion back to
-// `toBeVisible()` without touching the click/navigation wiring.
+// B5: `addBubble` now adds `.show` to `#chatContainer` on every append
+// (src/ui/handlers/home.ts), so the bubble + action button are actually
+// visible to the user. These smokes use `toBeVisible()` + `click()` as a
+// real user would — no synthetic dispatch needed.
 
 async function seedNoApiKey(page: Page): Promise<void> {
   await page.addInitScript(() => {
@@ -52,16 +48,12 @@ test('no API key: answer submit creates "설정 열기" bubble action → naviga
   // Action button is created inside an AI chat bubble. Label is "⚙ 설정 열기"
   // (hasText does substring match so "설정 열기" is enough).
   const action = page.locator('.chat-bubble-action', { hasText: '설정 열기' });
-  await expect(action).toBeAttached({ timeout: 5_000 });
+  await expect(action).toBeVisible({ timeout: 5_000 });
   await expect(action).toHaveText(/설정 열기/);
 
-  // Dispatch click directly — the parent #chatContainer is currently
-  // `display:none` (see header comment), so Playwright's actionability
-  // checks (incl. with `force:true`) refuse to click. The onClick handler
-  // (openSettingsWithFocus) is wired correctly; dispatching a synthetic
-  // click verifies the handler→nav contract until the visibility bug is
-  // fixed, at which point this can be relaxed back to a user-gesture click.
-  await action.dispatchEvent('click');
+  // Real user gesture — `#chatContainer.show` is added by addBubble (B5 fix),
+  // so the action button is actionable without synthetic dispatch.
+  await action.click();
 
   // Settings tab becomes the active tab. Scope to #bottomNav because the
   // desktop sidebar drawer mirrors `.nav-item.active` state on a separate
@@ -84,7 +76,7 @@ test('no API key: manual nav to settings keeps #apiKeyInput visible (no re-rende
   await textarea.fill('오늘도 열심히 배웠다. TypeScript 타입 시스템이 점점 더 자연스러워진다.');
   await page.locator('#submitBtn').click();
 
-  await expect(page.locator('.chat-bubble-action', { hasText: '설정 열기' })).toBeAttached();
+  await expect(page.locator('.chat-bubble-action', { hasText: '설정 열기' })).toBeVisible();
 
   // Manually switch to settings. Home DOM is replaced; verify settings renders
   // the API key input cleanly (no infinite re-render / no stray bubble leftover).

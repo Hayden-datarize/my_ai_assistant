@@ -459,6 +459,9 @@ export function addBubble(
 
   msgs.append(b);
   msgs.scrollTop = msgs.scrollHeight;
+
+  // Ensure chat container is visible (fixes pre-existing .show toggle gap)
+  document.getElementById('chatContainer')?.classList.add('show');
 }
 
 function updateTurnCounter(msgCount: number): void {

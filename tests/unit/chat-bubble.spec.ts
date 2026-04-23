@@ -63,6 +63,33 @@ describe('addBubble (home handler)', () => {
   });
 });
 
+describe('addBubble: chat container visibility', () => {
+  beforeEach(() => {
+    document.body.replaceChildren();
+    const container = document.createElement('div');
+    container.id = 'chatContainer';
+    container.className = 'chat-container';
+    const msgs = document.createElement('div');
+    msgs.id = 'chatMessages';
+    container.append(msgs);
+    document.body.append(container);
+  });
+
+  it('adds .show to chatContainer when first bubble appended', async () => {
+    const { addBubble } = await import('../../src/ui/handlers/home');
+    expect(document.getElementById('chatContainer')?.classList.contains('show')).toBe(false);
+    addBubble('user', '안녕');
+    expect(document.getElementById('chatContainer')?.classList.contains('show')).toBe(true);
+  });
+
+  it('keeps .show on subsequent bubbles (idempotent)', async () => {
+    const { addBubble } = await import('../../src/ui/handlers/home');
+    addBubble('user', '1');
+    addBubble('ai', '2');
+    expect(document.getElementById('chatContainer')?.classList.contains('show')).toBe(true);
+  });
+});
+
 describe('openSettingsWithFocus', () => {
   beforeEach(() => {
     document.body.replaceChildren();
