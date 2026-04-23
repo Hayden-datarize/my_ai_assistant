@@ -14,22 +14,25 @@ async function seedUser(page: import('@playwright/test').Page): Promise<void> {
       }),
     );
     localStorage.removeItem('dg.briefings');
+    localStorage.removeItem('dg-sidebar-last-state');
   });
 }
 
-test('desktop (1280x800) shows sidebar nav on the left', async ({ page }) => {
+test('desktop (1280x800) hides bottom-nav and shows sidebar drawer (closed default)', async ({ page }) => {
   await seedUser(page);
   await page.setViewportSize({ width: 1280, height: 800 });
   await page.goto('/');
   await expect(page.locator('#homeTab')).toBeVisible();
 
-  const nav = page.locator('#bottomNav');
-  const box = await nav.boundingBox();
-  expect(box).not.toBeNull();
-  expect(box!.x).toBeLessThanOrEqual(4);
-  expect(box!.y).toBeLessThanOrEqual(4);
-  expect(box!.width).toBeGreaterThan(200);
-  expect(box!.height).toBeGreaterThan(400);
+  // v3.3.1: bottom-nav hidden on desktop (Task 3); drawer replaces it (Task 6).
+  await expect(page.locator('#bottomNav')).toBeHidden();
+
+  // drawer is present but closed by default (off-screen via translateX(-100%))
+  const drawer = page.locator('#sidebarDrawer');
+  await expect(drawer).toHaveAttribute('data-open', 'false');
+
+  // hamburger toggle is visible on desktop
+  await expect(page.locator('#sidebarToggle')).toBeVisible();
 });
 
 test('mobile (375x667) keeps bottom nav + submit is not covered', async ({ page }) => {
