@@ -83,14 +83,17 @@
   /* Radius (xs added; sm/md/lg/xl already in existing :root) */
   --radius-xs: 4px;
 
-  /* Z-index */
+  /* Z-index scale (v3.3.3 재정립) */
   --z-base: 0;
   --z-raised: 10;
   --z-sticky: 20;
   --z-sidebar: 40;
   --z-sidebar-button: 41;
-  --z-modal: 50;
-  --z-toast: 60;
+  --z-floating: 100;      /* sticky header, positioned overlays */
+  --z-onboarding: 900;
+  --z-splash: 1000;
+  --z-modal: 1100;
+  --z-toast: 2000;
 
   /* Focus ring + border */
   --focus-ring: 0 0 0 2px var(--primary);

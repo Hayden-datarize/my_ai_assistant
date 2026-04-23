@@ -1,4 +1,4 @@
-import { describe, it, expect } from 'vitest';
+import { describe, it, expect, beforeAll } from 'vitest';
 import { readFileSync } from 'node:fs';
 import { fileURLToPath } from 'node:url';
 import { dirname, join } from 'node:path';
@@ -52,5 +52,50 @@ describe('font-size token rename (v3.3.1, resolves v3.3.0 open P1-A)', () => {
     expect(tokensCss).toMatch(/--text-primary:\s*#[0-9A-F]{6}/i);
     expect(tokensCss).toMatch(/--text-secondary:\s*#[0-9A-F]{6}/i);
     expect(tokensCss).toMatch(/--text-tertiary:\s*#[0-9A-F]{6}/i);
+  });
+});
+
+describe('v3.3.3 z-index tokens', () => {
+  let css: string;
+  beforeAll(() => {
+    css = readFileSync('src/styles/tokens.css', 'utf8');
+  });
+
+  // tokens.css에는 :root 블록이 여러 개 있어, 모두 합쳐서 탐색한다.
+  const collectRoot = (src: string): string => {
+    const blocks = src.match(/:root\s*\{[\s\S]*?\}/g) ?? [];
+    return blocks.join('\n');
+  };
+
+  it('defines z layers with monotone ordering in :root', () => {
+    // :root 블록에서 값 추출 — regex는 단순/견고하게
+    const rootBlock = collectRoot(css);
+    const get = (name: string): number => {
+      const m = rootBlock.match(new RegExp(`--${name}:\\s*(\\d+)`));
+      return m ? parseInt(m[1]!, 10) : NaN;
+    };
+    expect(get('z-sidebar')).toBe(40);
+    expect(get('z-sidebar-button')).toBe(41);
+    expect(get('z-floating')).toBe(100);
+    expect(get('z-onboarding')).toBe(900);
+    expect(get('z-splash')).toBe(1000);
+    expect(get('z-modal')).toBe(1100);
+    expect(get('z-toast')).toBe(2000);
+  });
+
+  it('toast > modal > splash > onboarding > floating > sidebar (monotone)', () => {
+    const rootBlock = collectRoot(css);
+    const get = (name: string): number => parseInt(rootBlock.match(new RegExp(`--${name}:\\s*(\\d+)`))?.[1] ?? '0', 10);
+    const values = [
+      get('z-sidebar'),
+      get('z-floating'),
+      get('z-onboarding'),
+      get('z-splash'),
+      get('z-modal'),
+      get('z-toast'),
+    ];
+    for (let i = 1; i < values.length; i++) {
+      expect(values[i]).toBeGreaterThan(values[i - 1]!);
+    }
   });
 });
