@@ -51,6 +51,8 @@
   --shadow-sm: 0 1px 2px rgba(0,0,0,0.3);
   --shadow-md: 0 4px 12px rgba(0,0,0,0.4);
   --shadow-lg: 0 8px 24px rgba(0,0,0,0.5);
+  /* Modal backdrop (dark — deeper overlay for legibility) */
+  --modal-backdrop: rgba(0, 0, 0, 0.6);
 }
 
 /* ============================================
@@ -110,6 +112,9 @@
   --heatmap-l1: #C7D2FE;
   --heatmap-l2: #818CF8;
   --heatmap-l3: var(--primary);
+
+  /* Modal backdrop (Material 3 token — light) */
+  --modal-backdrop: rgba(0, 0, 0, 0.4);
 }
 
 [data-theme="dark"] {

@@ -99,3 +99,21 @@ describe('v3.3.3 z-index tokens', () => {
     }
   });
 });
+
+describe('v3.3.3 modal backdrop token', () => {
+  let css: string;
+  beforeAll(() => {
+    css = readFileSync('src/styles/tokens.css', 'utf8');
+  });
+
+  it('defines --modal-backdrop in :root (light)', () => {
+    // Concatenate all :root blocks
+    const roots = css.match(/:root\s*\{[^}]*\}/g)?.join('\n') ?? '';
+    expect(roots).toMatch(/--modal-backdrop:\s*rgba\(0,\s*0,\s*0,\s*0\.4\)/);
+  });
+
+  it('overrides --modal-backdrop in [data-theme="dark"]', () => {
+    const dark = css.match(/\[data-theme="dark"\]\s*\{[^}]*\}/s)?.[0] ?? '';
+    expect(dark).toMatch(/--modal-backdrop:\s*rgba\(0,\s*0,\s*0,\s*0\.6\)/);
+  });
+});
