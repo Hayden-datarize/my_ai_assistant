@@ -76,6 +76,15 @@
 /* Responsive: wider screens */
 @media (min-width: 768px) {
   .bottom-nav { display: none; }
+  /* Tab content gets left pad so sidebar-toggle (fixed 12+40 = 52px) doesn't
+     overlap tab headings. 60px = space-3 (12) + 40 (toggle width) + space-2 (8) margin. */
+  #homeTab,
+  #archiveTab,
+  #statsTab,
+  #insightsTab,
+  #settingsTab {
+    padding-left: 60px;
+  }
 }
 
 /* ============================================
