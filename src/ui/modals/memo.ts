@@ -26,9 +26,8 @@ export function openMemoModal(index: number): void {
   openModal({
     title: '메모',
     bodyHtml: `
-      <textarea id="memoInput" rows="6"
-        style="width:100%;padding:10px;border:1px solid var(--border);border-radius:var(--radius-sm);background:var(--bg-input);color:var(--text-primary);font-family:inherit;font-size:0.95rem;resize:vertical;">${escaped}</textarea>
-      <div style="display:flex;gap:8px;justify-content:flex-end;margin-top:12px;">
+      <textarea id="memoInput" class="dg-modal-textarea" rows="6">${escaped}</textarea>
+      <div class="dg-modal-footer">
         <button type="button" id="cancelMemoBtn" class="btn btn-outline">취소</button>
         <button type="button" id="saveMemoBtn" class="btn btn-primary">저장</button>
       </div>

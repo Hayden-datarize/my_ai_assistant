@@ -55,7 +55,7 @@ export function openInterestsModal(): void {
   const checkboxesHtml = INTERESTS.map((c) => {
     const checked = current.has(c.id) ? 'checked' : '';
     return `
-      <label style="display:flex;align-items:center;gap:8px;padding:8px 12px;border:1px solid var(--border);border-radius:var(--radius-sm);cursor:pointer;">
+      <label class="dg-modal-checkbox-card">
         <input type="checkbox" value="${escapeHtml(c.id)}" ${checked} />
         <span>${escapeHtml(c.label)}</span>
       </label>
@@ -65,10 +65,10 @@ export function openInterestsModal(): void {
   openModal({
     title: '관심 분야 수정',
     bodyHtml: `
-      <div style="display:grid;grid-template-columns:1fr 1fr;gap:8px;">
+      <div class="dg-modal-grid-2col">
         ${checkboxesHtml}
       </div>
-      <div style="display:flex;gap:8px;justify-content:flex-end;margin-top:16px;">
+      <div class="dg-modal-footer">
         <button type="button" id="cancelInterestsBtn" class="btn btn-outline">취소</button>
         <button type="button" id="saveInterestsBtn" class="btn btn-primary">저장</button>
       </div>
