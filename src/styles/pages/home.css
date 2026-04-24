@@ -135,6 +135,11 @@
     /* left pad 80px = sidebar-toggle reach (52px) + breathing room (28px);
        right pad 20px stays as-is. Keeps headings aligned with other tabs. */
     padding: 0 20px 0 80px;
+    /* v3.3.4.3: cap the entire home tab on wide monitors so streak banner,
+       briefings, question, and chat all align with the same content width.
+       1300 = 80 (left pad) + 1200 (content) + 20 (right pad). */
+    max-width: 1300px;
+    margin-inline: auto;
   }
   #homeTab > .header,
   #homeTab > .demo-banner,
