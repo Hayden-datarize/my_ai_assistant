@@ -115,3 +115,26 @@ describe('v3.3.3 focus-trap integration', () => {
     expect(document.activeElement).toBe(original);
   });
 });
+
+describe('v3.3.4 titleId format', () => {
+  beforeEach(() => {
+    // eslint-disable-next-line no-restricted-syntax -- jsdom DOM reset fixture
+    document.body.innerHTML = '<div id="modalRoot"></div>';
+  });
+
+  afterEach(async () => {
+    const { closeModal } = await import('../../src/ui/modals/shared');
+    closeModal();
+  });
+
+  it('generates UUID-format titleId', async () => {
+    const { openModal } = await import('../../src/ui/modals/shared');
+    openModal({ title: 'UUID', bodyHtml: '<p>x</p>' });
+    const modal = document.querySelector('.dg-modal');
+    const labelledBy = modal?.getAttribute('aria-labelledby');
+    // Expect `dg-modal-title-<uuid v4>` where uuid is 8-4-4-4-12 hex
+    expect(labelledBy).toMatch(
+      /^dg-modal-title-[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/,
+    );
+  });
+});

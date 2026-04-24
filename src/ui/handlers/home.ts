@@ -74,6 +74,15 @@ function saveUser(u: LegacyUser): void {
   try { localStorage.setItem(USER_STORAGE, JSON.stringify(u)); } catch { /* ignore */ }
 }
 
+/**
+ * Returns the first grapheme of `sourceTitle`, uppercased, for the letter
+ * fallback in briefing cards. Uses string-spread to avoid lone-surrogate
+ * splits when the title starts with an emoji (e.g. '🚀TechCrunch').
+ */
+export function getInitialLetter(sourceTitle: string | undefined): string {
+  return ([...(sourceTitle ?? '?')][0] ?? '?').toUpperCase();
+}
+
 function getApiKey(): string {
   return localStorage.getItem(API_KEY_STORAGE) ?? '';
 }
@@ -199,7 +208,7 @@ export function renderBriefingCard(b: Briefing, idx: number): HTMLElement {
   main.rel = 'noopener noreferrer';
   main.setAttribute('aria-label', `${b.title} — ${b.sourceTitle ?? '기사'}`);
 
-  const initialLetter = (b.sourceTitle?.[0] ?? '?').toUpperCase();
+  const initialLetter = getInitialLetter(b.sourceTitle);
 
   if (b.imageUrl) {
     const img = document.createElement('img');

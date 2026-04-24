@@ -65,3 +65,61 @@ describe('v3.3.3 Briefing.imageUrl', () => {
     expect(loaded[0]?.imageUrl).toBe('https://x.com/img.jpg');
   });
 });
+
+describe('v3.3.4 imageUrl runtime validation', () => {
+  beforeEach(() => {
+    localStorage.clear();
+  });
+
+  it('drops imageUrl when value is a number (malformed cache)', () => {
+    localStorage.setItem('briefings', JSON.stringify([{
+      id: '1', date: '2026-04-24', url: 'https://x.com', title: 't',
+      summary: 's', scrapped: false, read: false, memo: '',
+      imageUrl: 12345,  // malformed — not a string
+    }]));
+    const loaded = loadBriefings();
+    expect(loaded[0]?.imageUrl).toBeUndefined();
+    expect(loaded[0]?.title).toBe('t'); // briefing itself preserved
+  });
+
+  it('drops imageUrl when value is an object', () => {
+    localStorage.setItem('briefings', JSON.stringify([{
+      id: '1', date: '2026-04-24', url: 'https://x.com', title: 't',
+      summary: 's', scrapped: false, read: false, memo: '',
+      imageUrl: { url: 'https://x.com/img.jpg' },
+    }]));
+    const loaded = loadBriefings();
+    expect(loaded[0]?.imageUrl).toBeUndefined();
+    expect(loaded[0]?.title).toBe('t');
+  });
+
+  it('drops imageUrl when value is non-https (e.g. http)', () => {
+    localStorage.setItem('briefings', JSON.stringify([{
+      id: '1', date: '2026-04-24', url: 'https://x.com', title: 't',
+      summary: 's', scrapped: false, read: false, memo: '',
+      imageUrl: 'http://insecure.example.com/img.jpg',  // http, not https
+    }]));
+    const loaded = loadBriefings();
+    expect(loaded[0]?.imageUrl).toBeUndefined();
+  });
+
+  it('drops imageUrl when value is null', () => {
+    localStorage.setItem('briefings', JSON.stringify([{
+      id: '1', date: '2026-04-24', url: 'https://x.com', title: 't',
+      summary: 's', scrapped: false, read: false, memo: '',
+      imageUrl: null,
+    }]));
+    const loaded = loadBriefings();
+    expect(loaded[0]?.imageUrl).toBeUndefined();
+  });
+
+  it('keeps valid https imageUrl untouched', () => {
+    localStorage.setItem('briefings', JSON.stringify([{
+      id: '1', date: '2026-04-24', url: 'https://x.com', title: 't',
+      summary: 's', scrapped: false, read: false, memo: '',
+      imageUrl: 'https://cdn.example.com/img.jpg',
+    }]));
+    const loaded = loadBriefings();
+    expect(loaded[0]?.imageUrl).toBe('https://cdn.example.com/img.jpg');
+  });
+});
