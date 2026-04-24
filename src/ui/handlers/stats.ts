@@ -65,7 +65,7 @@ function formatCellLabel(dateKey: string): string {
 function setDefaultInfo(info: HTMLElement, total: number, streak: number): void {
   info.textContent = total === 0
     ? '아직 기록이 없어요. 첫 답변을 남겨보세요.'
-    : `최근 28일 · ${total}개 달성 · 최장 연속 ${streak}일`;
+    : `이번 주 포함 4주 · ${total}개 달성 · 최장 연속 ${streak}일`;
 }
 
 export function mountStatsHandlers(): void {
@@ -151,9 +151,10 @@ function hydrateHeatmap(): void {
 
   // v3.3.4.2: Window anchored on the current week's Monday minus 3 weeks, so
   // the grid is always a clean 4×7 Mon-Sun rectangle (no leading/trailing
-  // blanks, no jagged 토/일 edge). Future days within the current week (e.g.,
-  // Sat/Sun when today is Wed) are rendered as empty level-0 cells; clicking
-  // them opens the standard "기록 없음" modal.
+  // blanks, no jagged 토/일 edge).
+  // v3.3.4.3: future days within the current week (e.g., Sat/Sun when today
+  // is Wed) get .is-future + aria-disabled; click is a no-op, mouseenter
+  // shows "아직 오지 않은 날짜", and keyboard nav skips over them.
   const today = new Date();
   const DAYS = 28;
   const daysFromMonday = (today.getDay() + 6) % 7; // Mon=0 ... Sun=6
@@ -177,17 +178,33 @@ function hydrateHeatmap(): void {
     const key = getDateStr(d);
     const n = counts.get(key) ?? 0;
     const level = Math.min(3, n);
+    // v3.3.4.3: YYYY-MM-DD ISO string lexicographic order === chronological order
+    const isFuture = key > todayKey;
     const cell = document.createElement('button');
     cell.type = 'button';
-    cell.className = `heatmap-cell level-${level}${key === todayKey ? ' is-today' : ''}`;
+    cell.className = `heatmap-cell level-${level}${key === todayKey ? ' is-today' : ''}${isFuture ? ' is-future' : ''}`;
     cell.dataset['date'] = key;
-    const ariaLabel = n > 0 ? `${key}, ${n}개 달성` : `${key}, 기록 없음`;
-    cell.setAttribute('aria-label', ariaLabel);
-    cell.addEventListener('click', () => openDayDetail(cell));
+    if (isFuture) {
+      cell.dataset['future'] = 'true';
+      cell.setAttribute('aria-disabled', 'true');
+      cell.setAttribute('aria-label', `${key}, 미래 날짜`);
+    } else {
+      const ariaLabel = n > 0 ? `${key}, ${n}개 달성` : `${key}, 기록 없음`;
+      cell.setAttribute('aria-label', ariaLabel);
+    }
+    cell.addEventListener('click', () => {
+      if (cell.dataset['future'] === 'true') return;
+      openDayDetail(cell);
+    });
     cell.addEventListener('mouseenter', () => {
-      if (info) info.textContent = n > 0
-        ? `${formatCellLabel(key)} · ${n}개 달성`
-        : `${formatCellLabel(key)} · 기록 없음`;
+      if (!info) return;
+      if (cell.dataset['future'] === 'true') {
+        info.textContent = `${formatCellLabel(key)} · 아직 오지 않은 날짜`;
+      } else {
+        info.textContent = n > 0
+          ? `${formatCellLabel(key)} · ${n}개 달성`
+          : `${formatCellLabel(key)} · 기록 없음`;
+      }
     });
     cell.addEventListener('mouseleave', () => {
       if (info) setDefaultInfo(info, total, streak);
@@ -200,8 +217,17 @@ function hydrateHeatmap(): void {
   dataCells.forEach((c, i) => c.setAttribute('tabindex', i === 0 ? '0' : '-1'));
 
   const moveFocus = (from: HTMLButtonElement, delta: number): void => {
-    const idx = dataCells.indexOf(from);
-    const target = idx + delta;
+    const startIdx = dataCells.indexOf(from);
+    let target = startIdx + delta;
+    const step = delta > 0 ? 1 : -1;
+    // v3.3.4.3: skip consecutive future cells in the direction of travel
+    while (
+      target >= 0 &&
+      target < dataCells.length &&
+      dataCells[target]!.dataset['future'] === 'true'
+    ) {
+      target += step;
+    }
     if (target < 0 || target >= dataCells.length) return;
     from.setAttribute('tabindex', '-1');
     const next = dataCells[target]!;

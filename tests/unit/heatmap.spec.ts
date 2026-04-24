@@ -158,7 +158,7 @@ describe('hydrateHeatmap inline info', () => {
     const mod = await import('../../src/ui/handlers/stats');
     mod.hydrateStats();
     const info = document.getElementById('heatmapInfo');
-    expect(info?.textContent).toBe('최근 28일 · 3개 달성 · 최장 연속 2일');
+    expect(info?.textContent).toBe('이번 주 포함 4주 · 3개 달성 · 최장 연속 2일');
   });
 
   it('updates info on cell mouseenter: "M월 D일 (요일) · N개 달성"', async () => {
@@ -195,7 +195,7 @@ describe('hydrateHeatmap inline info', () => {
     cell.dispatchEvent(new MouseEvent('mouseenter', { bubbles: true }));
     cell.dispatchEvent(new MouseEvent('mouseleave', { bubbles: true }));
     const info = document.getElementById('heatmapInfo');
-    expect(info?.textContent).toBe('최근 28일 · 1개 달성 · 최장 연속 1일');
+    expect(info?.textContent).toBe('이번 주 포함 4주 · 1개 달성 · 최장 연속 1일');
   });
 });
 
@@ -378,5 +378,87 @@ describe('v3.3.3 palette ramp B', () => {
     expect(darks).toMatch(/--heatmap-l1:\s*#4338CA/);
     expect(darks).toMatch(/--heatmap-l2:\s*#6366F1/);
     expect(darks).toMatch(/--heatmap-l3:\s*var\(--primary\)/);
+  });
+});
+
+describe('hydrateHeatmap future guard (v3.3.4.3)', () => {
+  beforeEach(() => {
+    localStorage.clear();
+    sessionStorage.clear();
+    mountHeatmapDom();
+    vi.useFakeTimers();
+  });
+  afterEach(() => {
+    vi.useRealTimers();
+    vi.resetModules();
+  });
+
+  it('future cells (within current week, past today) get .is-future + aria-disabled + dataset.future', async () => {
+    // Today = 2026-04-22 Wed → Thu/Fri/Sat/Sun of current week are future
+    vi.setSystemTime(new Date('2026-04-22T03:00:00Z'));
+    const mod = await import('../../src/ui/handlers/stats');
+    mod.hydrateStats();
+    const futureKeys = ['2026-04-23', '2026-04-24', '2026-04-25', '2026-04-26'];
+    for (const key of futureKeys) {
+      const cell = document.querySelector<HTMLButtonElement>(`.heatmap-cell[data-date="${key}"]`);
+      expect(cell, `cell for ${key} exists`).not.toBeNull();
+      expect(cell!.classList.contains('is-future')).toBe(true);
+      expect(cell!.getAttribute('aria-disabled')).toBe('true');
+      expect(cell!.dataset['future']).toBe('true');
+      expect(cell!.getAttribute('aria-label')).toBe(`${key}, 미래 날짜`);
+    }
+  });
+
+  it('past and today cells are not .is-future and not aria-disabled', async () => {
+    vi.setSystemTime(new Date('2026-04-22T03:00:00Z'));
+    const mod = await import('../../src/ui/handlers/stats');
+    mod.hydrateStats();
+    const past = document.querySelector<HTMLButtonElement>('.heatmap-cell[data-date="2026-04-20"]')!;
+    const today = document.querySelector<HTMLButtonElement>('.heatmap-cell.is-today')!;
+    expect(past.classList.contains('is-future')).toBe(false);
+    expect(past.getAttribute('aria-disabled')).toBeNull();
+    expect(past.dataset['future']).toBeUndefined();
+    expect(today.classList.contains('is-future')).toBe(false);
+    expect(today.getAttribute('aria-disabled')).toBeNull();
+  });
+
+  it('when today is Sunday, no future cells in window', async () => {
+    vi.setSystemTime(new Date('2026-04-26T03:00:00Z')); // Sun
+    const mod = await import('../../src/ui/handlers/stats');
+    mod.hydrateStats();
+    expect(document.querySelectorAll('.heatmap-cell.is-future').length).toBe(0);
+  });
+
+  it('mouseenter on future cell updates info to "아직 오지 않은 날짜"', async () => {
+    vi.setSystemTime(new Date('2026-04-22T03:00:00Z'));
+    const mod = await import('../../src/ui/handlers/stats');
+    mod.hydrateStats();
+    const future = document.querySelector<HTMLButtonElement>('.heatmap-cell[data-date="2026-04-23"]')!;
+    future.dispatchEvent(new MouseEvent('mouseenter', { bubbles: true }));
+    const info = document.getElementById('heatmapInfo');
+    expect(info?.textContent).toBe('4월 23일 (목) · 아직 오지 않은 날짜');
+  });
+
+  it('click on future cell does not open the day-detail modal', async () => {
+    vi.setSystemTime(new Date('2026-04-22T03:00:00Z'));
+    const mod = await import('../../src/ui/handlers/stats');
+    mod.hydrateStats();
+    const future = document.querySelector<HTMLButtonElement>('.heatmap-cell[data-date="2026-04-23"]')!;
+    future.dispatchEvent(new MouseEvent('click', { bubbles: true }));
+    expect(document.querySelector('.dg-modal')).toBeNull();
+  });
+
+  it('ArrowDown from today on last column skips over future cells (stays on today)', async () => {
+    // Today Wed (2026-04-22) is in last column row 2 (Mon=0, Tue=1, Wed=2).
+    // Rows 3~6 (Thu,Fri,Sat,Sun) in last column are all future cells.
+    // ArrowDown iterates +1 and must skip all future → no valid target → stay.
+    vi.setSystemTime(new Date('2026-04-22T03:00:00Z'));
+    const mod = await import('../../src/ui/handlers/stats');
+    mod.hydrateStats();
+    const today = document.querySelector<HTMLButtonElement>('.heatmap-cell.is-today')!;
+    today.setAttribute('tabindex', '0');
+    today.focus();
+    today.dispatchEvent(new KeyboardEvent('keydown', { key: 'ArrowDown', bubbles: true }));
+    expect(document.activeElement).toBe(today);
   });
 });
