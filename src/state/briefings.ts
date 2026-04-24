@@ -13,8 +13,27 @@ export interface Briefing {
 
 const KEY = 'briefings';
 
+function isValidImageUrl(v: unknown): v is string {
+  return typeof v === 'string' && /^https:\/\//i.test(v);
+}
+
 export function loadBriefings(): Briefing[] {
-  try { return JSON.parse(localStorage.getItem(KEY) ?? '[]') as Briefing[]; } catch { return []; }
+  try {
+    const raw = JSON.parse(localStorage.getItem(KEY) ?? '[]') as unknown;
+    if (!Array.isArray(raw)) return [];
+    return raw.map((b) => {
+      const briefing = b as Briefing;
+      // Drop imageUrl only if present-but-invalid; leave undefined alone
+      if (briefing.imageUrl !== undefined && !isValidImageUrl(briefing.imageUrl)) {
+        const normalized: Briefing = { ...briefing };
+        delete normalized.imageUrl;
+        return normalized;
+      }
+      return briefing;
+    });
+  } catch {
+    return [];
+  }
 }
 
 export function saveBriefings(list: Briefing[]): void {
