@@ -10,6 +10,20 @@ interface StoredUser {
   interests?: string[];
 }
 
+// Module-level tracking: the most recently rendered settings container.
+// Used by the one-time dg:interests:changed listener below to avoid
+// accumulating listeners each time the settings tab re-renders (P1-1 fix).
+let currentSettingsContainer: HTMLElement | null = null;
+
+// One-time listener registration at module load. If the settings tab
+// is re-rendered N times, this listener is still only registered once —
+// it always targets the latest container via `currentSettingsContainer`.
+document.addEventListener('dg:interests:changed', () => {
+  if (currentSettingsContainer) {
+    renderCurrentInterests(currentSettingsContainer);
+  }
+});
+
 export function renderSettings(container: HTMLElement): void {
   // eslint-disable-next-line no-restricted-syntax -- trusted static template, no interpolation
   container.innerHTML = `
@@ -56,6 +70,10 @@ export function renderSettings(container: HTMLElement): void {
   bindHandlers(container);
   bindSlackHandlers(container);
   bindInterestsHandlers(container);
+
+  // Track this container as the current target for the module-level
+  // dg:interests:changed listener (see top of file).
+  currentSettingsContainer = container;
 }
 
 function bindHandlers(container: HTMLElement): void {
@@ -99,14 +117,9 @@ function bindInterestsHandlers(container: HTMLElement): void {
     });
   });
 
-  // Re-render chips when interests change elsewhere (modal save dispatches this event).
-  // Listener is scoped to this container — if settings is re-rendered, the prior
-  // container's display lookup returns null and the handler no-ops harmlessly.
-  document.addEventListener('dg:interests:changed', () => {
-    renderCurrentInterests(container);
-  });
-
-  // Initial render
+  // Note: the dg:interests:changed listener is registered ONCE at module
+  // load (see top of this file). It reads `currentSettingsContainer`, so
+  // re-renders do not accumulate listeners.
   renderCurrentInterests(container);
 }
 

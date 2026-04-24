@@ -1,4 +1,4 @@
-import { describe, it, expect, beforeEach, afterEach } from 'vitest';
+import { describe, it, expect, beforeEach, afterEach, vi } from 'vitest';
 
 describe('settings tab: interests section', () => {
   beforeEach(() => {
@@ -81,5 +81,63 @@ describe('settings tab: interests section', () => {
     renderSettings(container);
     const display = container.querySelector('#currentInterests');
     expect(display?.textContent).toMatch(/없어요|없음/);
+  });
+});
+
+describe('settings listener registration (P1-1 fix)', () => {
+  beforeEach(() => {
+    document.body.replaceChildren();
+    localStorage.clear();
+    localStorage.setItem('user', JSON.stringify({
+      name: '테',
+      interests: ['recruiting'],
+      onboardedAt: new Date().toISOString(),
+      streak: 0,
+      lastActiveDate: new Date().toISOString().slice(0, 10),
+      xp: 0,
+      level: 1,
+    }));
+  });
+
+  afterEach(() => {
+    document.body.replaceChildren();
+  });
+
+  it('does not accumulate dg:interests:changed listeners across multiple renders', async () => {
+    const addSpy = vi.spyOn(document, 'addEventListener');
+    const { renderSettings } = await import('../../src/ui/tabs/settings');
+
+    const c1 = document.createElement('div');
+    const c2 = document.createElement('div');
+    const c3 = document.createElement('div');
+    renderSettings(c1);
+    renderSettings(c2);
+    renderSettings(c3);
+
+    // Count only the 'dg:interests:changed' additions. After the fix,
+    // registration happens once at module-load, NOT per render, so calling
+    // renderSettings multiple times should NOT increment the count.
+    const interestsAdds = addSpy.mock.calls.filter(([type]) => type === 'dg:interests:changed').length;
+    expect(interestsAdds).toBeLessThanOrEqual(1);
+    addSpy.mockRestore();
+  });
+
+  it('event still updates chips after multiple renders (last container wins)', async () => {
+    const { renderSettings } = await import('../../src/ui/tabs/settings');
+    const c1 = document.createElement('div');
+    const c2 = document.createElement('div');
+    renderSettings(c1);
+    renderSettings(c2);
+    document.body.append(c2); // only c2 is mounted
+
+    const raw = JSON.parse(localStorage.getItem('user')!);
+    raw.interests = ['recruiting', 'onboarding'];
+    localStorage.setItem('user', JSON.stringify(raw));
+    document.dispatchEvent(new CustomEvent('dg:interests:changed'));
+
+    await new Promise((r) => setTimeout(r, 20));
+
+    const chipsC2 = c2.querySelectorAll('.interest-chip');
+    expect(chipsC2.length).toBe(2);
   });
 });
