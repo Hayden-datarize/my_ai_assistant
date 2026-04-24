@@ -86,7 +86,7 @@ test('success response renders source chip from feed.title', async ({ page }) =>
   await expect(page.locator('#homeTab')).toBeVisible();
   await page.locator('#refreshBriefing').click();
 
-  const chip = page.locator('.briefing-source').first();
+  const chip = page.locator('.card-source').first();
   await expect(chip).toBeVisible({ timeout: 10_000 });
   await expect(chip).toHaveText('toss tech');
 });

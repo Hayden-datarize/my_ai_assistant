@@ -12,7 +12,7 @@ import { switchTab } from '../nav';
 import { toKoType } from '../../utils/typeLabel';
 import { appendAnswer, aggregateAnswerStats, setAnswerEvaluation } from '../../state/persistence';
 import { makeAnswer } from '../../state/schema';
-import { loadBriefings, saveBriefings, type Briefing } from '../../state/briefings';
+import { loadBriefings, saveBriefings, toggleScrap, setRead, type Briefing } from '../../state/briefings';
 import { loadChatHistory, appendChatMessage } from '../../state/chat';
 import { fetchFeed, type FeedItem, type FeedResult } from '../../services/rss';
 import { generateQuestion, chat, evaluateAnswer } from '../../services/gemini';
@@ -184,85 +184,113 @@ function hydrateBriefings(): void {
   list.forEach((b, i) => scroll.append(renderBriefingCard(b, i)));
 }
 
-function renderBriefingCard(b: Briefing, idx: number): HTMLElement {
+// C6 will replace this stub with real import from '../modals/memo'
+function openMemoModal(idx: number): void {
+  // stub — wired up in C6
+  void idx;
+}
+
+export function renderBriefingCard(b: Briefing, idx: number): HTMLElement {
   const card = document.createElement('article');
   card.className = 'briefing-card';
-  if (b.read) card.classList.add('read');
+  card.dataset['read'] = b.read ? 'true' : 'false';
+  card.dataset['tier'] = b.imageUrl ? '1' : '2';
 
-  const title = document.createElement('a');
-  title.href = b.url;
-  title.target = '_blank';
-  title.rel = 'noopener';
-  title.className = 'briefing-title';
-  title.textContent = b.title;
-  card.append(title);
+  // Main link: image (optional) + initial fallback + overlay (source/title/summary)
+  const main = document.createElement('a');
+  main.className = 'card-main';
+  main.href = b.url;
+  main.target = '_blank';
+  main.rel = 'noopener noreferrer';
+  main.setAttribute('aria-label', `${b.title} — ${b.sourceTitle ?? '기사'}`);
 
-  if (b.sourceTitle) {
-    const chip = document.createElement('span');
-    chip.className = 'briefing-source';
-    chip.textContent = b.sourceTitle;
-    card.append(chip);
+  const initialLetter = (b.sourceTitle?.[0] ?? '?').toUpperCase();
+
+  if (b.imageUrl) {
+    const img = document.createElement('img');
+    img.className = 'card-thumb';
+    img.src = b.imageUrl;
+    img.alt = '';
+    img.setAttribute('loading', 'lazy');
+    img.setAttribute('decoding', 'async');
+    img.setAttribute('referrerpolicy', 'no-referrer');
+    img.addEventListener('error', () => {
+      // Transition tier 1 → tier 2 on load failure
+      card.dataset['tier'] = '2';
+      img.remove();
+    });
+    main.append(img);
   }
 
+  const initial = document.createElement('div');
+  initial.className = 'card-initial';
+  initial.setAttribute('aria-hidden', 'true');
+  initial.textContent = initialLetter;
+  main.append(initial);
+
+  const overlay = document.createElement('div');
+  overlay.className = 'card-overlay';
+
+  const sourceBadge = document.createElement('span');
+  sourceBadge.className = 'card-source';
+  sourceBadge.textContent = b.sourceTitle ?? '기사';
+  overlay.append(sourceBadge);
+
+  const textBlock = document.createElement('div');
+  textBlock.className = 'card-text';
+  const title = document.createElement('h3');
+  title.className = 'card-title';
+  title.textContent = b.title;
   const summary = document.createElement('p');
-  summary.className = 'briefing-summary';
+  summary.className = 'card-summary';
   summary.textContent = b.summary;
-  card.append(summary);
+  textBlock.append(title, summary);
+  overlay.append(textBlock);
 
+  main.append(overlay);
+
+  // Mark as read when the link is opened
+  main.addEventListener('click', () => {
+    setRead(idx);
+    card.dataset['read'] = 'true';
+  });
+
+  card.append(main);
+
+  // Actions OUTSIDE the anchor
   const actions = document.createElement('div');
-  actions.className = 'briefing-actions';
+  actions.className = 'card-actions';
+  actions.setAttribute('role', 'group');
+  actions.setAttribute('aria-label', '카드 액션');
 
-  const scrap = document.createElement('button');
-  scrap.type = 'button';
-  scrap.textContent = b.scrapped ? '⭐ 스크랩됨' : '☆ 스크랩';
-  scrap.addEventListener('click', () => {
-    const all = loadBriefings();
-    const target = all[idx];
-    if (!target) return;
-    target.scrapped = !target.scrapped;
-    saveBriefings(all);
+  const scrapBtn = document.createElement('button');
+  scrapBtn.type = 'button';
+  scrapBtn.className = 'card-action-btn';
+  scrapBtn.dataset['action'] = 'scrap';
+  scrapBtn.setAttribute('aria-label', b.scrapped ? '스크랩 해제' : '스크랩');
+  scrapBtn.textContent = b.scrapped ? '♥' : '♡';
+  if (b.scrapped) scrapBtn.classList.add('is-scrapped');
+  scrapBtn.addEventListener('click', (e) => {
+    e.preventDefault();
+    e.stopPropagation();
+    toggleScrap(idx);
     hydrateBriefings();
   });
-  actions.append(scrap);
 
   const memoBtn = document.createElement('button');
   memoBtn.type = 'button';
-  memoBtn.textContent = b.memo ? '📝 메모 있음' : '📝 메모';
-  actions.append(memoBtn);
-
-  const memoBox = document.createElement('div');
-  memoBox.className = 'briefing-memo';
-  memoBox.classList.toggle('hidden', !b.memo);
-
-  const memoInput = document.createElement('textarea');
-  memoInput.value = b.memo;
-  memoInput.placeholder = '이 기사에서 떠오른 생각을 기록해요';
-
-  const memoSave = document.createElement('button');
-  memoSave.type = 'button';
-  memoSave.textContent = '저장';
-  memoSave.addEventListener('click', () => {
-    const all = loadBriefings();
-    const target = all[idx];
-    if (!target) return;
-    target.memo = memoInput.value;
-    saveBriefings(all);
-    hydrateBriefings();
+  memoBtn.className = 'card-action-btn';
+  memoBtn.dataset['action'] = 'memo';
+  memoBtn.setAttribute('aria-label', '메모');
+  memoBtn.textContent = '✎';
+  memoBtn.addEventListener('click', (e) => {
+    e.preventDefault();
+    e.stopPropagation();
+    openMemoModal(idx);
   });
 
-  memoBox.append(memoInput, memoSave);
-  memoBtn.addEventListener('click', () => memoBox.classList.toggle('hidden'));
-
-  card.append(actions, memoBox);
-
-  // mark-read on title click
-  title.addEventListener('click', () => {
-    const all = loadBriefings();
-    const target = all[idx];
-    if (!target) return;
-    target.read = true;
-    saveBriefings(all);
-  });
+  actions.append(scrapBtn, memoBtn);
+  card.append(actions);
 
   return card;
 }
