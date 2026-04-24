@@ -34,7 +34,7 @@ export function openModal(cfg: ModalConfig): void {
   wrap.setAttribute('role', 'dialog');
   wrap.setAttribute('aria-modal', 'true');
 
-  const titleId = `dg-modal-title-${Date.now()}-${Math.random().toString(36).slice(2, 6)}`;
+  const titleId = `dg-modal-title-${crypto.randomUUID()}`;
   wrap.setAttribute('aria-labelledby', titleId);
 
   // eslint-disable-next-line no-restricted-syntax -- 정적 셸; title uses textContent, body uses caller-escaped innerHTML per ModalConfig contract
