@@ -1,0 +1,23 @@
+/* ============================================
+   Page — settings tab
+   Loaded into @layer components
+   ============================================ */
+
+.settings-interests-display {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+  margin: 8px 0 12px;
+  min-height: 28px;
+  font-size: 0.85rem;
+  color: var(--text-secondary);
+}
+
+.interest-chip {
+  padding: 4px 10px;
+  border-radius: 12px;
+  background: var(--primary-ultra-light);
+  color: var(--primary);
+  font-size: 0.8rem;
+  font-weight: 600;
+}

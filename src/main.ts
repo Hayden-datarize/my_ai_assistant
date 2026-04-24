@@ -23,10 +23,6 @@ function bootMainApp(): void {
   mountStatsHandlers();
   mountNav();
   mountSidebar();
-  // v3.3.3 D1: stub listener for interests editor — settings tab (D2) will
-  // attach the real re-render handler. Kept here so the wiring-gap invariant
-  // sees a listener while the real consumer lands in the next commit.
-  document.addEventListener('dg:interests:changed', () => { /* stub — replaced by settings tab handler in D2 */ });
   switchTab('home');
 }
 

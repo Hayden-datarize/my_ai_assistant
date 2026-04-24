@@ -16,4 +16,5 @@
 @import './pages/home.css' layer(components);
 @import './pages/archive.css' layer(components);
 @import './pages/stats.css' layer(components);
+@import './pages/settings.css' layer(components);
 @import './utilities.css' layer(utilities);
