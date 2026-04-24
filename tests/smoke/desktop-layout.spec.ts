@@ -3,8 +3,11 @@ import { test, expect } from '@playwright/test';
 test.use({ serviceWorkers: 'block' });
 
 // 브리핑 카드가 localStorage에 미리 저장된 상태로 시작 → RSS fetch 없이 렌더링
+// v3.3.4.3: date는 오늘로 seed한다. hydrateBriefings가 stale(date != 오늘)을 감지하면
+// 자동 refresh를 트리거해서 고정 픽스처를 RSS 응답으로 덮어쓰기 때문.
 async function seedAll(page: import('@playwright/test').Page): Promise<void> {
   await page.addInitScript(() => {
+    const today = new Date().toISOString().slice(0, 10);
     localStorage.setItem(
       'user',
       JSON.stringify({
@@ -19,7 +22,7 @@ async function seedAll(page: import('@playwright/test').Page): Promise<void> {
       JSON.stringify([
         {
           id: 'fixture-1',
-          date: '2026-04-23',
+          date: today,
           url: 'https://example.com/1',
           title: 'Fixture Article',
           summary: 'Fixture summary for layout regression test.',

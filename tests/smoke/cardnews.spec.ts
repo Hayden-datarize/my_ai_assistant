@@ -225,3 +225,20 @@ test('responsive: desktop (≥1024px) shows 3-column grid + 5th spans 2', async 
   // Browsers report computed gridColumn variously; flexible match for "span 2"
   expect(gridColumn).toMatch(/span 2|\/\s*span 2|\/\s*3\s*$|\/\s*4\s*$/);
 });
+
+test('v3.3.4.3: 5th card height matches row siblings (no double-tall spill)', async ({ page }) => {
+  // 3-col grid row 2 places card 4 (1-col) and card 5 (2-col span). With
+  // aspect-ratio 4/5 applied to all cards, card 5 would compute ~2× the height
+  // of card 4. Fix: card 5 overrides aspect-ratio to 41/25 (≈1.64, which
+  // accounts for the 16px grid gap) so row heights match within ~2px.
+  await page.setViewportSize({ width: 1280, height: 800 });
+  await seedBriefings(page, mkCards(5, true));
+  await page.goto('/');
+
+  const fourth = await page.locator('.briefing-card').nth(3).boundingBox();
+  const fifth = await page.locator('.briefing-card').nth(4).boundingBox();
+  expect(fourth).not.toBeNull();
+  expect(fifth).not.toBeNull();
+  // Allow small subpixel rounding slack — match within 2px
+  expect(Math.abs(fourth!.height - fifth!.height)).toBeLessThan(2);
+});

@@ -37,28 +37,35 @@ describe('hydrateHeatmap column alignment', () => {
     vi.resetModules();
   });
 
-  const weekdays: Array<[string, string, number, number]> = [
-    ['Mon', '2026-04-20T03:00:00Z', 1, 6],
-    ['Tue', '2026-04-21T03:00:00Z', 2, 5],
-    ['Wed', '2026-04-22T03:00:00Z', 3, 4],
-    ['Thu', '2026-04-23T03:00:00Z', 4, 3],
-    ['Fri', '2026-04-24T03:00:00Z', 5, 2],
-    ['Sat', '2026-04-25T03:00:00Z', 6, 1],
-    ['Sun', '2026-04-26T03:00:00Z', 0, 0],
+  const weekdays: Array<[string, string]> = [
+    ['Mon', '2026-04-20T03:00:00Z'],
+    ['Tue', '2026-04-21T03:00:00Z'],
+    ['Wed', '2026-04-22T03:00:00Z'],
+    ['Thu', '2026-04-23T03:00:00Z'],
+    ['Fri', '2026-04-24T03:00:00Z'],
+    ['Sat', '2026-04-25T03:00:00Z'],
+    ['Sun', '2026-04-26T03:00:00Z'],
   ];
 
-  for (const [label, iso, leading, trailing] of weekdays) {
-    it(`aligns columns when today is ${label}`, async () => {
+  // v3.3.4.2: window is a Mon-Sun 4×7 rectangle anchored on the current week's
+  // Monday minus 3 weeks. No leading/trailing blanks — future days within the
+  // current week (e.g., Sat/Sun when today is Wed) render as empty level-0.
+  for (const [label, iso] of weekdays) {
+    it(`renders a clean 4×7 Mon-Sun rectangle when today is ${label}`, async () => {
       vi.setSystemTime(new Date(iso));
       const mod = await import('../../src/ui/handlers/stats');
       mod.hydrateStats();
       const grid = document.getElementById('heatmapGrid')!;
       const cells = grid.children;
-      expect(cells.length % 7).toBe(0);
-      expect(cells.length).toBe(leading + 28 + trailing);
-      for (let i = 0; i < leading; i++) expect(cells[i]!.className).toContain('is-blank');
-      for (let i = leading; i < leading + 28; i++) expect(cells[i]!.className).not.toContain('is-blank');
-      for (let i = leading + 28; i < cells.length; i++) expect(cells[i]!.className).toContain('is-blank');
+      expect(cells.length).toBe(28);
+      for (let i = 0; i < cells.length; i++) {
+        expect(cells[i]!.className).not.toContain('is-blank');
+      }
+      // First data cell is a Monday, last is a Sunday (ISO Mon=1, Sun=0)
+      const firstDate = new Date(`${(cells[0] as HTMLElement).dataset['date']}T00:00:00`);
+      const lastDate = new Date(`${(cells[27] as HTMLElement).dataset['date']}T00:00:00`);
+      expect(firstDate.getDay()).toBe(1);
+      expect(lastDate.getDay()).toBe(0);
     });
   }
 
@@ -208,7 +215,7 @@ describe('hydrateHeatmap roving tabindex + keyboard nav', () => {
   async function setupAndGetCells(): Promise<HTMLButtonElement[]> {
     const mod = await import('../../src/ui/handlers/stats');
     mod.hydrateStats();
-    return Array.from(document.querySelectorAll<HTMLButtonElement>('.heatmap-cell:not(.is-blank)'));
+    return Array.from(document.querySelectorAll<HTMLButtonElement>('.heatmap-cell'));
   }
 
   it('first data cell has tabindex=0, others have tabindex=-1', async () => {
@@ -305,6 +312,49 @@ describe('hydrateHeatmap entrance animation', () => {
     mod.hydrateStats();
     const grid = document.getElementById('heatmapGrid')!;
     expect(grid.classList.contains('is-entering')).toBe(false);
+  });
+});
+
+describe('hydrateHeatmap timezone safety (v3.3.4.1 regression)', () => {
+  beforeEach(() => {
+    localStorage.clear();
+    sessionStorage.clear();
+    mountHeatmapDom();
+    vi.useFakeTimers();
+  });
+  afterEach(() => {
+    vi.useRealTimers();
+    vi.resetModules();
+    vi.restoreAllMocks();
+  });
+
+  it('answer stored with local date key appears on matching cell even when toISOString returns a TZ-shifted string', async () => {
+    // Regression: 답변은 getDateStr(local)로 저장되는데 히트맵은 toISOString().slice(0,10)(UTC)로
+    // 조회해서, non-UTC 사용자가 하루 경계 근처에 있을 때 오늘 셀에 안 맞거나 엉뚱한 셀로 밀림.
+    // 수정: stats.ts가 read/write 양쪽 모두 getDateStr 사용.
+    vi.setSystemTime(new Date('2026-04-22T03:00:00Z'));
+
+    const originalToISOString = Date.prototype.toISOString;
+    vi.spyOn(Date.prototype, 'toISOString').mockImplementation(function (this: Date) {
+      const shifted = new Date(this.getTime() - 24 * 3600 * 1000);
+      return originalToISOString.call(shifted);
+    });
+
+    const { getDateStr } = await import('../../src/utils/dates');
+    const today = new Date();
+    const todayLocal = getDateStr(today);
+
+    localStorage.setItem('dg.answers', JSON.stringify([
+      { date: todayLocal, text: 'x', type: '감정' },
+    ]));
+
+    const mod = await import('../../src/ui/handlers/stats');
+    mod.hydrateStats();
+
+    const todayCell = document.querySelector<HTMLButtonElement>('.heatmap-cell.is-today');
+    expect(todayCell).not.toBeNull();
+    expect(todayCell!.dataset['date']).toBe(todayLocal);
+    expect(todayCell!.getAttribute('aria-label')).toBe(`${todayLocal}, 1개 달성`);
   });
 });
 

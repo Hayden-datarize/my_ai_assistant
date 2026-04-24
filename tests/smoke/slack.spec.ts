@@ -20,6 +20,9 @@ async function seedOnboardedUserWithApiKey(page: Page): Promise<void> {
       return `dg.todayQuestion.${y}-${m}-${day}`;
     })();
     localStorage.setItem(todayKey, JSON.stringify({ type: 'reflection', question: '오늘 가장 인상 깊었던 순간은?', hint: 'H' }));
+    // v3.3.4.3: suppress briefings auto-refresh (no briefings fixture seeded).
+    // Slack tests mock hooks.slack.com via page.route but not rss2json.
+    sessionStorage.setItem('dg.briefings.auto-refresh-tried', '1');
   });
 }
 

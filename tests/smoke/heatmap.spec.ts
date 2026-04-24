@@ -58,17 +58,19 @@ test.describe('heatmap visual + interaction', () => {
     await expect(page.locator('#heatmapInfo')).not.toBeEmpty();
   });
 
-  test('desktop viewport 1440x900: cell width 14px', async ({ page }) => {
+  test('desktop viewport 1440x900: cell width 48px', async ({ page }) => {
     await page.setViewportSize({ width: 1440, height: 900 });
     await seedAndGoto(page);
     // Use computed CSS width (reads the CSS rule value) instead of the
     // layout box rect — CSS grid tracks can subpixel-round the rendered
-    // box, but the rule itself is 14px / 20px exactly. This matches the
+    // box, but the rule itself is 48px / 20px exactly. This matches the
     // intent of the test ("the correct media-query rule is active").
+    // v3.3.4.2: desktop bumped 28px → 48px (Hayden: still felt visually
+    // tiny inside the wide stats card on 1440+ viewports).
     const width = await page.locator('.heatmap-cell:not(.is-blank)').first().evaluate((el) => {
       return getComputedStyle(el).width;
     });
-    expect(width).toBe('14px');
+    expect(width).toBe('48px');
   });
 
   test('mobile viewport 375x667: cell width 20px', async ({ page }) => {

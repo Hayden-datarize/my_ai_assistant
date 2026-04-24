@@ -9,6 +9,10 @@ async function seedOnboardedUser(page: import('@playwright/test').Page): Promise
       name: 'TestUser', interests: ['recruiting', 'ai_ml'],
       onboardedAt: '2026-04-01', streak: 0, lastActiveDate: '', xp: 0, level: 1,
     }));
+    // v3.3.4.3: suppress home auto-refresh of briefings so this spec doesn't
+    // hit the real RSS endpoint (no briefings fixture seeded → stale detection
+    // would otherwise trigger a live fetch with 5s timeout).
+    sessionStorage.setItem('dg.briefings.auto-refresh-tried', '1');
   });
 }
 

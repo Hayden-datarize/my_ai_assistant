@@ -16,22 +16,26 @@
   font-weight: 600;
 }
 
-/* Layout: label column + grid (intrinsic widths, left-aligned) */
+/* Layout: label column + grid (intrinsic widths, horizontally centered)
+   v3.3.4.2: center within the wide stats card so the grid isn't stranded
+   in the top-left corner on desktop viewports. */
 .heatmap-layout {
   display: grid;
   grid-template-columns: auto auto;
-  justify-content: start;
+  justify-content: center;
   gap: var(--space-2);
 }
 
-/* Weekday label column (static <ol><li>×7) */
+/* Weekday label column (static <ol><li>×7)
+   Row heights mirror .heatmap-grid cells so labels align with squircles.
+   v3.3.4.2: desktop bumped 28px → 48px (mobile stays 20px via override). */
 .heatmap-weekday-labels {
   display: grid;
-  grid-template-rows: repeat(7, 14px);
-  gap: 3px;
+  grid-template-rows: repeat(7, 48px);
+  gap: 8px;
   margin: 0; padding: 0;
   list-style: none;
-  font-size: var(--font-size-xs);
+  font-size: var(--font-size-sm);
   color: var(--text-tertiary);
 }
 .heatmap-weekday-labels li {
@@ -43,22 +47,24 @@
   font-weight: 600;
 }
 
-/* Grid (dynamic 4~5 columns, 7 rows) */
+/* Grid (fixed 4 columns × 7 rows — Mon-Sun rectangle, v3.3.4.2)
+   Desktop cells bumped 28px → 48px for readability in the wide stats card.
+   Mobile keeps 20px via the @media override below. */
 .heatmap-grid {
   display: grid;
-  grid-auto-columns: 14px;
-  grid-template-rows: repeat(7, 14px);
+  grid-auto-columns: 48px;
+  grid-template-rows: repeat(7, 48px);
   grid-auto-flow: column;
-  gap: 3px;
+  gap: 8px;
 }
 
 /* Cells */
 .heatmap-cell {
-  width: 14px;
-  height: 14px;
+  width: 48px;
+  height: 48px;
   padding: 0;
   border: none;
-  border-radius: var(--radius-xs);
+  border-radius: var(--radius-md);
   background: var(--heatmap-l0);
   cursor: pointer;
   transition: transform var(--duration-fast) var(--ease-standard),
@@ -78,11 +84,6 @@
 .heatmap-cell:focus-visible {
   outline: none;
   box-shadow: var(--focus-ring);
-}
-
-.heatmap-cell.is-blank {
-  visibility: hidden;
-  pointer-events: none;
 }
 
 /* Today indicator — inset box-shadow (coexists with outer focus-ring) */
@@ -135,12 +136,12 @@
   from { opacity: 0; transform: scale(0.95); }
   to   { opacity: 1; transform: scale(1); }
 }
-.heatmap-grid.is-entering .heatmap-cell:not(.is-blank) {
+.heatmap-grid.is-entering .heatmap-cell {
   animation: heatmap-fade-in var(--duration-base) var(--ease-standard) both;
 }
 
 /* Reduce motion (local rule — base.css has no global rule in v3.3.2 baseline) */
 @media (prefers-reduced-motion: reduce) {
   .heatmap-cell { transition: none; }
-  .heatmap-grid.is-entering .heatmap-cell:not(.is-blank) { animation: none; }
+  .heatmap-grid.is-entering .heatmap-cell { animation: none; }
 }

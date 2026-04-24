@@ -10,6 +10,8 @@ async function seedUser(page: import('@playwright/test').Page, interests: string
       onboardedAt: new Date().toISOString(),
       streak: 0, lastActiveDate: today, xp: 0, level: 1,
     }));
+    // v3.3.4.3: suppress briefings auto-refresh (no briefings fixture seeded)
+    sessionStorage.setItem('dg.briefings.auto-refresh-tried', '1');
   }, interests);
 }
 

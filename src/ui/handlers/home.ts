@@ -185,11 +185,34 @@ function hydrateGreetingAndStreak(): void {
   if (xpBadge && user) xpBadge.textContent = `${user.xp} XP`;
 }
 
+// v3.3.4.2: Session-scoped flag used to auto-trigger a briefing refresh at most
+// once per tab visit. Prevents the "continuous skeleton" UX where a fresh user
+// (or a user with stale briefings from a previous day) sees 3 gray skeleton
+// cards indefinitely because refreshBriefings was only wired to a manual click.
+const AUTO_REFRESH_SESSION_KEY = 'dg.briefings.auto-refresh-tried';
+
 function hydrateBriefings(): void {
   const list = loadBriefings();
   const scroll = document.getElementById('briefingScroll');
   if (!scroll) return;
-  if (list.length === 0) return; // leave skeletons; user can click refresh
+
+  const today = getDateStr();
+  const firstDate = list[0]?.date;
+  const isStale = list.length === 0 || (firstDate !== undefined && firstDate !== today);
+
+  if (isStale) {
+    const user = loadUser();
+    const hasInterests = !!user && user.interests.length > 0;
+    if (hasInterests && !sessionStorage.getItem(AUTO_REFRESH_SESSION_KEY)) {
+      sessionStorage.setItem(AUTO_REFRESH_SESSION_KEY, '1');
+      void refreshBriefings();
+    }
+    // If stale but we already auto-tried (or user has no interests), fall
+    // through and render whatever we have — including nothing, in which case
+    // the static skeletons remain until the user clicks 🔄 새로고침.
+    if (list.length === 0) return;
+  }
+
   scroll.replaceChildren();
   list.forEach((b, i) => scroll.append(renderBriefingCard(b, i)));
 }

@@ -14,6 +14,8 @@ async function seedOnboardedUser(page: import('@playwright/test').Page): Promise
       xp: 0,
       level: 1,
     }));
+    // v3.3.4.3: suppress briefings auto-refresh (no briefings fixture seeded)
+    sessionStorage.setItem('dg.briefings.auto-refresh-tried', '1');
   });
 }
 

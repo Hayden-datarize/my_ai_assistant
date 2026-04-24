@@ -8,6 +8,10 @@ async function seedUser(page: import('@playwright/test').Page): Promise<void> {
       name: 'Polish', interests: ['pm'],
       onboardedAt: '2026-04-01', streak: 0, lastActiveDate: '', xp: 0, level: 1,
     }));
+    // v3.3.4.3: suppress briefings auto-refresh (tests that need live fetch
+    // mock it explicitly via page.route; this prevents unmocked specs from
+    // hitting real RSS with a 5s timeout).
+    sessionStorage.setItem('dg.briefings.auto-refresh-tried', '1');
   });
 }
 

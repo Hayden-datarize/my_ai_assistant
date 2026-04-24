@@ -11,6 +11,8 @@ async function seedUserAndAnswer(page: Page): Promise<void> {
       type: 'reflection', date: new Date().toISOString().slice(0, 10),
       createdAt: new Date().toISOString(), schemaVersion: 1,
     }]));
+    // v3.3.4.3: suppress briefings auto-refresh (no briefings fixture seeded)
+    sessionStorage.setItem('dg.briefings.auto-refresh-tried', '1');
   });
 }
 

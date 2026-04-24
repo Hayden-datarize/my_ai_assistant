@@ -12,6 +12,7 @@ import { openModal } from '../modals/shared';
 import { escapeHtml } from '../../utils/escapeHtml';
 import { showToast } from '../../utils/toast';
 import { toKoType } from '../../utils/typeLabel';
+import { getDateStr } from '../../utils/dates';
 
 const USER_STORAGE = 'user';
 
@@ -31,8 +32,12 @@ function loadUser(): LegacyUser | null {
 
 const WEEKDAY_KO = ['월', '화', '수', '목', '금', '토', '일'];
 
+// Use local-TZ date components (getDateStr) rather than toISOString().slice(0, 10).
+// Answer dates are written by home.ts via getDateStr (local); if the heatmap read
+// path used UTC slicing, non-UTC users near day boundaries would see answers
+// shifted by a day or missing. Keep write + read on the same local-date key.
 function isoKey(d: Date): string {
-  return d.toISOString().slice(0, 10);
+  return getDateStr(d);
 }
 
 function computeTotalAndStreak(counts: Map<string, number>, firstDay: Date, days: number): { total: number; streak: number } {
@@ -136,44 +141,40 @@ function hydrateHeatmap(): void {
   const answers = loadAnswers();
   const counts = new Map<string, number>();
   for (const a of answers) {
-    const key = a.date ?? (a.createdAt ? a.createdAt.slice(0, 10) : '');
+    // a.date is always local (via getDateStr in home.ts). Fallback: parse the
+    // UTC createdAt timestamp back into a Date and format it in local TZ so
+    // legacy answers without .date still align with the heatmap cell keys.
+    const key = a.date ?? (a.createdAt ? getDateStr(new Date(a.createdAt)) : '');
     if (!key) continue;
     counts.set(key, (counts.get(key) ?? 0) + 1);
   }
 
-  // ISO weekday: 월=0 ... 일=6
-  const isoIdx = (d: Date): number => (d.getDay() + 6) % 7;
-
+  // v3.3.4.2: Window anchored on the current week's Monday minus 3 weeks, so
+  // the grid is always a clean 4×7 Mon-Sun rectangle (no leading/trailing
+  // blanks, no jagged 토/일 edge). Future days within the current week (e.g.,
+  // Sat/Sun when today is Wed) are rendered as empty level-0 cells; clicking
+  // them opens the standard "기록 없음" modal.
   const today = new Date();
   const DAYS = 28;
-  const firstDay = new Date(today);
-  firstDay.setDate(today.getDate() - (DAYS - 1));
-  const leadingBlanks = isoIdx(firstDay);
-  const todayKey = today.toISOString().slice(0, 10);
-  const trailingBlanks = 6 - isoIdx(today);
+  const daysFromMonday = (today.getDay() + 6) % 7; // Mon=0 ... Sun=6
+  const currentWeekMonday = new Date(today);
+  currentWeekMonday.setDate(today.getDate() - daysFromMonday);
+  const firstDay = new Date(currentWeekMonday);
+  firstDay.setDate(currentWeekMonday.getDate() - 21);
+  const todayKey = getDateStr(today);
 
   const { total, streak } = computeTotalAndStreak(counts, firstDay, DAYS);
   if (info) setDefaultInfo(info, total, streak);
-
-  const makeBlank = (): HTMLButtonElement => {
-    const b = document.createElement('button');
-    b.type = 'button';
-    b.className = 'heatmap-cell is-blank';
-    b.disabled = true;
-    return b;
-  };
 
   const openDayDetail = (cell: HTMLButtonElement): void => {
     const date = cell.dataset['date']!;
     showDayDetail(date, () => cell.focus());
   };
 
-  for (let i = 0; i < leadingBlanks; i++) grid.append(makeBlank());
-
   for (let i = 0; i < DAYS; i++) {
     const d = new Date(firstDay);
     d.setDate(firstDay.getDate() + i);
-    const key = d.toISOString().slice(0, 10);
+    const key = getDateStr(d);
     const n = counts.get(key) ?? 0;
     const level = Math.min(3, n);
     const cell = document.createElement('button');
@@ -194,9 +195,8 @@ function hydrateHeatmap(): void {
     grid.append(cell);
   }
 
-  for (let i = 0; i < trailingBlanks; i++) grid.append(makeBlank());
-
-  const dataCells = Array.from(grid.querySelectorAll<HTMLButtonElement>('.heatmap-cell:not(.is-blank)'));
+  // v3.3.4.2: post-refactor every child is a data cell (no more .is-blank padding).
+  const dataCells = Array.from(grid.querySelectorAll<HTMLButtonElement>('.heatmap-cell'));
   dataCells.forEach((c, i) => c.setAttribute('tabindex', i === 0 ? '0' : '-1'));
 
   const moveFocus = (from: HTMLButtonElement, delta: number): void => {

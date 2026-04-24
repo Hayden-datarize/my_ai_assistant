@@ -199,5 +199,14 @@
 }
 @media (min-width: 1024px) {
   .briefing-scroll { grid-template-columns: repeat(3, 1fr); }
-  .briefing-card:nth-child(5) { grid-column: span 2; }
+  /* v3.3.4.3: card 5 keeps its span-2 "featured" slot but overrides the
+     portrait aspect so its height matches the row's 1-col sibling. Without
+     this, 2-col width × 4/5 produces a card ~2× as tall as card 4.
+     41/25 accounts for the 16px grid gap: span-2 width = 2·track + gap,
+     single-col height = track × 5/4, so required aspect ≈ (2·1 + gap/track) × 4/5
+     ≈ 1.64 within the 1024–capped 1040px range. */
+  .briefing-card:nth-child(5) {
+    grid-column: span 2;
+    aspect-ratio: 41 / 25;
+  }
 }

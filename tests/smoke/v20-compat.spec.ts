@@ -26,6 +26,8 @@ test('legacy v2.0 `answers` key auto-migrates to dg.answers and renders on archi
   await page.addInitScript((payload) => {
     localStorage.setItem('user', JSON.stringify(payload.user));
     localStorage.setItem('answers', JSON.stringify(payload.answers));
+    // v3.3.4.3: suppress briefings auto-refresh (no briefings fixture seeded)
+    sessionStorage.setItem('dg.briefings.auto-refresh-tried', '1');
   }, v20Payload);
 
   await page.goto('/');
@@ -63,6 +65,8 @@ test('theme toggle persists after reload', async ({ page }) => {
       name: 'H', interests: ['ai_ml'], onboardedAt: '2026-04-01',
       streak: 0, lastActiveDate: '', xp: 0, level: 1,
     }));
+    // v3.3.4.3: suppress briefings auto-refresh (no briefings fixture seeded)
+    sessionStorage.setItem('dg.briefings.auto-refresh-tried', '1');
   });
 
   await page.goto('/');
@@ -99,6 +103,8 @@ test('archive filter by type narrows the list', async ({ page }) => {
       { id: 'a2', questionId: 'q', text: '실무형 답변 둘', authorId: 'self', createdAt: '2026-04-17T00:00:00Z', type: '실무', date: '2026-04-17', schemaVersion: 1 },
       { id: 'a3', questionId: 'q', text: '분석형 답변 셋', authorId: 'self', createdAt: '2026-04-16T00:00:00Z', type: '분석', date: '2026-04-16', schemaVersion: 1 },
     ]));
+    // v3.3.4.3: suppress briefings auto-refresh (no briefings fixture seeded)
+    sessionStorage.setItem('dg.briefings.auto-refresh-tried', '1');
   });
 
   await page.goto('/');
