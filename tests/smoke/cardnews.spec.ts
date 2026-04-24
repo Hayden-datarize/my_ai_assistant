@@ -266,6 +266,11 @@ test('v3.3.4.3: wide viewport 1920 caps briefing-scroll width and centers within
     const cs = getComputedStyle(el);
     return { left: parseFloat(cs.paddingLeft), right: parseFloat(cs.paddingRight) };
   });
+  // Anchor the centering math to the documented asymmetric desktop padding.
+  // If anyone changes #homeTab padding, the next two assertions fail loudly
+  // before the centering math diverges silently.
+  expect(tabPad.left).toBe(80);
+  expect(tabPad.right).toBe(20);
   const leftInContent = sbox!.x - (hbox!.x + tabPad.left);
   const rightInContent = (hbox!.x + hbox!.width - tabPad.right) - (sbox!.x + sbox!.width);
   expect(Math.abs(leftInContent - rightInContent)).toBeLessThan(2);

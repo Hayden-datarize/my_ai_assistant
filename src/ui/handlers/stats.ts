@@ -151,9 +151,10 @@ function hydrateHeatmap(): void {
 
   // v3.3.4.2: Window anchored on the current week's Monday minus 3 weeks, so
   // the grid is always a clean 4×7 Mon-Sun rectangle (no leading/trailing
-  // blanks, no jagged 토/일 edge). Future days within the current week (e.g.,
-  // Sat/Sun when today is Wed) are rendered as empty level-0 cells; clicking
-  // them opens the standard "기록 없음" modal.
+  // blanks, no jagged 토/일 edge).
+  // v3.3.4.3: future days within the current week (e.g., Sat/Sun when today
+  // is Wed) get .is-future + aria-disabled; click is a no-op, mouseenter
+  // shows "아직 오지 않은 날짜", and keyboard nav skips over them.
   const today = new Date();
   const DAYS = 28;
   const daysFromMonday = (today.getDay() + 6) % 7; // Mon=0 ... Sun=6

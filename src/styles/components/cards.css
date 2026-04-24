@@ -201,7 +201,10 @@
    in #homeTab's 2-col layout (grid-column:1/-1). Using margin-inline:auto
    there collapses the grid tracks to min-content ("118px phenomenon").
    Instead, cap via max-width + width:100% + justify-self:center so the
-   container behaves as a centered block within its grid cell. */
+   container behaves as a centered block within its grid cell.
+   Defense-in-depth: home.css now also caps #homeTab itself at 1300px so
+   this rule is redundant on the standard render path, but kept here so
+   briefings remain capped if the wider #homeTab cap is ever lifted. */
 @media (min-width: 768px) {
   #homeTab > .briefing-scroll {
     max-width: 1200px;
