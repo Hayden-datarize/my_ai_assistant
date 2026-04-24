@@ -140,6 +140,16 @@
   animation: heatmap-fade-in var(--duration-base) var(--ease-standard) both;
 }
 
+/* Future cells (v3.3.4.3) — rendered but non-interactive */
+.heatmap-cell.is-future {
+  opacity: 0.5;
+  cursor: not-allowed;
+}
+.heatmap-cell.is-future:hover,
+.heatmap-cell.is-future:focus-visible {
+  transform: none;
+}
+
 /* Reduce motion (local rule — base.css has no global rule in v3.3.2 baseline) */
 @media (prefers-reduced-motion: reduce) {
   .heatmap-cell { transition: none; }
