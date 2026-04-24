@@ -71,6 +71,16 @@ export function openModal(cfg: ModalConfig): void {
   activeFocusTrap.activate();
 }
 
+/**
+ * Closes the currently active modal.
+ *
+ * @param opts - Close options
+ * @param opts.skipFocusRestore - **Internal use only.** Used by {@link openModal}
+ *   when replacing an active modal (chain removal) so the trigger-element focus
+ *   restoration is deferred to the final close. External callers should omit
+ *   this flag — passing `true` will cause focus to escape to `body`.
+ * @internal
+ */
 export function closeModal(opts?: CloseOpts): void {
   const cb = activeOnClose;
 
