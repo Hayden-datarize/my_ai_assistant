@@ -126,4 +126,37 @@ test.describe('heatmap visual + interaction', () => {
     const animation = await cell.evaluate((el) => getComputedStyle(el).animationName);
     expect(animation).toBe('none');
   });
+
+  test('v3.3.3 light l0 differs from l1 (visible contrast)', async ({ page }) => {
+    await seedAndGoto(page);
+    const l0 = page.locator('.heatmap-cell.level-0').first();
+    const l1 = page.locator('.heatmap-cell.level-1').first();
+    if (await l1.count() === 0) {
+      // No l1 cells — still validate l0 value
+      await expect(l0).toBeVisible();
+      const bg = await l0.evaluate((el) => getComputedStyle(el).backgroundColor);
+      expect(bg).toMatch(/226,\s*232,\s*240/);  // #E2E8F0
+      return;
+    }
+    const bg0 = await l0.evaluate((el) => getComputedStyle(el).backgroundColor);
+    const bg1 = await l1.evaluate((el) => getComputedStyle(el).backgroundColor);
+    expect(bg0).not.toBe(bg1);
+    expect(bg0).toMatch(/226,\s*232,\s*240/);  // #E2E8F0
+  });
+
+  test('v3.3.3 dark l0 = slate-900 (#0F172A)', async ({ page }) => {
+    await page.addInitScript(() => {
+      document.documentElement.dataset['theme'] = 'dark';
+      document.body.classList.add('dark');
+    });
+    await seedAndGoto(page);
+    await page.evaluate(() => {
+      document.documentElement.dataset['theme'] = 'dark';
+      document.body.classList.add('dark');
+    });
+    const l0 = page.locator('.heatmap-cell.level-0').first();
+    if (await l0.count() === 0) return;  // no heatmap rendered yet, skip silently
+    const bg = await l0.evaluate((el) => getComputedStyle(el).backgroundColor);
+    expect(bg).toMatch(/15,\s*23,\s*42/);  // #0F172A
+  });
 });

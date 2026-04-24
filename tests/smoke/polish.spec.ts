@@ -11,7 +11,7 @@ async function seedUser(page: import('@playwright/test').Page): Promise<void> {
   });
 }
 
-test('briefing card hover applies inset primary box-shadow (existence check)', async ({ page }) => {
+test('briefing card hover applies translateY transform (v3.3.3 cardnews)', async ({ page }) => {
   await seedUser(page);
   await page.route('**/api.rss2json.com/**', (route) =>
     route.fulfill({
@@ -28,13 +28,17 @@ test('briefing card hover applies inset primary box-shadow (existence check)', a
   const card = page.locator('.briefing-card').first();
   await expect(card).toBeVisible({ timeout: 10_000 });
 
-  const beforeHover = await card.evaluate((el) => getComputedStyle(el).boxShadow);
+  const beforeHover = await card.evaluate((el) => getComputedStyle(el).transform);
   await card.hover();
-  const afterHover = await card.evaluate((el) => getComputedStyle(el).boxShadow);
+  // Wait for 0.2s transition to complete before sampling final transform
+  await page.waitForTimeout(300);
+  const afterHover = await card.evaluate((el) => getComputedStyle(el).transform);
 
+  // v3.3.3: hover uses translateY(-2px) (via matrix), no longer inset box-shadow
   expect(afterHover).not.toBe(beforeHover);
   expect(afterHover).not.toBe('none');
-  expect(afterHover).toContain('inset');
+  // matrix form: matrix(1, 0, 0, 1, 0, -2) — the final value encodes translateY
+  expect(afterHover).toMatch(/matrix.*-2\s*\)|translate.*-2px/);
 });
 
 test('onboarding chip selected has non-default transform (scale)', async ({ page }) => {

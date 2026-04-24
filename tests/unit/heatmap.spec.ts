@@ -1,4 +1,5 @@
-import { describe, it, expect, beforeEach, afterEach, vi } from 'vitest';
+import { describe, it, expect, beforeEach, beforeAll, afterEach, vi } from 'vitest';
+import { readFileSync } from 'fs';
 
 function mountHeatmapDom(): void {
   // eslint-disable-next-line no-restricted-syntax -- jsdom DOM fixture; static template, no user interpolation
@@ -304,5 +305,28 @@ describe('hydrateHeatmap entrance animation', () => {
     mod.hydrateStats();
     const grid = document.getElementById('heatmapGrid')!;
     expect(grid.classList.contains('is-entering')).toBe(false);
+  });
+});
+
+describe('v3.3.3 palette ramp B', () => {
+  let css: string;
+  beforeAll(() => {
+    css = readFileSync('src/styles/tokens.css', 'utf8');
+  });
+
+  it('light ramp: l0=#E2E8F0, l1=#A5B4FC, l2=#818CF8, l3=primary', () => {
+    const roots = css.match(/:root\s*\{[^}]*\}/g)?.join('\n') ?? '';
+    expect(roots).toMatch(/--heatmap-l0:\s*#E2E8F0/);
+    expect(roots).toMatch(/--heatmap-l1:\s*#A5B4FC/);
+    expect(roots).toMatch(/--heatmap-l2:\s*#818CF8/);
+    expect(roots).toMatch(/--heatmap-l3:\s*var\(--primary\)/);
+  });
+
+  it('dark ramp: l0=#0F172A, l1=#4338CA, l2=#6366F1, l3=primary', () => {
+    const darks = css.match(/\[data-theme="dark"\]\s*\{[^}]*\}/g)?.join('\n') ?? '';
+    expect(darks).toMatch(/--heatmap-l0:\s*#0F172A/);
+    expect(darks).toMatch(/--heatmap-l1:\s*#4338CA/);
+    expect(darks).toMatch(/--heatmap-l2:\s*#6366F1/);
+    expect(darks).toMatch(/--heatmap-l3:\s*var\(--primary\)/);
   });
 });

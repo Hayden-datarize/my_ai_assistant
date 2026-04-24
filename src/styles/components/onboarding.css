@@ -6,7 +6,7 @@
 /* Onboarding */
 .onboarding {
   position: fixed; inset: 0; background: var(--bg);
-  z-index: 900; display: flex; flex-direction: column;
+  z-index: var(--z-onboarding); display: flex; flex-direction: column;
   align-items: center;
   gap: 12px;
   padding: 32px 20px calc(env(safe-area-inset-bottom, 0px) + 32px);

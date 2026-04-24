@@ -1,14 +1,39 @@
 import { loadSlackSettings, saveSlackSettings, clearSlackSettings } from '../../state/slack';
 import { sendToSlack, buildAnswerBlocks } from '../../services/slack';
 import { showToast } from '../../utils/toast';
+import { INTERESTS } from '../../utils/categories';
 
 const STORAGE_KEY_APIKEY = 'dg_gemini_key'; // legacy storage key — preserved for cutover compat
+const USER_STORAGE = 'user';
+
+interface StoredUser {
+  interests?: string[];
+}
+
+// Module-level tracking: the most recently rendered settings container.
+// Used by the one-time dg:interests:changed listener below to avoid
+// accumulating listeners each time the settings tab re-renders (P1-1 fix).
+let currentSettingsContainer: HTMLElement | null = null;
+
+// One-time listener registration at module load. If the settings tab
+// is re-rendered N times, this listener is still only registered once —
+// it always targets the latest container via `currentSettingsContainer`.
+document.addEventListener('dg:interests:changed', () => {
+  if (currentSettingsContainer) {
+    renderCurrentInterests(currentSettingsContainer);
+  }
+});
 
 export function renderSettings(container: HTMLElement): void {
   // eslint-disable-next-line no-restricted-syntax -- trusted static template, no interpolation
   container.innerHTML = `
     <div class="settings-section" id="settingsTab">
       <h2 style="margin-bottom:16px;">⚙️ 설정</h2>
+      <section class="settings-group">
+        <div class="settings-group-title">관심 분야</div>
+        <div id="currentInterests" class="settings-interests-display"></div>
+        <button type="button" id="editInterestsBtn" class="btn btn-outline btn-block" style="margin-top:8px;">수정</button>
+      </section>
       <section class="settings-group">
         <div class="settings-group-title">Gemini API 키</div>
         <input type="password" id="apiKeyInput" autocomplete="off" placeholder="AI...로 시작하는 키" style="width:100%;padding:10px;border:1px solid var(--border);border-radius:var(--radius-sm);background:var(--bg-input);color:var(--text-primary);" />
@@ -44,11 +69,58 @@ export function renderSettings(container: HTMLElement): void {
   `;
   bindHandlers(container);
   bindSlackHandlers(container);
+  bindInterestsHandlers(container);
+
+  // Track this container as the current target for the module-level
+  // dg:interests:changed listener (see top of file).
+  currentSettingsContainer = container;
 }
 
 function bindHandlers(container: HTMLElement): void {
   const saveBtn = container.querySelector<HTMLButtonElement>('#saveApiKeyBtn');
   if (saveBtn) saveBtn.addEventListener('click', () => onSaveKey(container));
+}
+
+function renderCurrentInterests(container: HTMLElement): void {
+  const display = container.querySelector<HTMLDivElement>('#currentInterests');
+  if (!display) return;
+  display.replaceChildren();
+
+  let interests: string[] = [];
+  try {
+    const raw = localStorage.getItem(USER_STORAGE);
+    const user = raw ? (JSON.parse(raw) as StoredUser) : null;
+    interests = user?.interests ?? [];
+  } catch {
+    interests = [];
+  }
+
+  if (interests.length === 0) {
+    display.textContent = '선택된 관심 분야가 없어요.';
+    return;
+  }
+
+  for (const id of interests) {
+    const chip = document.createElement('span');
+    chip.className = 'interest-chip';
+    const meta = INTERESTS.find((c) => c.id === id);
+    chip.textContent = meta?.label ?? id;
+    display.append(chip);
+  }
+}
+
+function bindInterestsHandlers(container: HTMLElement): void {
+  const editBtn = container.querySelector<HTMLButtonElement>('#editInterestsBtn');
+  editBtn?.addEventListener('click', () => {
+    void import('../modals/interests').then(({ openInterestsModal }) => {
+      openInterestsModal();
+    });
+  });
+
+  // Note: the dg:interests:changed listener is registered ONCE at module
+  // load (see top of this file). It reads `currentSettingsContainer`, so
+  // re-renders do not accumulate listeners.
+  renderCurrentInterests(container);
 }
 
 function onSaveKey(container: HTMLElement): void {

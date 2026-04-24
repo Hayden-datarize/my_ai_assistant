@@ -12,7 +12,7 @@ import { switchTab } from '../nav';
 import { toKoType } from '../../utils/typeLabel';
 import { appendAnswer, aggregateAnswerStats, setAnswerEvaluation } from '../../state/persistence';
 import { makeAnswer } from '../../state/schema';
-import { loadBriefings, saveBriefings, type Briefing } from '../../state/briefings';
+import { loadBriefings, saveBriefings, toggleScrap, setRead, type Briefing } from '../../state/briefings';
 import { loadChatHistory, appendChatMessage } from '../../state/chat';
 import { fetchFeed, type FeedItem, type FeedResult } from '../../services/rss';
 import { generateQuestion, chat, evaluateAnswer } from '../../services/gemini';
@@ -21,6 +21,7 @@ import { escapeHtml } from '../../utils/escapeHtml';
 import { getDateStr } from '../../utils/dates';
 import { showToast } from '../../utils/toast';
 import { INTERESTS } from '../../utils/categories';
+import { openMemoModal } from '../modals/memo';
 
 const API_KEY_STORAGE = 'dg_gemini_key';
 const USER_STORAGE = 'user';
@@ -184,85 +185,107 @@ function hydrateBriefings(): void {
   list.forEach((b, i) => scroll.append(renderBriefingCard(b, i)));
 }
 
-function renderBriefingCard(b: Briefing, idx: number): HTMLElement {
+export function renderBriefingCard(b: Briefing, idx: number): HTMLElement {
   const card = document.createElement('article');
   card.className = 'briefing-card';
-  if (b.read) card.classList.add('read');
+  card.dataset['read'] = b.read ? 'true' : 'false';
+  card.dataset['tier'] = b.imageUrl ? '1' : '2';
 
-  const title = document.createElement('a');
-  title.href = b.url;
-  title.target = '_blank';
-  title.rel = 'noopener';
-  title.className = 'briefing-title';
-  title.textContent = b.title;
-  card.append(title);
+  // Main link: image (optional) + initial fallback + overlay (source/title/summary)
+  const main = document.createElement('a');
+  main.className = 'card-main';
+  main.href = b.url;
+  main.target = '_blank';
+  main.rel = 'noopener noreferrer';
+  main.setAttribute('aria-label', `${b.title} — ${b.sourceTitle ?? '기사'}`);
 
-  if (b.sourceTitle) {
-    const chip = document.createElement('span');
-    chip.className = 'briefing-source';
-    chip.textContent = b.sourceTitle;
-    card.append(chip);
+  const initialLetter = (b.sourceTitle?.[0] ?? '?').toUpperCase();
+
+  if (b.imageUrl) {
+    const img = document.createElement('img');
+    img.className = 'card-thumb';
+    img.src = b.imageUrl;
+    img.alt = '';
+    img.setAttribute('loading', 'lazy');
+    img.setAttribute('decoding', 'async');
+    img.setAttribute('referrerpolicy', 'no-referrer');
+    img.addEventListener('error', () => {
+      // Transition tier 1 → tier 2 on load failure
+      card.dataset['tier'] = '2';
+      img.remove();
+    });
+    main.append(img);
   }
 
+  const initial = document.createElement('div');
+  initial.className = 'card-initial';
+  initial.setAttribute('aria-hidden', 'true');
+  initial.textContent = initialLetter;
+  main.append(initial);
+
+  const overlay = document.createElement('div');
+  overlay.className = 'card-overlay';
+
+  const sourceBadge = document.createElement('span');
+  sourceBadge.className = 'card-source';
+  sourceBadge.textContent = b.sourceTitle ?? '기사';
+  overlay.append(sourceBadge);
+
+  const textBlock = document.createElement('div');
+  textBlock.className = 'card-text';
+  const title = document.createElement('h3');
+  title.className = 'card-title';
+  title.textContent = b.title;
   const summary = document.createElement('p');
-  summary.className = 'briefing-summary';
+  summary.className = 'card-summary';
   summary.textContent = b.summary;
-  card.append(summary);
+  textBlock.append(title, summary);
+  overlay.append(textBlock);
 
+  main.append(overlay);
+
+  // Mark as read when the link is opened
+  main.addEventListener('click', () => {
+    setRead(idx);
+    card.dataset['read'] = 'true';
+  });
+
+  card.append(main);
+
+  // Actions OUTSIDE the anchor
   const actions = document.createElement('div');
-  actions.className = 'briefing-actions';
+  actions.className = 'card-actions';
+  actions.setAttribute('role', 'group');
+  actions.setAttribute('aria-label', '카드 액션');
 
-  const scrap = document.createElement('button');
-  scrap.type = 'button';
-  scrap.textContent = b.scrapped ? '⭐ 스크랩됨' : '☆ 스크랩';
-  scrap.addEventListener('click', () => {
-    const all = loadBriefings();
-    const target = all[idx];
-    if (!target) return;
-    target.scrapped = !target.scrapped;
-    saveBriefings(all);
+  const scrapBtn = document.createElement('button');
+  scrapBtn.type = 'button';
+  scrapBtn.className = 'card-action-btn';
+  scrapBtn.dataset['action'] = 'scrap';
+  scrapBtn.setAttribute('aria-label', b.scrapped ? '스크랩 해제' : '스크랩');
+  scrapBtn.textContent = b.scrapped ? '♥' : '♡';
+  if (b.scrapped) scrapBtn.classList.add('is-scrapped');
+  scrapBtn.addEventListener('click', (e) => {
+    e.preventDefault();
+    e.stopPropagation();
+    toggleScrap(idx);
     hydrateBriefings();
   });
-  actions.append(scrap);
 
   const memoBtn = document.createElement('button');
   memoBtn.type = 'button';
-  memoBtn.textContent = b.memo ? '📝 메모 있음' : '📝 메모';
-  actions.append(memoBtn);
-
-  const memoBox = document.createElement('div');
-  memoBox.className = 'briefing-memo';
-  memoBox.classList.toggle('hidden', !b.memo);
-
-  const memoInput = document.createElement('textarea');
-  memoInput.value = b.memo;
-  memoInput.placeholder = '이 기사에서 떠오른 생각을 기록해요';
-
-  const memoSave = document.createElement('button');
-  memoSave.type = 'button';
-  memoSave.textContent = '저장';
-  memoSave.addEventListener('click', () => {
-    const all = loadBriefings();
-    const target = all[idx];
-    if (!target) return;
-    target.memo = memoInput.value;
-    saveBriefings(all);
-    hydrateBriefings();
+  memoBtn.className = 'card-action-btn';
+  memoBtn.dataset['action'] = 'memo';
+  memoBtn.setAttribute('aria-label', '메모');
+  memoBtn.textContent = '✎';
+  memoBtn.addEventListener('click', (e) => {
+    e.preventDefault();
+    e.stopPropagation();
+    openMemoModal(idx);
   });
 
-  memoBox.append(memoInput, memoSave);
-  memoBtn.addEventListener('click', () => memoBox.classList.toggle('hidden'));
-
-  card.append(actions, memoBox);
-
-  // mark-read on title click
-  title.addEventListener('click', () => {
-    const all = loadBriefings();
-    const target = all[idx];
-    if (!target) return;
-    target.read = true;
-    saveBriefings(all);
-  });
+  actions.append(scrapBtn, memoBtn);
+  card.append(actions);
 
   return card;
 }
@@ -289,7 +312,7 @@ async function refreshBriefings(): Promise<void> {
   const fetched = await Promise.all(
     feedUrls.map((u) => fetchFeed(u, { timeoutMs: 5000 })),
   );
-  const chosen = pickBriefings(fetched, 3);
+  const chosen = pickBriefings(fetched, 5);
 
   const today = getDateStr();
   const stored: Briefing[] = chosen.map(({ item, sourceTitle }, i) => ({
@@ -302,6 +325,7 @@ async function refreshBriefings(): Promise<void> {
     read: false,
     memo: '',
     ...(sourceTitle ? { sourceTitle } : {}),
+    ...(item.image ? { imageUrl: item.image } : {}),
   }));
   saveBriefings(stored);
   hydrateBriefings();
@@ -428,14 +452,40 @@ function hydrateChatHistory(): void {
   updateTurnCounter(history.length);
 }
 
-function addBubble(role: 'user' | 'ai', text: string): void {
+export interface BubbleAction {
+  label: string;
+  onClick: () => void;
+}
+
+export function addBubble(
+  role: 'user' | 'ai',
+  text: string,
+  action?: BubbleAction,
+): void {
   const msgs = document.getElementById('chatMessages');
   if (!msgs) return;
+
   const b = document.createElement('div');
   b.className = `chat-bubble chat-${role}`;
-  b.textContent = text;
+
+  const textNode = document.createElement('span');
+  textNode.textContent = text; // XSS-safe
+  b.append(textNode);
+
+  if (action) {
+    const btn = document.createElement('button');
+    btn.type = 'button';
+    btn.className = 'chat-bubble-action';
+    btn.textContent = action.label; // XSS-safe
+    btn.addEventListener('click', action.onClick);
+    b.append(btn);
+  }
+
   msgs.append(b);
   msgs.scrollTop = msgs.scrollHeight;
+
+  // Ensure chat container is visible (fixes pre-existing .show toggle gap)
+  document.getElementById('chatContainer')?.classList.add('show');
 }
 
 function updateTurnCounter(msgCount: number): void {
@@ -444,6 +494,24 @@ function updateTurnCounter(msgCount: number): void {
   // each turn = user+ai pair
   const turns = Math.floor(msgCount / 2);
   el.textContent = `턴 ${turns}/5`;
+}
+
+export function openSettingsWithFocus(): void {
+  const active = document.querySelector('.nav-item.active');
+  const isAlreadySettings = active?.getAttribute('data-tab-id') === 'settings';
+
+  const scrollToField = (): void => {
+    const field = document.getElementById('apiKeyInput');
+    field?.scrollIntoView({ behavior: 'smooth', block: 'center' });
+  };
+
+  if (isAlreadySettings) {
+    scrollToField();
+  } else {
+    switchTab('settings');
+    // switchTab renders synchronously; rAF ensures post-paint DOM stability before scroll
+    requestAnimationFrame(scrollToField);
+  }
 }
 
 async function submitAnswer(): Promise<void> {
@@ -492,7 +560,11 @@ async function submitAnswer(): Promise<void> {
   // AI feedback via chat — requires API key
   const key = getApiKey();
   if (!key) {
-    addBubble('ai', 'AI 피드백을 받으려면 설정에서 API 키를 등록해 주세요.');
+    addBubble('ai', 'AI 응답을 받으려면 API 키를 등록해 주세요.', {
+      label: '⚙ 설정 열기',
+      onClick: openSettingsWithFocus,
+    });
+    updateTurnCounter(loadChatHistory(getDateStr()).length);
     return;
   }
 
@@ -535,7 +607,14 @@ async function sendChatMessage(): Promise<void> {
   appendChatMessage(getDateStr(), { role: 'user', text, at: Date.now() });
 
   const key = getApiKey();
-  if (!key) { addBubble('ai', 'API 키가 설정되지 않았어요. 설정에서 등록해 주세요.'); return; }
+  if (!key) {
+    addBubble('ai', 'AI 응답을 받으려면 API 키를 등록해 주세요.', {
+      label: '⚙ 설정 열기',
+      onClick: openSettingsWithFocus,
+    });
+    updateTurnCounter(loadChatHistory(getDateStr()).length);
+    return;
+  }
 
   const history = loadChatHistory(getDateStr()).map((m) => ({ role: m.role, text: m.text }));
   try {

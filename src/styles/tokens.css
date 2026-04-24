@@ -51,6 +51,8 @@
   --shadow-sm: 0 1px 2px rgba(0,0,0,0.3);
   --shadow-md: 0 4px 12px rgba(0,0,0,0.4);
   --shadow-lg: 0 8px 24px rgba(0,0,0,0.5);
+  /* Modal backdrop (dark — deeper overlay for legibility) */
+  --modal-backdrop: rgba(0, 0, 0, 0.6);
 }
 
 /* ============================================
@@ -83,14 +85,17 @@
   /* Radius (xs added; sm/md/lg/xl already in existing :root) */
   --radius-xs: 4px;
 
-  /* Z-index */
+  /* Z-index scale (v3.3.3 재정립) */
   --z-base: 0;
   --z-raised: 10;
   --z-sticky: 20;
   --z-sidebar: 40;
   --z-sidebar-button: 41;
-  --z-modal: 50;
-  --z-toast: 60;
+  --z-floating: 100;      /* sticky header, positioned overlays */
+  --z-onboarding: 900;
+  --z-splash: 1000;
+  --z-modal: 1100;
+  --z-toast: 2000;
 
   /* Focus ring + border */
   --focus-ring: 0 0 0 2px var(--primary);
@@ -102,17 +107,20 @@
   --duration-slow: 400ms;
   --ease-standard: cubic-bezier(0.4, 0, 0.2, 1);
 
-  /* Heatmap pre-computed palette (light) */
-  --heatmap-l0: var(--bg-input);
-  --heatmap-l1: #C7D2FE;
-  --heatmap-l2: #818CF8;
+  /* Heatmap pre-computed palette (light) — v3.3.3 ramp B */
+  --heatmap-l0: #E2E8F0;   /* was var(--bg-input) — slate-200 for clear empty state */
+  --heatmap-l1: #A5B4FC;   /* was #C7D2FE — indigo-300, stronger l0↔l1 contrast */
+  --heatmap-l2: #818CF8;   /* unchanged */
   --heatmap-l3: var(--primary);
+
+  /* Modal backdrop (Material 3 token — light) */
+  --modal-backdrop: rgba(0, 0, 0, 0.4);
 }
 
 [data-theme="dark"] {
-  /* Heatmap palette (dark) */
-  --heatmap-l0: var(--bg-card);
-  --heatmap-l1: #3730A3;
+  /* Heatmap palette (dark) — v3.3.3 ramp B */
+  --heatmap-l0: #0F172A;   /* was var(--bg-card) — slate-900, distinct from card bg */
+  --heatmap-l1: #4338CA;   /* was #3730A3 — indigo-700, lifts l1 */
   --heatmap-l2: #6366F1;
   --heatmap-l3: var(--primary);
 }
