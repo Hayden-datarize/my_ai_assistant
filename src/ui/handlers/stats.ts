@@ -65,7 +65,7 @@ function formatCellLabel(dateKey: string): string {
 function setDefaultInfo(info: HTMLElement, total: number, streak: number): void {
   info.textContent = total === 0
     ? '아직 기록이 없어요. 첫 답변을 남겨보세요.'
-    : `최근 28일 · ${total}개 달성 · 최장 연속 ${streak}일`;
+    : `이번 주 포함 4주 · ${total}개 달성 · 최장 연속 ${streak}일`;
 }
 
 export function mountStatsHandlers(): void {

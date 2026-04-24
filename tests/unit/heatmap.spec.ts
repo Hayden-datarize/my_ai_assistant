@@ -158,7 +158,7 @@ describe('hydrateHeatmap inline info', () => {
     const mod = await import('../../src/ui/handlers/stats');
     mod.hydrateStats();
     const info = document.getElementById('heatmapInfo');
-    expect(info?.textContent).toBe('최근 28일 · 3개 달성 · 최장 연속 2일');
+    expect(info?.textContent).toBe('이번 주 포함 4주 · 3개 달성 · 최장 연속 2일');
   });
 
   it('updates info on cell mouseenter: "M월 D일 (요일) · N개 달성"', async () => {
@@ -195,7 +195,7 @@ describe('hydrateHeatmap inline info', () => {
     cell.dispatchEvent(new MouseEvent('mouseenter', { bubbles: true }));
     cell.dispatchEvent(new MouseEvent('mouseleave', { bubbles: true }));
     const info = document.getElementById('heatmapInfo');
-    expect(info?.textContent).toBe('최근 28일 · 1개 달성 · 최장 연속 1일');
+    expect(info?.textContent).toBe('이번 주 포함 4주 · 1개 달성 · 최장 연속 1일');
   });
 });
 
