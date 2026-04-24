@@ -21,6 +21,7 @@ import { escapeHtml } from '../../utils/escapeHtml';
 import { getDateStr } from '../../utils/dates';
 import { showToast } from '../../utils/toast';
 import { INTERESTS } from '../../utils/categories';
+import { openMemoModal } from '../modals/memo';
 
 const API_KEY_STORAGE = 'dg_gemini_key';
 const USER_STORAGE = 'user';
@@ -182,12 +183,6 @@ function hydrateBriefings(): void {
   if (list.length === 0) return; // leave skeletons; user can click refresh
   scroll.replaceChildren();
   list.forEach((b, i) => scroll.append(renderBriefingCard(b, i)));
-}
-
-// C6 will replace this stub with real import from '../modals/memo'
-function openMemoModal(idx: number): void {
-  // stub — wired up in C6
-  void idx;
 }
 
 export function renderBriefingCard(b: Briefing, idx: number): HTMLElement {
