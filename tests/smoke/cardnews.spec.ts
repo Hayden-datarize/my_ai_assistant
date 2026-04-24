@@ -226,19 +226,47 @@ test('responsive: desktop (≥1024px) shows 3-column grid + 5th spans 2', async 
   expect(gridColumn).toMatch(/span 2|\/\s*span 2|\/\s*3\s*$|\/\s*4\s*$/);
 });
 
-test('v3.3.4.3: 5th card height matches row siblings (no double-tall spill)', async ({ page }) => {
-  // 3-col grid row 2 places card 4 (1-col) and card 5 (2-col span). With
-  // aspect-ratio 4/5 applied to all cards, card 5 would compute ~2× the height
-  // of card 4. Fix: card 5 overrides aspect-ratio to 41/25 (≈1.64, which
-  // accounts for the 16px grid gap) so row heights match within ~2px.
-  await page.setViewportSize({ width: 1280, height: 800 });
+// v3.3.4.3: verify the 41/25 override holds across the full desktop range.
+// Entering @media (min-width: 1024px) the 5th card spans 2 columns; without
+// the aspect override it would compute ~2× the height of 1-col siblings.
+// The A4 max-width:1200px cap + margin-inline:auto keep the grid track
+// within a narrow band on wide viewports, which is why a single-viewport
+// check was insufficient.
+for (const width of [1024, 1280, 1440, 1920]) {
+  test(`v3.3.4.3: 5th card height matches row siblings at ${width}px`, async ({ page }) => {
+    await page.setViewportSize({ width, height: 900 });
+    await seedBriefings(page, mkCards(5, true));
+    await page.goto('/');
+
+    const fourth = await page.locator('.briefing-card').nth(3).boundingBox();
+    const fifth = await page.locator('.briefing-card').nth(4).boundingBox();
+    expect(fourth).not.toBeNull();
+    expect(fifth).not.toBeNull();
+    expect(Math.abs(fourth!.height - fifth!.height)).toBeLessThan(2);
+  });
+}
+
+test('v3.3.4.3: wide viewport 1920 caps briefing-scroll width and centers within #homeTab', async ({ page }) => {
+  await page.setViewportSize({ width: 1920, height: 1080 });
   await seedBriefings(page, mkCards(5, true));
   await page.goto('/');
 
-  const fourth = await page.locator('.briefing-card').nth(3).boundingBox();
-  const fifth = await page.locator('.briefing-card').nth(4).boundingBox();
-  expect(fourth).not.toBeNull();
-  expect(fifth).not.toBeNull();
-  // Allow small subpixel rounding slack — match within 2px
-  expect(Math.abs(fourth!.height - fifth!.height)).toBeLessThan(2);
+  const scroll = page.locator('#briefingScroll');
+  const homeTab = page.locator('#homeTab');
+  const sbox = await scroll.boundingBox();
+  const hbox = await homeTab.boundingBox();
+  expect(sbox).not.toBeNull();
+  expect(hbox).not.toBeNull();
+  // Cap 1200px (content-box via global box-sizing: border-box)
+  expect(sbox!.width).toBeLessThanOrEqual(1200);
+  // #homeTab desktop layout uses asymmetric padding (80px left for sidebar
+  // reach, 20px right) — so viewport-relative centering is impossible by
+  // design. Verify margin-auto centers within the parent's *content box*.
+  const tabPad = await homeTab.evaluate((el) => {
+    const cs = getComputedStyle(el);
+    return { left: parseFloat(cs.paddingLeft), right: parseFloat(cs.paddingRight) };
+  });
+  const leftInContent = sbox!.x - (hbox!.x + tabPad.left);
+  const rightInContent = (hbox!.x + hbox!.width - tabPad.right) - (sbox!.x + sbox!.width);
+  expect(Math.abs(leftInContent - rightInContent)).toBeLessThan(2);
 });
