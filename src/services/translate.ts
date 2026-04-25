@@ -27,9 +27,39 @@ async function callModel(model: Model, apiKey: string, prompt: string): Promise<
   return data.candidates?.[0]?.content?.parts?.[0]?.text ?? '';
 }
 
-async function callPrimary(apiKey: string, prompt: string): Promise<string> {
+let sessionBlocked = false;
+
+function isRetryable(err: unknown): boolean {
+  if (err instanceof TypeError) return true; // network error
+  const status = (err as { status?: number }).status;
+  return status === 429 || status === 503;
+}
+
+async function callWithFallback(apiKey: string, prompt: string): Promise<string> {
   if (!apiKey) throw new Error('Gemini api key missing');
-  return callModel(MODELS[0], apiKey, prompt);
+  if (sessionBlocked) throw new Error('translate session blocked (auth)');
+
+  let lastErr: unknown;
+  for (const model of MODELS) {
+    try {
+      return await callModel(model, apiKey, prompt);
+    } catch (err) {
+      lastErr = err;
+      const status = (err as { status?: number }).status;
+      if (status === 401) {
+        sessionBlocked = true;
+        throw err;
+      }
+      if (!isRetryable(err)) throw err;
+      // 다음 모델로
+    }
+  }
+  throw lastErr instanceof Error ? lastErr : new Error('all models failed');
+}
+
+// Test-only escape hatch (no production caller)
+export function __resetSessionBlockForTest(): void {
+  sessionBlocked = false;
 }
 
 export async function translateTitle(title: string, apiKey: string): Promise<string> {
@@ -38,7 +68,7 @@ export async function translateTitle(title: string, apiKey: string): Promise<str
     '해요체, 한 문장. JSON으로만 반환: {"text":"..."}',
     `제목: ${title.slice(0, INPUT_CAP)}`,
   ].join('\n');
-  const text = await callPrimary(apiKey, prompt);
+  const text = await callWithFallback(apiKey, prompt);
   return parseJsonText<JsonOut>(text).text;
 }
 
@@ -56,6 +86,6 @@ export async function summarizeOrTranslateBody(body: string, apiKey: string): Pr
         '해요체, 핵심만 간결하게. JSON으로만 반환: {"text":"..."}',
         `본문: ${truncated}`,
       ].join('\n');
-  const text = await callPrimary(apiKey, prompt);
+  const text = await callWithFallback(apiKey, prompt);
   return parseJsonText<JsonOut>(text).text;
 }

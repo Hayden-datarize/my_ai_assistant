@@ -65,3 +65,81 @@ describe('translate service base', () => {
     await expect(translateTitle('hello', '')).rejects.toThrow(/api key/i);
   });
 });
+
+describe('translate service fallback + session block', () => {
+  beforeEach(async () => {
+    localStorage.clear();
+    vi.restoreAllMocks();
+    // reset session block (테스트 격리)
+    const m = await import('../../src/services/translate');
+    m.__resetSessionBlockForTest();
+  });
+
+  function mockSequence(responses: Array<{ ok: boolean; status: number; text?: string }>) {
+    let i = 0;
+    global.fetch = vi.fn().mockImplementation(async () => {
+      const r = responses[i++];
+      if (!r) throw new Error('mock exhausted');
+      return {
+        ok: r.ok,
+        status: r.status,
+        json: async () => r.text ? ({ candidates: [{ content: { parts: [{ text: r.text }] } }] }) : ({}),
+      } as unknown as Response;
+    });
+  }
+
+  it('falls back to model 2 on 429 from model 1', async () => {
+    mockSequence([
+      { ok: false, status: 429 },
+      { ok: true, status: 200, text: '{"text":"두 번째 모델 응답"}' },
+    ]);
+    const out = await (await import('../../src/services/translate')).translateTitle('hello', 'KEY');
+    expect(out).toBe('두 번째 모델 응답');
+    expect(global.fetch).toHaveBeenCalledTimes(2);
+  });
+
+  it('falls back on 503', async () => {
+    mockSequence([
+      { ok: false, status: 503 },
+      { ok: true, status: 200, text: '{"text":"ok"}' },
+    ]);
+    const out = await (await import('../../src/services/translate')).translateTitle('hello', 'KEY');
+    expect(out).toBe('ok');
+  });
+
+  it('falls back on network error', async () => {
+    let i = 0;
+    global.fetch = vi.fn().mockImplementation(async () => {
+      if (i++ === 0) throw new TypeError('network down');
+      return {
+        ok: true, status: 200,
+        json: async () => ({ candidates: [{ content: { parts: [{ text: '{"text":"recovered"}' }] } }] }),
+      } as unknown as Response;
+    });
+    const out = await (await import('../../src/services/translate')).translateTitle('hello', 'KEY');
+    expect(out).toBe('recovered');
+  });
+
+  it('does NOT fall back on 400 (immediate fail)', async () => {
+    mockSequence([{ ok: false, status: 400 }]);
+    await expect((await import('../../src/services/translate')).translateTitle('hello', 'KEY')).rejects.toThrow();
+    expect(global.fetch).toHaveBeenCalledTimes(1);
+  });
+
+  it('blocks subsequent calls in session after 401', async () => {
+    mockSequence([{ ok: false, status: 401 }]);
+    const mod = await import('../../src/services/translate');
+    await expect(mod.translateTitle('hello', 'KEY')).rejects.toThrow();
+    // 다음 호출은 fetch 자체가 호출되지 않아야 함
+    await expect(mod.translateTitle('world', 'KEY')).rejects.toThrow(/session blocked/i);
+    expect(global.fetch).toHaveBeenCalledTimes(1);
+  });
+
+  it('throws when both models fail with retryable errors', async () => {
+    mockSequence([
+      { ok: false, status: 429 },
+      { ok: false, status: 503 },
+    ]);
+    await expect((await import('../../src/services/translate')).translateTitle('hello', 'KEY')).rejects.toThrow();
+  });
+});
