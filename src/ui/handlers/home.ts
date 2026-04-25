@@ -12,16 +12,20 @@ import { switchTab } from '../nav';
 import { toKoType } from '../../utils/typeLabel';
 import { appendAnswer, aggregateAnswerStats, setAnswerEvaluation } from '../../state/persistence';
 import { makeAnswer } from '../../state/schema';
-import { loadBriefings, saveBriefings, toggleScrap, setRead, type Briefing } from '../../state/briefings';
+import { loadBriefings, saveBriefings, toggleScrap, setRead, setTranslation, type Briefing } from '../../state/briefings';
 import { loadChatHistory, appendChatMessage } from '../../state/chat';
 import { fetchFeed, type FeedItem, type FeedResult } from '../../services/rss';
 import { generateQuestion, chat, evaluateAnswer } from '../../services/gemini';
 import { autoSendAnswer } from '../../services/slack';
+import { summarizeOrTranslateBody } from '../../services/translate';
 import { escapeHtml } from '../../utils/escapeHtml';
 import { getDateStr } from '../../utils/dates';
 import { showToast } from '../../utils/toast';
 import { INTERESTS } from '../../utils/categories';
+import { detectLanguage } from '../../utils/lang';
 import { openMemoModal } from '../modals/memo';
+import { createLangToggle, type LangToggleEl, type LangState } from '../components/cardLangToggle';
+import { checkAndIncrement, getCap, getTodayCount } from '../../state/usage';
 
 const API_KEY_STORAGE = 'dg_gemini_key';
 const USER_STORAGE = 'user';
@@ -85,6 +89,81 @@ export function getInitialLetter(sourceTitle: string | undefined): string {
 
 function getApiKey(): string {
   return localStorage.getItem(API_KEY_STORAGE) ?? '';
+}
+
+function ensureDetectedLang(briefing: Briefing): 'en' | 'ko' | 'unknown' {
+  if (briefing.detectedLang) return briefing.detectedLang;
+  const lang = detectLanguage(briefing.title, briefing.summary);
+  setTranslation(briefing.id, { detectedLang: lang });
+  briefing.detectedLang = lang;
+  return lang;
+}
+
+// Stub — replaced by real implementation in Task 11
+function showCapToast(): void { console.log('[v3.4 stub] cap reached'); }
+function showTranslateError(err: unknown): void {
+  console.log('[v3.4 stub] translate error', err);
+}
+
+function attachLangToggle(card: HTMLElement, briefing: Briefing): void {
+  const lang = ensureDetectedLang(briefing);
+  if (lang !== 'en') return;
+  const apiKey = getApiKey();
+  if (!apiKey) return;
+
+  const summaryEl = card.querySelector<HTMLElement>('.card-summary');
+  if (!summaryEl) return;
+  const originalBody = briefing.summary;
+
+  const capReached = getTodayCount() >= getCap();
+  const toggle: LangToggleEl = createLangToggle({
+    initialState: 'en',
+    disabled: capReached,
+    disabledReason: capReached ? '오늘 번역 한도에 도달했어요' : undefined,
+    onToggle: (next: LangState) => {
+      void handleLangToggle(next, summaryEl, briefing, originalBody, toggle, apiKey);
+    },
+  });
+
+  // Insert toggle BEFORE the anchor (.card-main) so it's outside the link
+  // (HTML invalidity + accidental navigation prevented).
+  const main = card.querySelector<HTMLElement>('.card-main');
+  if (main) card.insertBefore(toggle, main);
+}
+
+async function handleLangToggle(
+  next: LangState,
+  summaryEl: HTMLElement,
+  briefing: Briefing,
+  originalBody: string,
+  toggle: LangToggleEl,
+  apiKey: string,
+): Promise<void> {
+  if (next === 'en') {
+    summaryEl.textContent = originalBody;
+    return;
+  }
+  // ko: cache 우선
+  if (briefing.summaryKo) {
+    summaryEl.textContent = briefing.summaryKo;
+    return;
+  }
+  if (!checkAndIncrement()) {
+    showCapToast();
+    toggle.setLangState('en');
+    toggle.disabled = true;
+    toggle.setAttribute('aria-disabled', 'true');
+    return;
+  }
+  try {
+    const ko = await summarizeOrTranslateBody(originalBody, apiKey);
+    setTranslation(briefing.id, { summaryKo: ko });
+    briefing.summaryKo = ko;
+    summaryEl.textContent = ko;
+  } catch (err) {
+    showTranslateError(err);
+    toggle.setLangState('en');
+  }
 }
 
 function applyTheme(): void {
@@ -222,6 +301,7 @@ export function renderBriefingCard(b: Briefing, idx: number): HTMLElement {
   card.className = 'briefing-card';
   card.dataset['read'] = b.read ? 'true' : 'false';
   card.dataset['tier'] = b.imageUrl ? '1' : '2';
+  card.dataset['briefingId'] = b.id;
 
   // Main link: image (optional) + initial fallback + overlay (source/title/summary)
   const main = document.createElement('a');
@@ -318,6 +398,8 @@ export function renderBriefingCard(b: Briefing, idx: number): HTMLElement {
 
   actions.append(scrapBtn, memoBtn);
   card.append(actions);
+
+  attachLangToggle(card, b);
 
   return card;
 }
