@@ -93,3 +93,37 @@ test('API key 없으면 토글 비노출', async ({ page }) => {
   await expect(page.locator('.briefing-card')).toHaveCount(1, { timeout: 5000 });
   await expect(page.locator('.card-lang-toggle')).toHaveCount(0);
 });
+
+test('background queue: 영문 제목이 자동으로 한글로 swap된다', async ({ page }) => {
+  await page.route('**/api.rss2json.com/**', (route) => route.abort());
+  await page.route('**/medium.com/feed/**', (route) => route.abort());
+  await page.route('**/tech.kakao.com/**', (route) => route.abort());
+
+  await page.route('**/generativelanguage.googleapis.com/**', async (route) => {
+    await route.fulfill({
+      status: 200,
+      contentType: 'application/json',
+      body: JSON.stringify({
+        candidates: [{ content: { parts: [{ text: '{"text":"오픈AI가 새 모델을 발표"}' }] } }],
+      }),
+    });
+  });
+
+  await page.addInitScript((init) => {
+    // eslint-disable-next-line no-eval
+    eval(init);
+    sessionStorage.setItem('dg.briefings.auto-refresh-tried', '1');
+    localStorage.setItem('dg_gemini_key', 'TEST_KEY');
+    const today = new Date().toISOString().slice(0, 10);
+    localStorage.setItem('briefings', JSON.stringify([{
+      id: 'card-1', date: today, url: 'https://e.com/x',
+      title: 'OpenAI launches new model',
+      summary: 'long English body containing more than eighty characters to trigger summarize path. lorem ipsum dolor sit amet.',
+      scrapped: false, read: false, memo: '',
+    }]));
+  }, seedUser);
+
+  await page.goto('/');
+  await expect(page.locator('.briefing-card')).toHaveCount(1, { timeout: 5000 });
+  await expect(page.locator('.card-title').first()).toContainText('오픈AI가 새 모델을 발표', { timeout: 5000 });
+});

@@ -17,7 +17,8 @@ import { loadChatHistory, appendChatMessage } from '../../state/chat';
 import { fetchFeed, type FeedItem, type FeedResult } from '../../services/rss';
 import { generateQuestion, chat, evaluateAnswer } from '../../services/gemini';
 import { autoSendAnswer } from '../../services/slack';
-import { summarizeOrTranslateBody } from '../../services/translate';
+import { summarizeOrTranslateBody, translateTitle } from '../../services/translate';
+import { TranslateQueue } from '../translateQueue';
 import { escapeHtml } from '../../utils/escapeHtml';
 import { getDateStr } from '../../utils/dates';
 import { showToast } from '../../utils/toast';
@@ -103,6 +104,42 @@ function ensureDetectedLang(briefing: Briefing): 'en' | 'ko' | 'unknown' {
 function showCapToast(): void { console.log('[v3.4 stub] cap reached'); }
 function showTranslateError(err: unknown): void {
   console.log('[v3.4 stub] translate error', err);
+}
+
+// Background queue for auto-translating English titles. concurrency 3 + 200ms
+// delay between dispatches keeps Gemini API call rate sane while still
+// translating a 5-card briefing batch in well under a second of wall time
+// (assuming the API responds promptly). Failures are silently swallowed —
+// Task 11 will wire the toast surface.
+const titleQueue = new TranslateQueue(
+  async (id: string): Promise<string> => {
+    const list = loadBriefings();
+    const b = list.find((x) => x.id === id);
+    if (!b) return '';
+    const apiKey = getApiKey();
+    if (!apiKey) return '';
+    if (!checkAndIncrement()) throw new Error('cap reached');
+    const ko = await translateTitle(b.title, apiKey);
+    setTranslation(id, { titleKo: ko });
+    swapTitleInDOM(id, ko);
+    return ko;
+  },
+  { concurrency: 3, delayMs: 200 },
+);
+
+function swapTitleInDOM(id: string, titleKo: string): void {
+  const titleEl = document.querySelector(`[data-briefing-id="${id}"] .card-title`);
+  if (titleEl) titleEl.textContent = titleKo;
+}
+
+function enqueueEnglishTitleTranslations(briefings: Briefing[]): void {
+  if (!getApiKey()) return;
+  for (const b of briefings) {
+    const lang = b.detectedLang ?? ensureDetectedLang(b);
+    if (lang !== 'en') continue;
+    if (b.titleKo) continue; // 이미 캐시된 경우 skip
+    titleQueue.enqueue(b.id);
+  }
 }
 
 function attachLangToggle(card: HTMLElement, briefing: Briefing): void {
@@ -294,6 +331,7 @@ function hydrateBriefings(): void {
 
   scroll.replaceChildren();
   list.forEach((b, i) => scroll.append(renderBriefingCard(b, i)));
+  enqueueEnglishTitleTranslations(list);
 }
 
 export function renderBriefingCard(b: Briefing, idx: number): HTMLElement {
@@ -347,7 +385,7 @@ export function renderBriefingCard(b: Briefing, idx: number): HTMLElement {
   textBlock.className = 'card-text';
   const title = document.createElement('h3');
   title.className = 'card-title';
-  title.textContent = b.title;
+  title.textContent = (b.detectedLang === 'en' && b.titleKo) ? b.titleKo : b.title;
   const summary = document.createElement('p');
   summary.className = 'card-summary';
   summary.textContent = b.summary;
