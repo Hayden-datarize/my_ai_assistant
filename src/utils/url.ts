@@ -3,7 +3,7 @@
  * - Rejects all non-string types (null/undefined/number/object).
  * - Rejects http://, javascript:, data:, and other schemes.
  * - Protocol comparison is case-insensitive (URL parser auto-lowercases).
- * - Whitespace is NOT auto-trimmed; callers responsible for normalization.
+ * - Strings with leading/trailing whitespace are rejected; callers must trim first.
  */
 export function isHttpsUrl(value: unknown): value is string {
   if (typeof value !== 'string') return false;
