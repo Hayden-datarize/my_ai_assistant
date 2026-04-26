@@ -27,6 +27,7 @@ import { detectLanguage } from '../../utils/lang';
 import { openMemoModal } from '../modals/memo';
 import { createLangToggle, type LangToggleEl, type LangState } from '../components/cardLangToggle';
 import { checkAndIncrement, getCap, getTodayCount } from '../../state/usage';
+import { showCapToast, showTranslateError } from '../translateToast';
 
 const API_KEY_STORAGE = 'dg_gemini_key';
 const USER_STORAGE = 'user';
@@ -100,17 +101,13 @@ function ensureDetectedLang(briefing: Briefing): 'en' | 'ko' | 'unknown' {
   return lang;
 }
 
-// Stub — replaced by real implementation in Task 11
-function showCapToast(): void { console.log('[v3.4 stub] cap reached'); }
-function showTranslateError(err: unknown): void {
-  console.log('[v3.4 stub] translate error', err);
-}
-
 // Background queue for auto-translating English titles. concurrency 3 + 200ms
 // delay between dispatches keeps Gemini API call rate sane while still
 // translating a 5-card briefing batch in well under a second of wall time
-// (assuming the API responds promptly). Failures are silently swallowed —
-// Task 11 will wire the toast surface.
+// (assuming the API responds promptly). Title-translation failures are
+// silently swallowed (no toast) — auto-translation is opportunistic, and
+// surfacing errors for an unrequested action would be noisy. Body translation
+// (user-initiated via lang toggle) does surface errors via showTranslateError.
 const titleQueue = new TranslateQueue(
   async (id: string): Promise<string> => {
     const list = loadBriefings();
