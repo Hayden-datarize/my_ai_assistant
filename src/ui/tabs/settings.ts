@@ -6,6 +6,7 @@ import { getCap, setCap, getTodayCount } from '../../state/usage';
 import { clearAllTranslations } from '../../state/briefings';
 import { resetToastDedup } from '../translateToast';
 import { clearSessionBlock } from '../../services/translate';
+import { MSG } from '../messages';
 
 const STORAGE_KEY_APIKEY = 'dg_gemini_key'; // legacy storage key — preserved for cutover compat
 const USER_STORAGE = 'user';
@@ -247,7 +248,7 @@ function bindSlackHandlers(container: HTMLElement): void {
     toggleRow.style.display = 'flex';
     clearBtn.style.display = 'block';
     setResult('');
-    showToast('✅ Slack Webhook 저장됨');
+    showToast(`✅ Slack Webhook ${MSG.SAVE_SUCCESS}`);
   });
 
   toggle.addEventListener('change', () => {

@@ -55,7 +55,10 @@ export class TranslateQueue {
       if (this.active === 0 && this.pending.length === 0) {
         const failed = this.failedCount;
         this.failedCount = 0; // reset for next batch
-        if (failed > 0) this.opts.onDrain?.({ failedCount: failed });
+        if (failed > 0) {
+          try { this.opts.onDrain?.({ failedCount: failed }); }
+          catch { /* drain notifier failures must not break the queue */ }
+        }
       }
     }
   }

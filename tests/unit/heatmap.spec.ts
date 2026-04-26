@@ -104,7 +104,7 @@ describe('hydrateHeatmap cell semantics', () => {
     expect((todayCells[0] as HTMLButtonElement).dataset['date']).toBe('2026-04-22');
   });
 
-  it('gives each data cell aria-label "YYYY-MM-DD, N개 달성"', async () => {
+  it('gives each data cell aria-label "M월 D일 (요일), N개 달성"', async () => {
     vi.setSystemTime(new Date('2026-04-22T03:00:00Z'));
     localStorage.setItem('dg.answers', JSON.stringify([
       { date: '2026-04-20', text: 'a', type: '감정' },
@@ -114,17 +114,17 @@ describe('hydrateHeatmap cell semantics', () => {
     mod.hydrateStats();
     const cell = document.querySelector<HTMLButtonElement>('.heatmap-cell[data-date="2026-04-20"]');
     expect(cell).not.toBeNull();
-    expect(cell!.getAttribute('aria-label')).toBe('2026-04-20, 2개 달성');
+    expect(cell!.getAttribute('aria-label')).toMatch(/^\d+월 \d+일 \([월화수목금토일]\), \d+개 달성$/);
   });
 
-  it('gives 0-count cell aria-label "YYYY-MM-DD, 기록 없음"', async () => {
+  it('gives 0-count cell aria-label "M월 D일 (요일), 기록 없음"', async () => {
     vi.setSystemTime(new Date('2026-04-22T03:00:00Z'));
     const mod = await import('../../src/ui/handlers/stats');
     mod.hydrateStats();
     // Pick any empty day in the window, e.g., 2026-04-15
     const cell = document.querySelector<HTMLButtonElement>('.heatmap-cell[data-date="2026-04-15"]');
     expect(cell).not.toBeNull();
-    expect(cell!.getAttribute('aria-label')).toBe('2026-04-15, 기록 없음');
+    expect(cell!.getAttribute('aria-label')).toMatch(/^\d+월 \d+일 \([월화수목금토일]\), 기록 없음$/);
   });
 });
 
@@ -354,7 +354,7 @@ describe('hydrateHeatmap timezone safety (v3.3.4.1 regression)', () => {
     const todayCell = document.querySelector<HTMLButtonElement>('.heatmap-cell.is-today');
     expect(todayCell).not.toBeNull();
     expect(todayCell!.dataset['date']).toBe(todayLocal);
-    expect(todayCell!.getAttribute('aria-label')).toBe(`${todayLocal}, 1개 달성`);
+    expect(todayCell!.getAttribute('aria-label')).toMatch(/^\d+월 \d+일 \([월화수목금토일]\), 1개 달성$/);
   });
 });
 
@@ -405,7 +405,7 @@ describe('hydrateHeatmap future guard (v3.3.4.3)', () => {
       expect(cell!.classList.contains('is-future')).toBe(true);
       expect(cell!.getAttribute('aria-disabled')).toBe('true');
       expect(cell!.dataset['future']).toBe('true');
-      expect(cell!.getAttribute('aria-label')).toBe(`${key}, 미래 날짜`);
+      expect(cell!.getAttribute('aria-label')).toMatch(/^\d+월 \d+일 \([월화수목금토일]\), 미래 날짜$/);
     }
   });
 

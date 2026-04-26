@@ -89,7 +89,6 @@ describe('TranslateQueue partial-failure summary', () => {
     queue.enqueue('a');
     queue.enqueue('b');
     await new Promise((r) => setTimeout(r, 50));
-    // onDrain은 항상 호출되지만 failedCount=0이면 호출자가 spam 안 함.
     // 정책: onDrain은 실패 1건+에서만 호출 (caller 단순화)
     expect(onDrain).not.toHaveBeenCalled();
   });

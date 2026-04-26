@@ -164,9 +164,13 @@ function hydrateHeatmap(): void {
     if (isFuture) {
       cell.dataset['future'] = 'true';
       cell.setAttribute('aria-disabled', 'true');
-      cell.setAttribute('aria-label', `${key}, 미래 날짜`);
+      // v3.5 (C2/C3): aria-label uses human-friendly date format,
+      // matching mouseenter info text style.
+      cell.setAttribute('aria-label', `${formatCellLabel(key)}, 미래 날짜`);
     } else {
-      const ariaLabel = n > 0 ? `${key}, ${n}개 달성` : `${key}, 기록 없음`;
+      const ariaLabel = n > 0
+        ? `${formatCellLabel(key)}, ${n}개 달성`
+        : `${formatCellLabel(key)}, 기록 없음`;
       cell.setAttribute('aria-label', ariaLabel);
     }
     cell.addEventListener('click', () => {
