@@ -124,7 +124,15 @@ const titleQueue = new TranslateQueue(
     swapTitleInDOM(id, ko);
     return ko;
   },
-  { concurrency: 3, delayMs: 200 },
+  {
+    concurrency: 3,
+    delayMs: 200,
+    onDrain: ({ failedCount }) => {
+      // i18n Lite (Task 10)에서 messages.ts로 흡수 예정 — 현재는 인라인.
+      const msg = `일부 카드 번역에 실패했어요 (${failedCount}건). 잠시 후 다시 시도해 주세요.`;
+      showToast(msg);
+    },
+  },
 );
 
 export function swapTitleInDOM(id: string, titleKo: string, root: ParentNode = document): void {
