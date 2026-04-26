@@ -118,6 +118,10 @@ const titleQueue = new TranslateQueue(
   },
 );
 
+/**
+ * @internal — 자기 모듈 내부 helper. 외부 caller(archive 등) 통합은 v3.7+ 실수요 발생 시.
+ * Test가 import하기 위해 export 유지하되, 일반 사용은 home.ts 내부에서만.
+ */
 export function swapTitleInDOM(id: string, titleKo: string, root: ParentNode = document): void {
   const titleEl = root.querySelector(`[data-briefing-id="${id}"] .card-title`);
   if (titleEl) titleEl.textContent = titleKo;
