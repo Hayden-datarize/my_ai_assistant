@@ -1,3 +1,5 @@
+import { parseJsonText } from '../utils/gemini-parse';
+
 const ENDPOINT = 'https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash-lite:generateContent';
 
 export interface GenerateTextInput {
@@ -19,14 +21,6 @@ export async function generateText({ apiKey, prompt }: GenerateTextInput): Promi
   if (!res.ok) throw new Error(`Gemini ${res.status}`);
   const data = (await res.json()) as GeminiResponse;
   return data.candidates?.[0]?.content?.parts?.[0]?.text ?? '';
-}
-
-function parseJsonText<T>(text: string): T {
-  const match = text.match(/\{[\s\S]*\}/);
-  if (!match) throw new Error('gemini response: no JSON object');
-  // eslint-disable-next-line no-control-regex -- deliberately strip control chars from LLM output
-  const cleaned = match[0].replace(/[\u0000-\u001F]+/g, ' ').replace(/,\s*([}\]])/g, '$1');
-  return JSON.parse(cleaned) as T;
 }
 
 export interface GenerateQuestionInput {

@@ -12,16 +12,22 @@ import { switchTab } from '../nav';
 import { toKoType } from '../../utils/typeLabel';
 import { appendAnswer, aggregateAnswerStats, setAnswerEvaluation } from '../../state/persistence';
 import { makeAnswer } from '../../state/schema';
-import { loadBriefings, saveBriefings, toggleScrap, setRead, type Briefing } from '../../state/briefings';
+import { loadBriefings, saveBriefings, toggleScrap, setRead, setTranslation, type Briefing } from '../../state/briefings';
 import { loadChatHistory, appendChatMessage } from '../../state/chat';
 import { fetchFeed, type FeedItem, type FeedResult } from '../../services/rss';
 import { generateQuestion, chat, evaluateAnswer } from '../../services/gemini';
 import { autoSendAnswer } from '../../services/slack';
+import { summarizeOrTranslateBody, translateTitle, isSessionBlocked } from '../../services/translate';
+import { TranslateQueue } from '../translateQueue';
 import { escapeHtml } from '../../utils/escapeHtml';
 import { getDateStr } from '../../utils/dates';
 import { showToast } from '../../utils/toast';
 import { INTERESTS } from '../../utils/categories';
+import { detectLanguage } from '../../utils/lang';
 import { openMemoModal } from '../modals/memo';
+import { createLangToggle, type LangToggleEl, type LangState } from '../components/cardLangToggle';
+import { checkAndIncrement, getCap, getTodayCount } from '../../state/usage';
+import { showCapToast, showTranslateError } from '../translateToast';
 
 const API_KEY_STORAGE = 'dg_gemini_key';
 const USER_STORAGE = 'user';
@@ -85,6 +91,122 @@ export function getInitialLetter(sourceTitle: string | undefined): string {
 
 function getApiKey(): string {
   return localStorage.getItem(API_KEY_STORAGE) ?? '';
+}
+
+function ensureDetectedLang(briefing: Briefing): 'en' | 'ko' | 'unknown' {
+  if (briefing.detectedLang) return briefing.detectedLang;
+  const lang = detectLanguage(briefing.title, briefing.summary);
+  setTranslation(briefing.id, { detectedLang: lang });
+  briefing.detectedLang = lang;
+  return lang;
+}
+
+// Background queue for auto-translating English titles. concurrency 3 + 200ms
+// delay between dispatches keeps Gemini API call rate sane while still
+// translating a 5-card briefing batch in well under a second of wall time
+// (assuming the API responds promptly). Title-translation failures are
+// silently swallowed (no toast) — auto-translation is opportunistic, and
+// surfacing errors for an unrequested action would be noisy. Body translation
+// (user-initiated via lang toggle) does surface errors via showTranslateError.
+const titleQueue = new TranslateQueue(
+  async (id: string): Promise<string> => {
+    const list = loadBriefings();
+    const b = list.find((x) => x.id === id);
+    if (!b) return '';
+    const apiKey = getApiKey();
+    if (!apiKey) return '';
+    // 세션이 401로 차단된 상태면 cap을 소비하지 않고 즉시 종료.
+    // (그렇지 않으면 callWithFallback이 throw 전에 checkAndIncrement만 burn함)
+    if (isSessionBlocked()) return '';
+    if (!checkAndIncrement()) throw new Error('cap reached');
+    const ko = await translateTitle(b.title, apiKey);
+    setTranslation(id, { titleKo: ko });
+    swapTitleInDOM(id, ko);
+    return ko;
+  },
+  { concurrency: 3, delayMs: 200 },
+);
+
+function swapTitleInDOM(id: string, titleKo: string): void {
+  const titleEl = document.querySelector(`[data-briefing-id="${id}"] .card-title`);
+  if (titleEl) titleEl.textContent = titleKo;
+}
+
+function enqueueEnglishTitleTranslations(briefings: Briefing[]): void {
+  if (!getApiKey()) return;
+  for (const b of briefings) {
+    const lang = b.detectedLang ?? ensureDetectedLang(b);
+    if (lang !== 'en') continue;
+    if (b.titleKo) continue; // 이미 캐시된 경우 skip
+    titleQueue.enqueue(b.id);
+  }
+}
+
+function attachLangToggle(card: HTMLElement, briefing: Briefing): void {
+  const lang = ensureDetectedLang(briefing);
+  if (lang !== 'en') return;
+  const apiKey = getApiKey();
+  if (!apiKey) return;
+
+  const summaryEl = card.querySelector<HTMLElement>('.card-summary');
+  if (!summaryEl) return;
+  const originalBody = briefing.summary;
+
+  const capReached = getTodayCount() >= getCap();
+  const toggle: LangToggleEl = createLangToggle({
+    initialState: 'en',
+    disabled: capReached,
+    disabledReason: capReached ? '오늘 번역 한도에 도달했어요' : undefined,
+    onToggle: (next: LangState) => {
+      void handleLangToggle(next, summaryEl, briefing, originalBody, toggle, apiKey);
+    },
+  });
+
+  // Insert toggle BEFORE the anchor (.card-main) so it's outside the link
+  // (HTML invalidity + accidental navigation prevented).
+  const main = card.querySelector<HTMLElement>('.card-main');
+  if (main) card.insertBefore(toggle, main);
+}
+
+async function handleLangToggle(
+  next: LangState,
+  summaryEl: HTMLElement,
+  briefing: Briefing,
+  originalBody: string,
+  toggle: LangToggleEl,
+  apiKey: string,
+): Promise<void> {
+  if (next === 'en') {
+    summaryEl.textContent = originalBody;
+    return;
+  }
+  // ko: cache 우선
+  if (briefing.summaryKo) {
+    summaryEl.textContent = briefing.summaryKo;
+    return;
+  }
+  // 세션이 401로 차단된 상태면 cap을 소비하지 않고 토스트 + 토글 복원.
+  if (isSessionBlocked()) {
+    showTranslateError(new Error('translate session blocked'));
+    toggle.setLangState('en');
+    return;
+  }
+  if (!checkAndIncrement()) {
+    showCapToast();
+    toggle.setLangState('en');
+    toggle.disabled = true;
+    toggle.setAttribute('aria-disabled', 'true');
+    return;
+  }
+  try {
+    const ko = await summarizeOrTranslateBody(originalBody, apiKey);
+    setTranslation(briefing.id, { summaryKo: ko });
+    briefing.summaryKo = ko;
+    summaryEl.textContent = ko;
+  } catch (err) {
+    showTranslateError(err);
+    toggle.setLangState('en');
+  }
 }
 
 function applyTheme(): void {
@@ -215,6 +337,7 @@ function hydrateBriefings(): void {
 
   scroll.replaceChildren();
   list.forEach((b, i) => scroll.append(renderBriefingCard(b, i)));
+  enqueueEnglishTitleTranslations(list);
 }
 
 export function renderBriefingCard(b: Briefing, idx: number): HTMLElement {
@@ -222,6 +345,7 @@ export function renderBriefingCard(b: Briefing, idx: number): HTMLElement {
   card.className = 'briefing-card';
   card.dataset['read'] = b.read ? 'true' : 'false';
   card.dataset['tier'] = b.imageUrl ? '1' : '2';
+  card.dataset['briefingId'] = b.id;
 
   // Main link: image (optional) + initial fallback + overlay (source/title/summary)
   const main = document.createElement('a');
@@ -267,7 +391,7 @@ export function renderBriefingCard(b: Briefing, idx: number): HTMLElement {
   textBlock.className = 'card-text';
   const title = document.createElement('h3');
   title.className = 'card-title';
-  title.textContent = b.title;
+  title.textContent = (b.detectedLang === 'en' && b.titleKo) ? b.titleKo : b.title;
   const summary = document.createElement('p');
   summary.className = 'card-summary';
   summary.textContent = b.summary;
@@ -318,6 +442,8 @@ export function renderBriefingCard(b: Briefing, idx: number): HTMLElement {
 
   actions.append(scrapBtn, memoBtn);
   card.append(actions);
+
+  attachLangToggle(card, b);
 
   return card;
 }

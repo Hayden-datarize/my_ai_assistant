@@ -2,6 +2,10 @@ import { loadSlackSettings, saveSlackSettings, clearSlackSettings } from '../../
 import { sendToSlack, buildAnswerBlocks } from '../../services/slack';
 import { showToast } from '../../utils/toast';
 import { INTERESTS } from '../../utils/categories';
+import { getCap, setCap, getTodayCount } from '../../state/usage';
+import { clearAllTranslations } from '../../state/briefings';
+import { resetToastDedup } from '../translateToast';
+import { clearSessionBlock } from '../../services/translate';
 
 const STORAGE_KEY_APIKEY = 'dg_gemini_key'; // legacy storage key — preserved for cutover compat
 const USER_STORAGE = 'user';
@@ -40,6 +44,13 @@ export function renderSettings(container: HTMLElement): void {
         <button type="button" id="saveApiKeyBtn" class="btn btn-primary btn-block mt-16" style="margin-top:8px;">저장</button>
         <div id="apiKeyStatus" style="margin-top:8px;font-size:0.85rem;"></div>
       </section>
+      <section class="settings-group" data-testid="translate-settings">
+        <div class="settings-group-title">Gemini 번역</div>
+        <label for="translateCap" style="display:block;font-size:0.9rem;margin-bottom:6px;">일일 번역 한도: <span id="translateCapValue" aria-live="polite" style="font-weight:600;"></span></label>
+        <input type="range" id="translateCap" min="30" max="500" step="10" style="width:100%;" />
+        <div style="font-size:0.85rem;color:var(--text-secondary);margin-top:8px;">오늘 사용량: <span id="translateUsageDisplay" aria-live="polite">0</span>건</div>
+        <button type="button" id="clearTranslationCacheBtn" class="btn btn-secondary btn-block" style="margin-top:12px;">번역 캐시 초기화</button>
+      </section>
       <section class="settings-group">
         <div class="settings-group-title">Slack Webhook</div>
         <input type="url" id="slackWebhookInput" placeholder="https://hooks.slack.com/services/..." style="width:100%;padding:10px;border:1px solid var(--border);border-radius:var(--radius-sm);background:var(--bg-input);color:var(--text-primary);" />
@@ -70,10 +81,39 @@ export function renderSettings(container: HTMLElement): void {
   bindHandlers(container);
   bindSlackHandlers(container);
   bindInterestsHandlers(container);
+  wireTranslateSection(container);
 
   // Track this container as the current target for the module-level
   // dg:interests:changed listener (see top of file).
   currentSettingsContainer = container;
+}
+
+function wireTranslateSection(container: HTMLElement): void {
+  const slider = container.querySelector<HTMLInputElement>('#translateCap');
+  const capValue = container.querySelector<HTMLSpanElement>('#translateCapValue');
+  const usageEl = container.querySelector<HTMLSpanElement>('#translateUsageDisplay');
+  const clearBtn = container.querySelector<HTMLButtonElement>('#clearTranslationCacheBtn');
+  if (!slider || !capValue || !usageEl || !clearBtn) return;
+
+  const refresh = (): void => {
+    const cap = getCap();
+    slider.value = String(cap);
+    capValue.textContent = `${cap}건/일`;
+    usageEl.textContent = String(getTodayCount());
+  };
+
+  slider.addEventListener('input', () => {
+    setCap(Number(slider.value));
+    refresh();
+  });
+
+  clearBtn.addEventListener('click', () => {
+    if (!confirm('번역 캐시를 모두 삭제할까요? (브리핑 본문은 유지됩니다)')) return;
+    clearAllTranslations();
+    showToast('번역 캐시를 초기화했어요.');
+  });
+
+  refresh();
 }
 
 function bindHandlers(container: HTMLElement): void {
@@ -135,6 +175,10 @@ function onSaveKey(container: HTMLElement): void {
   try {
     localStorage.setItem(STORAGE_KEY_APIKEY, key);
     status.textContent = '저장되었습니다.';
+    // 새 키 저장 직후: 이전 401로 인한 세션 차단과 토스트 dedup 메모리를 모두 reset.
+    // 사용자가 키를 고친 즉시 번역이 재개되고 새 에러는 다시 알려지도록.
+    resetToastDedup();
+    clearSessionBlock();
   } catch (_e) {
     status.textContent = '저장에 실패했어요. 브라우저 저장 공간을 확인해주세요.';
   }

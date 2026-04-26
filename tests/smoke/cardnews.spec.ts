@@ -1,4 +1,5 @@
 import { test, expect } from '@playwright/test';
+import { getDateStr } from '../../src/utils/dates';
 
 // Block service worker so tests don't hit stale caches and image-load
 // routing via page.route works reliably (matches other briefing specs).
@@ -21,26 +22,29 @@ async function seedBriefings(
   page: import('@playwright/test').Page,
   items: SeedBriefing[],
 ): Promise<void> {
-  await page.addInitScript((cards) => {
-    const today = new Date().toISOString().slice(0, 10);
-    localStorage.setItem(
-      'user',
-      JSON.stringify({
-        name: '테',
-        interests: ['tech'],
-        onboardedAt: new Date().toISOString(),
-        streak: 0,
-        lastActiveDate: today,
-        xp: 0,
-        level: 1,
-      }),
-    );
-    localStorage.setItem('briefings', JSON.stringify(cards));
-  }, items);
+  const today = getDateStr();
+  await page.addInitScript(
+    ({ cards, today }) => {
+      localStorage.setItem(
+        'user',
+        JSON.stringify({
+          name: '테',
+          interests: ['tech'],
+          onboardedAt: new Date().toISOString(),
+          streak: 0,
+          lastActiveDate: today,
+          xp: 0,
+          level: 1,
+        }),
+      );
+      localStorage.setItem('briefings', JSON.stringify(cards));
+    },
+    { cards: items, today },
+  );
 }
 
 function mkCards(count: number, withImage: boolean): SeedBriefing[] {
-  const today = new Date().toISOString().slice(0, 10);
+  const today = getDateStr();
   return Array.from({ length: count }, (_, i) => ({
     id: `b${i}`,
     date: today,
@@ -101,7 +105,7 @@ test('tier 1 → tier 2 transition on image load error', async ({ page }) => {
     route.abort(),
   );
 
-  const today = new Date().toISOString().slice(0, 10);
+  const today = getDateStr();
   await seedBriefings(page, [
     {
       id: 'bad',
@@ -164,7 +168,7 @@ test('memo modal: cancel does not persist', async ({ page }) => {
   await seedBriefings(page, [
     {
       id: 'b0',
-      date: new Date().toISOString().slice(0, 10),
+      date: getDateStr(),
       url: 'https://x.com',
       title: 't',
       summary: 's',

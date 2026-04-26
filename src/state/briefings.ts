@@ -9,6 +9,10 @@ export interface Briefing {
   memo: string;
   sourceTitle?: string;
   imageUrl?: string;  // v3.3.3 — persisted from RSS extractImage()
+  // v3.4 — translation cache
+  detectedLang?: 'en' | 'ko' | 'unknown';
+  titleKo?: string;
+  summaryKo?: string;
 }
 
 const KEY = 'briefings';
@@ -51,3 +55,23 @@ function mutate(index: number, fn: (b: Briefing) => void): void {
 export function toggleScrap(index: number): void { mutate(index, b => { b.scrapped = !b.scrapped; }); }
 export function setRead(index: number): void { mutate(index, b => { b.read = true; }); }
 export function saveMemo(index: number, memo: string): void { mutate(index, b => { b.memo = memo; }); }
+
+type TranslationPatch = Partial<Pick<Briefing, 'detectedLang' | 'titleKo' | 'summaryKo'>>;
+
+export function setTranslation(id: string, patch: TranslationPatch): void {
+  const list = loadBriefings();
+  const target = list.find(b => b.id === id);
+  if (!target) return;
+  Object.assign(target, patch);
+  saveBriefings(list);
+}
+
+export function clearAllTranslations(): void {
+  const list = loadBriefings();
+  for (const b of list) {
+    delete b.detectedLang;
+    delete b.titleKo;
+    delete b.summaryKo;
+  }
+  saveBriefings(list);
+}
