@@ -159,8 +159,14 @@
   transform: none;
 }
 
-/* Reduce motion (local rule — base.css has no global rule in v3.3.2 baseline) */
+/* Reduce motion (local rule — base.css has no global rule in v3.3.2 baseline)
+ * v3.5: explicitly disable both standard and future-cell entrance animations.
+ * The animation rules use :not(.is-future) / .is-future (both specificity 0,4,0),
+ * so the override selectors must match that specificity exactly — listing both
+ * variants explicitly rather than relying on the bare .heatmap-cell (0,3,0).
+ */
 @media (prefers-reduced-motion: reduce) {
   .heatmap-cell { transition: none; }
-  .heatmap-grid.is-entering .heatmap-cell { animation: none; }
+  .heatmap-grid.is-entering .heatmap-cell:not(.is-future),
+  .heatmap-grid.is-entering .heatmap-cell.is-future { animation: none; }
 }
