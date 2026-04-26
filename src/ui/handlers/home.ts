@@ -27,7 +27,7 @@ import { detectLanguage } from '../../utils/lang';
 import { openMemoModal } from '../modals/memo';
 import { createLangToggle, type LangToggleEl, type LangState } from '../components/cardLangToggle';
 import { checkAndIncrement, getCap, getTodayCount } from '../../state/usage';
-import { showCapToast, showTranslateError } from '../translateToast';
+import { showCapToast, showTranslateError, showPartialTranslateFail } from '../translateToast';
 import { getCachedUser, type LegacyUser } from '../../state/user';
 import { MSG } from '../messages';
 
@@ -113,7 +113,7 @@ const titleQueue = new TranslateQueue(
     concurrency: 3,
     delayMs: 200,
     onDrain: ({ failedCount }) => {
-      showToast(MSG.partialTranslateFail(failedCount));
+      showPartialTranslateFail(failedCount);
     },
   },
 );

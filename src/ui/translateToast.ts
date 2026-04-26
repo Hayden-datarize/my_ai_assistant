@@ -37,6 +37,18 @@ export function showTranslateError(err: unknown): void {
   showToast(msg);
 }
 
+/**
+ * Partial-failure toast for the translate queue's onDrain. Same dedup
+ * mechanism as showCapToast / showTranslateError — identical messages
+ * within session collapse to a single toast.
+ */
+export function showPartialTranslateFail(failedCount: number): void {
+  const msg = MSG.partialTranslateFail(failedCount);
+  if (lastShownError === msg) return;
+  lastShownError = msg;
+  showToast(msg);
+}
+
 // Production reset — called from settings.ts when the user saves a new API
 // key, so a stale error message (e.g. 401) doesn't suppress a future toast
 // for an unrelated failure.
