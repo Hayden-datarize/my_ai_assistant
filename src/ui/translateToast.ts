@@ -29,7 +29,7 @@ export function showTranslateError(err: unknown): void {
     (typeof message === 'string' && message.includes('session blocked'));
 
   const msg = isAuth
-    ? 'API 키가 유효하지 않아요. 설정에서 다시 입력해주세요.' // 단일 호출 — i18n Lite 미적용 (빈도 1)
+    ? 'API 키가 유효하지 않아요. 설정에서 다시 입력해주세요.' // v3.6 i18n Lite 정책 graduation 후에도 인라인 — v3.7+ MSG 이전 후보
     : `번역에 실패했어요. ${MSG.TRY_AGAIN}`;
 
   if (lastShownError === msg) return;

@@ -18,7 +18,12 @@
  */
 const HTTPS_PREFIX = /^https:\/\//i;
 
-/** Extracts the raw authority (host[:port]) from after `https://`. */
+/**
+ * Extracts the raw authority (host[:port]) from after `https://`.
+ * Precondition: value must already have passed `HTTPS_PREFIX` test (contains `//`).
+ * Standalone use without that guard would silently strip a leading character
+ * when `indexOf('//')` returns -1.
+ */
 function extractRawAuthority(value: string): string {
   const afterSlashes = value.slice(value.indexOf('//') + 2);
   const end = afterSlashes.search(/[/?#]/);
