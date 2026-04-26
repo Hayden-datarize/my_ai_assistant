@@ -28,6 +28,7 @@ import { openMemoModal } from '../modals/memo';
 import { createLangToggle, type LangToggleEl, type LangState } from '../components/cardLangToggle';
 import { checkAndIncrement, getCap, getTodayCount } from '../../state/usage';
 import { showCapToast, showTranslateError } from '../translateToast';
+import { getCachedUser, type LegacyUser } from '../../state/user';
 
 const API_KEY_STORAGE = 'dg_gemini_key';
 const USER_STORAGE = 'user';
@@ -57,23 +58,6 @@ export function pickBriefings(
     }
   }
   return picked;
-}
-
-interface LegacyUser {
-  name: string;
-  interests: string[];
-  onboardedAt: string;
-  streak: number;
-  lastActiveDate: string;
-  xp: number;
-  level: number;
-}
-
-function loadUser(): LegacyUser | null {
-  try {
-    const raw = localStorage.getItem(USER_STORAGE);
-    return raw ? (JSON.parse(raw) as LegacyUser) : null;
-  } catch { return null; }
 }
 
 function saveUser(u: LegacyUser): void {
@@ -296,7 +280,7 @@ export async function hydrateHome(container: HTMLElement): Promise<void> {
 }
 
 function hydrateGreetingAndStreak(): void {
-  const user = loadUser();
+  const user = getCachedUser();
   const greetingEl = document.getElementById('greetingText');
   if (greetingEl) {
     if (user) {
@@ -331,7 +315,7 @@ function hydrateBriefings(): void {
   const isStale = list.length === 0 || (firstDate !== undefined && firstDate !== today);
 
   if (isStale) {
-    const user = loadUser();
+    const user = getCachedUser();
     const hasInterests = !!user && user.interests.length > 0;
     if (hasInterests && !sessionStorage.getItem(AUTO_REFRESH_SESSION_KEY)) {
       sessionStorage.setItem(AUTO_REFRESH_SESSION_KEY, '1');
@@ -457,7 +441,7 @@ export function renderBriefingCard(b: Briefing, idx: number): HTMLElement {
 }
 
 async function refreshBriefings(): Promise<void> {
-  const user = loadUser();
+  const user = getCachedUser();
   if (!user || user.interests.length === 0) {
     showToast('관심 분야를 먼저 설정해 주세요');
     return;
@@ -554,7 +538,7 @@ async function hydrateQuestion(): Promise<void> {
     } catch { /* fall-through */ }
   }
 
-  const user = loadUser();
+  const user = getCachedUser();
   const key = getApiKey();
   if (!user || !key) {
     content.replaceChildren();
@@ -703,7 +687,7 @@ async function submitAnswer(): Promise<void> {
   const id = appendAnswer(answer);
 
   // record activity
-  const user = loadUser();
+  const user = getCachedUser();
   if (user) {
     user.xp += 10;
     user.level = 1 + Math.floor(user.xp / 100);

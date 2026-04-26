@@ -10,7 +10,19 @@ export interface User {
   level: number;
 }
 
+/** home.ts / stats.ts 레거시 호환 alias */
+export type LegacyUser = User;
+
 const KEY = 'user';
+
+export function getCachedUser(): LegacyUser | null {
+  try {
+    const raw = localStorage.getItem(KEY);
+    return raw ? (JSON.parse(raw) as LegacyUser) : null;
+  } catch {
+    return null;
+  }
+}
 
 export function loadUserData(): User | null {
   const raw = localStorage.getItem(KEY);

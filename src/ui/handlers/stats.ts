@@ -13,32 +13,9 @@ import { escapeHtml } from '../../utils/escapeHtml';
 import { showToast } from '../../utils/toast';
 import { toKoType } from '../../utils/typeLabel';
 import { getDateStr } from '../../utils/dates';
-
-const USER_STORAGE = 'user';
-
-interface LegacyUser {
-  name: string;
-  streak: number;
-  xp: number;
-  level: number;
-}
-
-function loadUser(): LegacyUser | null {
-  try {
-    const raw = localStorage.getItem(USER_STORAGE);
-    return raw ? (JSON.parse(raw) as LegacyUser) : null;
-  } catch { return null; }
-}
+import { getCachedUser, type LegacyUser } from '../../state/user';
 
 const WEEKDAY_KO = ['월', '화', '수', '목', '금', '토', '일'];
-
-// Use local-TZ date components (getDateStr) rather than toISOString().slice(0, 10).
-// Answer dates are written by home.ts via getDateStr (local); if the heatmap read
-// path used UTC slicing, non-UTC users near day boundaries would see answers
-// shifted by a day or missing. Keep write + read on the same local-date key.
-function isoKey(d: Date): string {
-  return getDateStr(d);
-}
 
 function computeTotalAndStreak(counts: Map<string, number>, firstDay: Date, days: number): { total: number; streak: number } {
   let total = 0;
@@ -47,7 +24,7 @@ function computeTotalAndStreak(counts: Map<string, number>, firstDay: Date, days
   for (let i = 0; i < days; i++) {
     const d = new Date(firstDay);
     d.setDate(firstDay.getDate() + i);
-    const n = counts.get(isoKey(d)) ?? 0;
+    const n = counts.get(getDateStr(d)) ?? 0;
     total += n;
     if (n > 0) { streak += 1; if (streak > longest) longest = streak; }
     else { streak = 0; }
@@ -87,7 +64,7 @@ export function hydrateStats(): void {
 }
 
 function hydrateLevelCard(): void {
-  const user = loadUser();
+  const user = getCachedUser();
   const icon = document.getElementById('levelIcon');
   const name = document.getElementById('levelName');
   const xpText = document.getElementById('levelXpText');
@@ -117,7 +94,7 @@ function hydrateLevelCard(): void {
 }
 
 function hydrateStatGrid(): void {
-  const user = loadUser();
+  const user = getCachedUser();
   const answers = loadAnswers();
   const briefings = loadBriefings();
   const scrapCount = briefings.filter((b) => b.scrapped).length;
@@ -257,7 +234,7 @@ function hydrateHeatmap(): void {
 
 function hydrateBadges(): void {
   const wrap = document.getElementById('badgesGrid');
-  const user = loadUser();
+  const user = getCachedUser();
   const answers = loadAnswers();
   if (!wrap) return;
   wrap.replaceChildren();
@@ -314,7 +291,7 @@ function hydrateCategoryBreakdown(): void {
 
 function hydrateGrowthSummary(): void {
   const el = document.getElementById('growthSummary');
-  const user = loadUser();
+  const user = getCachedUser();
   const answers = loadAnswers();
   if (!el) return;
   if (!user || answers.length === 0) {
