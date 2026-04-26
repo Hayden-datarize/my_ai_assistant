@@ -1,3 +1,5 @@
+import { isHttpsUrl } from '../utils/url';
+
 export interface Briefing {
   id: string;
   date: string;
@@ -17,18 +19,17 @@ export interface Briefing {
 
 const KEY = 'briefings';
 
-function isValidImageUrl(v: unknown): v is string {
-  return typeof v === 'string' && /^https:\/\//i.test(v);
-}
-
+// `b as Briefing` is an unchecked assertion at the localStorage boundary;
+// downstream we validate fields we care about (currently imageUrl). Other
+// fields are not normalized — by-design, since callers tolerate string drift.
 export function loadBriefings(): Briefing[] {
   try {
     const raw = JSON.parse(localStorage.getItem(KEY) ?? '[]') as unknown;
     if (!Array.isArray(raw)) return [];
     return raw.map((b) => {
       const briefing = b as Briefing;
-      // Drop imageUrl only if present-but-invalid; leave undefined alone
-      if (briefing.imageUrl !== undefined && !isValidImageUrl(briefing.imageUrl)) {
+      // Drop imageUrl only if present-but-invalid; leave undefined alone.
+      if (briefing.imageUrl !== undefined && !isHttpsUrl(briefing.imageUrl)) {
         const normalized: Briefing = { ...briefing };
         delete normalized.imageUrl;
         return normalized;

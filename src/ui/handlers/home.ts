@@ -127,8 +127,8 @@ const titleQueue = new TranslateQueue(
   { concurrency: 3, delayMs: 200 },
 );
 
-function swapTitleInDOM(id: string, titleKo: string): void {
-  const titleEl = document.querySelector(`[data-briefing-id="${id}"] .card-title`);
+export function swapTitleInDOM(id: string, titleKo: string, root: ParentNode = document): void {
+  const titleEl = root.querySelector(`[data-briefing-id="${id}"] .card-title`);
   if (titleEl) titleEl.textContent = titleKo;
 }
 

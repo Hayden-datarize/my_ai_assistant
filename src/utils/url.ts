@@ -1,7 +1,7 @@
 /**
  * Validates that a value is an https:// URL parseable by `new URL()`.
  * - Rejects all non-string types (null/undefined/number/object).
- * - Rejects http://, javascript:, data:, and other schemes.
+ * - Rejects non-https schemes (http, javascript, data, etc.).
  * - Protocol comparison is case-insensitive (URL parser auto-lowercases).
  * - Strings with leading/trailing whitespace are rejected; callers must trim first.
  */
