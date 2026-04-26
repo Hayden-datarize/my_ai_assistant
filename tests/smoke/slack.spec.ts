@@ -95,14 +95,18 @@ test('auto-send gated OFF: answer submit does not POST to slack', async ({ page 
 
   await page.goto('/');
   await page.locator('#answerArea').fill('오늘 집중이 좋았다. 문서 정리에 두 시간을 썼다. 분산이 없었다.');
-  // Dispatch the submit event directly — the bottomNav overlaps #submitBtn at the
-  // viewport size Playwright uses (button sits behind fixed nav), so a plain click
-  // (even with force:true) lands on the nav instead. Dispatching the same custom event
-  // the click handler emits is semantically equivalent for this test.
+
+  // v3.5: replace waitForTimeout(4000) — wait for the Gemini evaluator response
+  // (which is what gates whether slack would have been called). Once that returns,
+  // slackCalls is final.
+  const evalResponse = page.waitForResponse(/generativelanguage\.googleapis\.com/);
   await page.evaluate(() => {
     document.dispatchEvent(new CustomEvent('dg:home:submit-answer'));
   });
-  await page.waitForTimeout(4000);
+  await evalResponse;
+  // Allow microtask tick after response so any post-evaluation slack call
+  // would have been dispatched.
+  await page.waitForFunction(() => true);
   expect(slackCalls).toBe(0);
 });
 

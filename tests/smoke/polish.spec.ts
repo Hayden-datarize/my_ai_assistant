@@ -34,14 +34,17 @@ test('briefing card hover applies translateY transform (v3.3.3 cardnews)', async
 
   const beforeHover = await card.evaluate((el) => getComputedStyle(el).transform);
   await card.hover();
-  // Wait for 0.2s transition to complete before sampling final transform
-  await page.waitForTimeout(300);
+  // v3.5: replace waitForTimeout(300) — poll computed transform until it reaches the
+  // final translateY(-2px) value. Polling for the target pattern (not just "changed")
+  // avoids sampling a mid-transition frame and decouples from the transition duration.
+  await expect.poll(
+    async () => card.evaluate((el) => getComputedStyle(el).transform),
+    { timeout: 2000, intervals: [50, 100, 200] },
+  ).toMatch(/matrix.*-2\s*\)|translate.*-2px/);
   const afterHover = await card.evaluate((el) => getComputedStyle(el).transform);
 
-  // v3.3.3: hover uses translateY(-2px) (via matrix), no longer inset box-shadow
   expect(afterHover).not.toBe(beforeHover);
   expect(afterHover).not.toBe('none');
-  // matrix form: matrix(1, 0, 0, 1, 0, -2) — the final value encodes translateY
   expect(afterHover).toMatch(/matrix.*-2\s*\)|translate.*-2px/);
 });
 
