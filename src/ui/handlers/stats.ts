@@ -13,7 +13,7 @@ import { escapeHtml } from '../../utils/escapeHtml';
 import { showToast } from '../../utils/toast';
 import { toKoType } from '../../utils/typeLabel';
 import { getDateStr } from '../../utils/dates';
-import { getCachedUser, type LegacyUser } from '../../state/user';
+import { getCachedUser } from '../../state/user';
 
 const WEEKDAY_KO = ['월', '화', '수', '목', '금', '토', '일'];
 

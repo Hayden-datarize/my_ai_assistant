@@ -3,6 +3,7 @@ import { swapTitleInDOM } from '../../src/ui/handlers/home';
 
 describe('swapTitleInDOM scoping', () => {
   it('scopes query to provided root, not document', () => {
+    // eslint-disable-next-line no-restricted-syntax -- trusted static template (test fixture, no interpolation)
     document.body.innerHTML = `
       <div id="rootA">
         <div data-briefing-id="dup"><span class="card-title">A</span></div>
@@ -19,6 +20,7 @@ describe('swapTitleInDOM scoping', () => {
   });
 
   it('defaults to document when root omitted (back-compat)', () => {
+    // eslint-disable-next-line no-restricted-syntax -- trusted static template (test fixture, no interpolation)
     document.body.innerHTML = `
       <div data-briefing-id="solo"><span class="card-title">old</span></div>
     `;
