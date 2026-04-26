@@ -17,6 +17,7 @@ import { INTERESTS } from '../../utils/categories';
 import { escapeHtml } from '../../utils/escapeHtml';
 import { showToast } from '../../utils/toast';
 import { getCachedUser, saveUser } from '../../state/user';
+import { MSG } from '../messages';
 
 export function openInterestsModal(): void {
   const user = getCachedUser();
@@ -64,7 +65,7 @@ export function openInterestsModal(): void {
     if (newInterests.length === 0) return;
     saveUser({ ...user, interests: newInterests });
     closeModal();
-    showToast('관심 분야가 업데이트되었어요');
+    showToast(MSG.INTERESTS_UPDATED);
     document.dispatchEvent(new CustomEvent('dg:interests:changed'));
   });
 

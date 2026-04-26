@@ -26,5 +26,7 @@ describe('MSG (i18n Lite)', () => {
     expect(MSG.SAVE_SUCCESS).toBeTruthy();
     expect(MSG.AI_RESPONSE_FAIL).toBeTruthy();
     expect(MSG.DEMO_API_KEY_PROMPT).toBeTruthy();
+    expect(MSG.INTERESTS_UPDATED).toBeTruthy();
+    expect(MSG.ANSWER_SAVED).toBeTruthy();
   });
 });

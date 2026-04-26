@@ -708,7 +708,7 @@ async function submitAnswer(): Promise<void> {
   addBubble('user', text);
   appendChatMessage(getDateStr(), { role: 'user', text, at: Date.now() });
   document.getElementById('chatContainer')?.scrollIntoView({ behavior: 'smooth', block: 'start' });
-  showToast('답변이 저장되었어요.');
+  showToast(MSG.ANSWER_SAVED);
 
   // AI feedback via chat — requires API key
   const key = getApiKey();
