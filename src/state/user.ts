@@ -25,13 +25,7 @@ export function getCachedUser(): LegacyUser | null {
 }
 
 export function loadUserData(): User | null {
-  const raw = localStorage.getItem(KEY);
-  if (!raw) return null;
-  try {
-    return JSON.parse(raw) as User;
-  } catch {
-    return null;
-  }
+  return getCachedUser();
 }
 
 export function saveUser(u: User): void {
