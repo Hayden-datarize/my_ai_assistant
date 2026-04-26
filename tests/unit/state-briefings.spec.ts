@@ -45,7 +45,7 @@ describe('v3.3.3 Briefing.imageUrl', () => {
 
   it('is optional — legacy briefings without imageUrl still load', () => {
     const legacy = {
-      id: '1', date: '2026-04-23', url: 'https://x.com', title: 't',
+      id: '1', date: '2026-04-23', url: 'https://example.com', title: 't',
       summary: 's', scrapped: false, read: false, memo: '',
     };
     localStorage.setItem('briefings', JSON.stringify([legacy]));
@@ -56,13 +56,13 @@ describe('v3.3.3 Briefing.imageUrl', () => {
 
   it('persists imageUrl when set', () => {
     const b: Briefing = {
-      id: '1', date: '2026-04-23', url: 'https://x.com', title: 't',
+      id: '1', date: '2026-04-23', url: 'https://example.com', title: 't',
       summary: 's', scrapped: false, read: false, memo: '',
-      imageUrl: 'https://x.com/img.jpg',
+      imageUrl: 'https://example.com/img.jpg',
     };
     saveBriefings([b]);
     const loaded = loadBriefings();
-    expect(loaded[0]?.imageUrl).toBe('https://x.com/img.jpg');
+    expect(loaded[0]?.imageUrl).toBe('https://example.com/img.jpg');
   });
 });
 
@@ -73,7 +73,7 @@ describe('v3.3.4 imageUrl runtime validation', () => {
 
   it('drops imageUrl when value is a number (malformed cache)', () => {
     localStorage.setItem('briefings', JSON.stringify([{
-      id: '1', date: '2026-04-24', url: 'https://x.com', title: 't',
+      id: '1', date: '2026-04-24', url: 'https://example.com', title: 't',
       summary: 's', scrapped: false, read: false, memo: '',
       imageUrl: 12345,  // malformed — not a string
     }]));
@@ -84,9 +84,9 @@ describe('v3.3.4 imageUrl runtime validation', () => {
 
   it('drops imageUrl when value is an object', () => {
     localStorage.setItem('briefings', JSON.stringify([{
-      id: '1', date: '2026-04-24', url: 'https://x.com', title: 't',
+      id: '1', date: '2026-04-24', url: 'https://example.com', title: 't',
       summary: 's', scrapped: false, read: false, memo: '',
-      imageUrl: { url: 'https://x.com/img.jpg' },
+      imageUrl: { url: 'https://example.com/img.jpg' },
     }]));
     const loaded = loadBriefings();
     expect(loaded[0]?.imageUrl).toBeUndefined();
@@ -95,7 +95,7 @@ describe('v3.3.4 imageUrl runtime validation', () => {
 
   it('drops imageUrl when value is non-https (e.g. http)', () => {
     localStorage.setItem('briefings', JSON.stringify([{
-      id: '1', date: '2026-04-24', url: 'https://x.com', title: 't',
+      id: '1', date: '2026-04-24', url: 'https://example.com', title: 't',
       summary: 's', scrapped: false, read: false, memo: '',
       imageUrl: 'http://insecure.example.com/img.jpg',  // http, not https
     }]));
@@ -105,7 +105,7 @@ describe('v3.3.4 imageUrl runtime validation', () => {
 
   it('drops imageUrl when value is null', () => {
     localStorage.setItem('briefings', JSON.stringify([{
-      id: '1', date: '2026-04-24', url: 'https://x.com', title: 't',
+      id: '1', date: '2026-04-24', url: 'https://example.com', title: 't',
       summary: 's', scrapped: false, read: false, memo: '',
       imageUrl: null,
     }]));
@@ -115,7 +115,7 @@ describe('v3.3.4 imageUrl runtime validation', () => {
 
   it('keeps valid https imageUrl untouched', () => {
     localStorage.setItem('briefings', JSON.stringify([{
-      id: '1', date: '2026-04-24', url: 'https://x.com', title: 't',
+      id: '1', date: '2026-04-24', url: 'https://example.com', title: 't',
       summary: 's', scrapped: false, read: false, memo: '',
       imageUrl: 'https://cdn.example.com/img.jpg',
     }]));

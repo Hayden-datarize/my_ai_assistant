@@ -19,9 +19,10 @@ export interface Briefing {
 
 const KEY = 'briefings';
 
-// `b as Briefing` is an unchecked assertion at the localStorage boundary;
-// downstream we validate fields we care about (currently imageUrl). Other
-// fields are not normalized — by-design, since callers tolerate string drift.
+// `b as Briefing` is an unchecked assertion at the localStorage boundary.
+// Today only `imageUrl` is validated downstream (via isHttpsUrl); other
+// fields (url, title, summary, sourceTitle, titleKo, summaryKo, ...) are
+// accepted as-is. Callers tolerate string drift on those fields.
 export function loadBriefings(): Briefing[] {
   try {
     const raw = JSON.parse(localStorage.getItem(KEY) ?? '[]') as unknown;

@@ -190,6 +190,10 @@ function hydrateHeatmap(): void {
   }
 
   // v3.3.4.2: post-refactor every child is a data cell (no more .is-blank padding).
+  // v3.5 (C1): dataCells[0] is always a *past* cell after v3.3.4.3's future-guard
+  // — the heatmap window starts at firstDay (Mon, 4 weeks ago), which is always
+  // before today. So `tabindex="0"` on dataCells[0] is safe; no first-non-future
+  // search needed.
   const dataCells = Array.from(grid.querySelectorAll<HTMLButtonElement>('.heatmap-cell'));
   dataCells.forEach((c, i) => c.setAttribute('tabindex', i === 0 ? '0' : '-1'));
 
