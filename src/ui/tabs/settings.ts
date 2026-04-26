@@ -4,6 +4,8 @@ import { showToast } from '../../utils/toast';
 import { INTERESTS } from '../../utils/categories';
 import { getCap, setCap, getTodayCount } from '../../state/usage';
 import { clearAllTranslations } from '../../state/briefings';
+import { resetToastDedup } from '../translateToast';
+import { clearSessionBlock } from '../../services/translate';
 
 const STORAGE_KEY_APIKEY = 'dg_gemini_key'; // legacy storage key — preserved for cutover compat
 const USER_STORAGE = 'user';
@@ -173,6 +175,10 @@ function onSaveKey(container: HTMLElement): void {
   try {
     localStorage.setItem(STORAGE_KEY_APIKEY, key);
     status.textContent = '저장되었습니다.';
+    // 새 키 저장 직후: 이전 401로 인한 세션 차단과 토스트 dedup 메모리를 모두 reset.
+    // 사용자가 키를 고친 즉시 번역이 재개되고 새 에러는 다시 알려지도록.
+    resetToastDedup();
+    clearSessionBlock();
   } catch (_e) {
     status.textContent = '저장에 실패했어요. 브라우저 저장 공간을 확인해주세요.';
   }

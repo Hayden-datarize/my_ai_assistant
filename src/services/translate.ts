@@ -57,6 +57,14 @@ async function callWithFallback(apiKey: string, prompt: string): Promise<string>
   throw lastErr instanceof Error ? lastErr : new Error('all models failed');
 }
 
+// Production exports for session-block introspection/control.
+// `isSessionBlocked()` lets callers skip work without burning the daily cap
+// when a prior 401 has already shut down the session. `clearSessionBlock()`
+// is invoked from settings on successful API key save (so a fixed key
+// resumes translation immediately within the same tab session).
+export function isSessionBlocked(): boolean { return sessionBlocked; }
+export function clearSessionBlock(): void { sessionBlocked = false; }
+
 // Test-only escape hatch (no production caller)
 export function __resetSessionBlockForTest(): void {
   sessionBlocked = false;

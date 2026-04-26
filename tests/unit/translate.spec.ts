@@ -142,4 +142,15 @@ describe('translate service fallback + session block', () => {
     ]);
     await expect((await import('../../src/services/translate')).translateTitle('hello', 'KEY')).rejects.toThrow();
   });
+
+  it('isSessionBlocked reflects state and blocks subsequent calls', async () => {
+    const mod = await import('../../src/services/translate');
+    expect(mod.isSessionBlocked()).toBe(false);
+    mockSequence([{ ok: false, status: 401 }]);
+    await expect(mod.translateTitle('hello', 'KEY')).rejects.toThrow();
+    expect(mod.isSessionBlocked()).toBe(true);
+    // 다음 호출은 fetch 호출 없이 즉시 throw
+    await expect(mod.translateTitle('world', 'KEY')).rejects.toThrow(/session blocked/i);
+    expect(global.fetch).toHaveBeenCalledTimes(1);
+  });
 });

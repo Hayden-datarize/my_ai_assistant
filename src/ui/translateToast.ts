@@ -36,6 +36,13 @@ export function showTranslateError(err: unknown): void {
   showToast(msg);
 }
 
+// Production reset — called from settings.ts when the user saves a new API
+// key, so a stale error message (e.g. 401) doesn't suppress a future toast
+// for an unrelated failure.
+export function resetToastDedup(): void {
+  lastShownError = null;
+}
+
 // Test-only escape hatch (no production caller).
 export function __resetToastDedupForTest(): void {
   lastShownError = null;

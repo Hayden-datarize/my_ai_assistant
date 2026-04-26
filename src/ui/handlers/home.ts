@@ -17,7 +17,7 @@ import { loadChatHistory, appendChatMessage } from '../../state/chat';
 import { fetchFeed, type FeedItem, type FeedResult } from '../../services/rss';
 import { generateQuestion, chat, evaluateAnswer } from '../../services/gemini';
 import { autoSendAnswer } from '../../services/slack';
-import { summarizeOrTranslateBody, translateTitle } from '../../services/translate';
+import { summarizeOrTranslateBody, translateTitle, isSessionBlocked } from '../../services/translate';
 import { TranslateQueue } from '../translateQueue';
 import { escapeHtml } from '../../utils/escapeHtml';
 import { getDateStr } from '../../utils/dates';
@@ -115,6 +115,9 @@ const titleQueue = new TranslateQueue(
     if (!b) return '';
     const apiKey = getApiKey();
     if (!apiKey) return '';
+    // 세션이 401로 차단된 상태면 cap을 소비하지 않고 즉시 종료.
+    // (그렇지 않으면 callWithFallback이 throw 전에 checkAndIncrement만 burn함)
+    if (isSessionBlocked()) return '';
     if (!checkAndIncrement()) throw new Error('cap reached');
     const ko = await translateTitle(b.title, apiKey);
     setTranslation(id, { titleKo: ko });
@@ -180,6 +183,12 @@ async function handleLangToggle(
   // ko: cache 우선
   if (briefing.summaryKo) {
     summaryEl.textContent = briefing.summaryKo;
+    return;
+  }
+  // 세션이 401로 차단된 상태면 cap을 소비하지 않고 토스트 + 토글 복원.
+  if (isSessionBlocked()) {
+    showTranslateError(new Error('translate session blocked'));
+    toggle.setLangState('en');
     return;
   }
   if (!checkAndIncrement()) {
