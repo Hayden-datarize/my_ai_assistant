@@ -9,6 +9,7 @@
 
 import { showToast } from '../utils/toast';
 import { getCap } from '../state/usage';
+import { MSG } from './messages';
 
 let lastShownError: string | null = null;
 
@@ -28,8 +29,8 @@ export function showTranslateError(err: unknown): void {
     (typeof message === 'string' && message.includes('session blocked'));
 
   const msg = isAuth
-    ? 'API 키가 유효하지 않아요. 설정에서 다시 입력해주세요.'
-    : '번역에 실패했어요. 잠시 후 다시 시도해주세요.';
+    ? 'API 키가 유효하지 않아요. 설정에서 다시 입력해주세요.' // 단일 호출 — i18n Lite 미적용 (빈도 1)
+    : `번역에 실패했어요. ${MSG.TRY_AGAIN}`;
 
   if (lastShownError === msg) return;
   lastShownError = msg;

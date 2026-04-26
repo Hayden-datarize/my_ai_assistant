@@ -6,6 +6,7 @@ import { getCap, setCap, getTodayCount } from '../../state/usage';
 import { clearAllTranslations } from '../../state/briefings';
 import { resetToastDedup } from '../translateToast';
 import { clearSessionBlock } from '../../services/translate';
+import { MSG } from '../messages';
 
 const STORAGE_KEY_APIKEY = 'dg_gemini_key'; // legacy storage key — preserved for cutover compat
 const USER_STORAGE = 'user';
@@ -174,7 +175,7 @@ function onSaveKey(container: HTMLElement): void {
   }
   try {
     localStorage.setItem(STORAGE_KEY_APIKEY, key);
-    status.textContent = '저장되었습니다.';
+    status.textContent = MSG.SAVE_SUCCESS;
     // 새 키 저장 직후: 이전 401로 인한 세션 차단과 토스트 dedup 메모리를 모두 reset.
     // 사용자가 키를 고친 즉시 번역이 재개되고 새 에러는 다시 알려지도록.
     resetToastDedup();
@@ -247,7 +248,7 @@ function bindSlackHandlers(container: HTMLElement): void {
     toggleRow.style.display = 'flex';
     clearBtn.style.display = 'block';
     setResult('');
-    showToast('✅ Slack Webhook 저장됨');
+    showToast(`✅ Slack Webhook ${MSG.SAVE_SUCCESS}`);
   });
 
   toggle.addEventListener('change', () => {

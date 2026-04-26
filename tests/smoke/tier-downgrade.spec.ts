@@ -50,6 +50,9 @@ async function seedOneBriefing(
 test('tier 1 → 2 when image URL returns 404', async ({ page }) => {
   const imgUrl = 'https://example.com/broken.jpg';
   await seedOneBriefing(page, imgUrl);
+  // Route registration order matters: more-specific patterns first, catch-all last.
+  // Playwright matches in registration order, so reversing the registration causes
+  // the catch-all to swallow specific patterns and break the test.
   await page.route(imgUrl, (route) => route.fulfill({ status: 404 }));
   await page.goto('/');
 

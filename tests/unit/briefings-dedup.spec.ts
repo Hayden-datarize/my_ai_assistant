@@ -59,7 +59,7 @@ describe('v3.3.3 pickBriefings(feeds, 5)', () => {
       {
         sourceTitle: 'A',
         items: Array.from({ length: 10 }, (_, i) => ({
-          title: `a${i}`, link: `https://a.com/${i}`,
+          title: `a${i}`, link: `https://example.com/${i}`,
           description: '', pubDate: '',
         })),
       },
@@ -70,9 +70,9 @@ describe('v3.3.3 pickBriefings(feeds, 5)', () => {
 
   it('dedups by link even at target=5', () => {
     const feeds: FeedResult[] = [
-      { sourceTitle: 'A', items: [{ title: 'dup', link: 'https://x.com/1', description: '', pubDate: '' }] },
-      { sourceTitle: 'B', items: [{ title: 'dup', link: 'https://x.com/1', description: '', pubDate: '' }] },
-      { sourceTitle: 'C', items: [{ title: 'u', link: 'https://x.com/2', description: '', pubDate: '' }] },
+      { sourceTitle: 'A', items: [{ title: 'dup', link: 'https://example.com/1', description: '', pubDate: '' }] },
+      { sourceTitle: 'B', items: [{ title: 'dup', link: 'https://example.com/1', description: '', pubDate: '' }] },
+      { sourceTitle: 'C', items: [{ title: 'u', link: 'https://example.com/2', description: '', pubDate: '' }] },
     ];
     const picked = pickBriefings(feeds, 5);
     expect(picked).toHaveLength(2); // 1 dup removed

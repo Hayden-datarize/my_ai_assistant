@@ -62,3 +62,34 @@ describe('TranslateQueue', () => {
     expect(calls).toEqual(['fail', 'ok']);
   });
 });
+
+describe('TranslateQueue partial-failure summary', () => {
+  beforeEach(() => { vi.useRealTimers(); });
+
+  it('invokes onDrain with failedCount > 0 when any work threw', async () => {
+    const onDrain = vi.fn();
+    const queue = new TranslateQueue(
+      async (id: string) => { if (id === 'fail') throw new Error('boom'); return id; },
+      { concurrency: 2, delayMs: 0, onDrain },
+    );
+    queue.enqueue('ok1');
+    queue.enqueue('fail');
+    queue.enqueue('ok2');
+    await new Promise((r) => setTimeout(r, 50)); // allow drain
+    expect(onDrain).toHaveBeenCalledTimes(1);
+    expect(onDrain).toHaveBeenCalledWith({ failedCount: 1 });
+  });
+
+  it('does not invoke onDrain when no failures (silent success)', async () => {
+    const onDrain = vi.fn();
+    const queue = new TranslateQueue(
+      async (id: string) => id,
+      { concurrency: 2, delayMs: 0, onDrain },
+    );
+    queue.enqueue('a');
+    queue.enqueue('b');
+    await new Promise((r) => setTimeout(r, 50));
+    // 정책: onDrain은 실패 1건+에서만 호출 (caller 단순화)
+    expect(onDrain).not.toHaveBeenCalled();
+  });
+});

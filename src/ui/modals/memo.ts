@@ -14,6 +14,7 @@ import { openModal, closeModal } from './shared';
 import { loadBriefings, saveMemo } from '../../state/briefings';
 import { escapeHtml } from '../../utils/escapeHtml';
 import { showToast } from '../../utils/toast';
+import { MSG } from '../messages';
 
 export function openMemoModal(index: number): void {
   const list = loadBriefings();
@@ -41,7 +42,7 @@ export function openMemoModal(index: number): void {
   saveBtn?.addEventListener('click', () => {
     if (input) {
       saveMemo(index, input.value);
-      showToast('메모가 저장되었어요');
+      showToast(`메모가 ${MSG.SAVE_SUCCESS}`);
     }
     closeModal();
   });

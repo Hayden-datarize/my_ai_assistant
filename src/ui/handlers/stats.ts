@@ -13,32 +13,9 @@ import { escapeHtml } from '../../utils/escapeHtml';
 import { showToast } from '../../utils/toast';
 import { toKoType } from '../../utils/typeLabel';
 import { getDateStr } from '../../utils/dates';
-
-const USER_STORAGE = 'user';
-
-interface LegacyUser {
-  name: string;
-  streak: number;
-  xp: number;
-  level: number;
-}
-
-function loadUser(): LegacyUser | null {
-  try {
-    const raw = localStorage.getItem(USER_STORAGE);
-    return raw ? (JSON.parse(raw) as LegacyUser) : null;
-  } catch { return null; }
-}
+import { getCachedUser } from '../../state/user';
 
 const WEEKDAY_KO = ['월', '화', '수', '목', '금', '토', '일'];
-
-// Use local-TZ date components (getDateStr) rather than toISOString().slice(0, 10).
-// Answer dates are written by home.ts via getDateStr (local); if the heatmap read
-// path used UTC slicing, non-UTC users near day boundaries would see answers
-// shifted by a day or missing. Keep write + read on the same local-date key.
-function isoKey(d: Date): string {
-  return getDateStr(d);
-}
 
 function computeTotalAndStreak(counts: Map<string, number>, firstDay: Date, days: number): { total: number; streak: number } {
   let total = 0;
@@ -47,7 +24,7 @@ function computeTotalAndStreak(counts: Map<string, number>, firstDay: Date, days
   for (let i = 0; i < days; i++) {
     const d = new Date(firstDay);
     d.setDate(firstDay.getDate() + i);
-    const n = counts.get(isoKey(d)) ?? 0;
+    const n = counts.get(getDateStr(d)) ?? 0;
     total += n;
     if (n > 0) { streak += 1; if (streak > longest) longest = streak; }
     else { streak = 0; }
@@ -87,7 +64,7 @@ export function hydrateStats(): void {
 }
 
 function hydrateLevelCard(): void {
-  const user = loadUser();
+  const user = getCachedUser();
   const icon = document.getElementById('levelIcon');
   const name = document.getElementById('levelName');
   const xpText = document.getElementById('levelXpText');
@@ -117,7 +94,7 @@ function hydrateLevelCard(): void {
 }
 
 function hydrateStatGrid(): void {
-  const user = loadUser();
+  const user = getCachedUser();
   const answers = loadAnswers();
   const briefings = loadBriefings();
   const scrapCount = briefings.filter((b) => b.scrapped).length;
@@ -187,9 +164,13 @@ function hydrateHeatmap(): void {
     if (isFuture) {
       cell.dataset['future'] = 'true';
       cell.setAttribute('aria-disabled', 'true');
-      cell.setAttribute('aria-label', `${key}, 미래 날짜`);
+      // v3.5 (C2/C3): aria-label uses human-friendly date format,
+      // matching mouseenter info text style.
+      cell.setAttribute('aria-label', `${formatCellLabel(key)}, 미래 날짜`);
     } else {
-      const ariaLabel = n > 0 ? `${key}, ${n}개 달성` : `${key}, 기록 없음`;
+      const ariaLabel = n > 0
+        ? `${formatCellLabel(key)}, ${n}개 달성`
+        : `${formatCellLabel(key)}, 기록 없음`;
       cell.setAttribute('aria-label', ariaLabel);
     }
     cell.addEventListener('click', () => {
@@ -213,6 +194,10 @@ function hydrateHeatmap(): void {
   }
 
   // v3.3.4.2: post-refactor every child is a data cell (no more .is-blank padding).
+  // v3.5 (C1): dataCells[0] is always a *past* cell after v3.3.4.3's future-guard
+  // — the heatmap window starts at firstDay (Mon, 4 weeks ago), which is always
+  // before today. So `tabindex="0"` on dataCells[0] is safe; no first-non-future
+  // search needed.
   const dataCells = Array.from(grid.querySelectorAll<HTMLButtonElement>('.heatmap-cell'));
   dataCells.forEach((c, i) => c.setAttribute('tabindex', i === 0 ? '0' : '-1'));
 
@@ -257,7 +242,7 @@ function hydrateHeatmap(): void {
 
 function hydrateBadges(): void {
   const wrap = document.getElementById('badgesGrid');
-  const user = loadUser();
+  const user = getCachedUser();
   const answers = loadAnswers();
   if (!wrap) return;
   wrap.replaceChildren();
@@ -314,7 +299,7 @@ function hydrateCategoryBreakdown(): void {
 
 function hydrateGrowthSummary(): void {
   const el = document.getElementById('growthSummary');
-  const user = loadUser();
+  const user = getCachedUser();
   const answers = loadAnswers();
   if (!el) return;
   if (!user || answers.length === 0) {

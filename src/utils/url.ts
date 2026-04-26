@@ -1,0 +1,17 @@
+/**
+ * Validates that a value is an https:// URL parseable by `new URL()`.
+ * - Rejects all non-string types (null/undefined/number/object).
+ * - Rejects non-https schemes (http, javascript, data, etc.).
+ * - Protocol comparison is case-insensitive (URL parser auto-lowercases).
+ * - Strings with leading/trailing whitespace are rejected; callers must trim first.
+ */
+export function isHttpsUrl(value: unknown): value is string {
+  if (typeof value !== 'string') return false;
+  // Reject strings with leading/trailing whitespace — callers must normalize first
+  if (value !== value.trim()) return false;
+  try {
+    return new URL(value).protocol === 'https:';
+  } catch {
+    return false;
+  }
+}

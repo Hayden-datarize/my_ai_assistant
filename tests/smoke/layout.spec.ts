@@ -18,6 +18,17 @@ async function seedUser(page: import('@playwright/test').Page): Promise<void> {
   });
 }
 
+// v3.5: explicit reset to defeat suite-flake — earlier specs may leak
+// viewport size or localStorage/sessionStorage across pages within the same context.
+test.beforeEach(async ({ page, context }) => {
+  await context.clearCookies();
+  await page.setViewportSize({ width: 375, height: 667 }); // mobile default; each test overrides as needed
+  await page.addInitScript(() => {
+    localStorage.clear();
+    sessionStorage.clear();
+  });
+});
+
 test('desktop (1280x800) hides bottom-nav and shows sidebar drawer (closed default)', async ({ page }) => {
   await seedUser(page);
   await page.setViewportSize({ width: 1280, height: 800 });

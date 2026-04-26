@@ -28,6 +28,8 @@ import { openMemoModal } from '../modals/memo';
 import { createLangToggle, type LangToggleEl, type LangState } from '../components/cardLangToggle';
 import { checkAndIncrement, getCap, getTodayCount } from '../../state/usage';
 import { showCapToast, showTranslateError } from '../translateToast';
+import { getCachedUser, type LegacyUser } from '../../state/user';
+import { MSG } from '../messages';
 
 const API_KEY_STORAGE = 'dg_gemini_key';
 const USER_STORAGE = 'user';
@@ -57,23 +59,6 @@ export function pickBriefings(
     }
   }
   return picked;
-}
-
-interface LegacyUser {
-  name: string;
-  interests: string[];
-  onboardedAt: string;
-  streak: number;
-  lastActiveDate: string;
-  xp: number;
-  level: number;
-}
-
-function loadUser(): LegacyUser | null {
-  try {
-    const raw = localStorage.getItem(USER_STORAGE);
-    return raw ? (JSON.parse(raw) as LegacyUser) : null;
-  } catch { return null; }
 }
 
 function saveUser(u: LegacyUser): void {
@@ -124,11 +109,17 @@ const titleQueue = new TranslateQueue(
     swapTitleInDOM(id, ko);
     return ko;
   },
-  { concurrency: 3, delayMs: 200 },
+  {
+    concurrency: 3,
+    delayMs: 200,
+    onDrain: ({ failedCount }) => {
+      showToast(MSG.partialTranslateFail(failedCount));
+    },
+  },
 );
 
-function swapTitleInDOM(id: string, titleKo: string): void {
-  const titleEl = document.querySelector(`[data-briefing-id="${id}"] .card-title`);
+export function swapTitleInDOM(id: string, titleKo: string, root: ParentNode = document): void {
+  const titleEl = root.querySelector(`[data-briefing-id="${id}"] .card-title`);
   if (titleEl) titleEl.textContent = titleKo;
 }
 
@@ -288,7 +279,7 @@ export async function hydrateHome(container: HTMLElement): Promise<void> {
 }
 
 function hydrateGreetingAndStreak(): void {
-  const user = loadUser();
+  const user = getCachedUser();
   const greetingEl = document.getElementById('greetingText');
   if (greetingEl) {
     if (user) {
@@ -323,7 +314,7 @@ function hydrateBriefings(): void {
   const isStale = list.length === 0 || (firstDate !== undefined && firstDate !== today);
 
   if (isStale) {
-    const user = loadUser();
+    const user = getCachedUser();
     const hasInterests = !!user && user.interests.length > 0;
     if (hasInterests && !sessionStorage.getItem(AUTO_REFRESH_SESSION_KEY)) {
       sessionStorage.setItem(AUTO_REFRESH_SESSION_KEY, '1');
@@ -449,7 +440,7 @@ export function renderBriefingCard(b: Briefing, idx: number): HTMLElement {
 }
 
 async function refreshBriefings(): Promise<void> {
-  const user = loadUser();
+  const user = getCachedUser();
   if (!user || user.interests.length === 0) {
     showToast('관심 분야를 먼저 설정해 주세요');
     return;
@@ -497,10 +488,10 @@ async function refreshBriefings(): Promise<void> {
       scrollEl.replaceChildren();
       const empty = document.createElement('div');
       empty.className = 'briefing-empty';
-      empty.textContent = '오늘 표시할 브리핑을 가져오지 못했어요. 잠시 후 다시 시도해 주세요.';
+      empty.textContent = `오늘 표시할 브리핑을 가져오지 못했어요. ${MSG.TRY_AGAIN}`;
       scrollEl.append(empty);
     }
-    showToast('브리핑을 가져오지 못했어요. 잠시 후 다시 시도해 주세요');
+    showToast(`브리핑을 가져오지 못했어요. ${MSG.TRY_AGAIN}`);
   }
 }
 
@@ -546,7 +537,7 @@ async function hydrateQuestion(): Promise<void> {
     } catch { /* fall-through */ }
   }
 
-  const user = loadUser();
+  const user = getCachedUser();
   const key = getApiKey();
   if (!user || !key) {
     content.replaceChildren();
@@ -695,7 +686,7 @@ async function submitAnswer(): Promise<void> {
   const id = appendAnswer(answer);
 
   // record activity
-  const user = loadUser();
+  const user = getCachedUser();
   if (user) {
     user.xp += 10;
     user.level = 1 + Math.floor(user.xp / 100);
@@ -713,12 +704,12 @@ async function submitAnswer(): Promise<void> {
   addBubble('user', text);
   appendChatMessage(getDateStr(), { role: 'user', text, at: Date.now() });
   document.getElementById('chatContainer')?.scrollIntoView({ behavior: 'smooth', block: 'start' });
-  showToast('답변이 저장되었어요');
+  showToast('답변이 저장되었어요.');
 
   // AI feedback via chat — requires API key
   const key = getApiKey();
   if (!key) {
-    addBubble('ai', 'AI 응답을 받으려면 API 키를 등록해 주세요.', {
+    addBubble('ai', MSG.DEMO_API_KEY_PROMPT, {
       label: '⚙ 설정 열기',
       onClick: openSettingsWithFocus,
     });
@@ -736,8 +727,7 @@ async function submitAnswer(): Promise<void> {
     addBubble('ai', reply);
     appendChatMessage(getDateStr(), { role: 'ai', text: reply, at: Date.now() });
   } catch {
-    const msg = '지금은 AI 응답을 받지 못했어요. 잠시 후 다시 시도해 주세요.';
-    addBubble('ai', msg);
+    addBubble('ai', MSG.AI_RESPONSE_FAIL);
   }
 
   // Background evaluation + Slack auto-send (fire and forget; never blocks UX).
@@ -766,7 +756,7 @@ async function sendChatMessage(): Promise<void> {
 
   const key = getApiKey();
   if (!key) {
-    addBubble('ai', 'AI 응답을 받으려면 API 키를 등록해 주세요.', {
+    addBubble('ai', MSG.DEMO_API_KEY_PROMPT, {
       label: '⚙ 설정 열기',
       onClick: openSettingsWithFocus,
     });
@@ -780,7 +770,7 @@ async function sendChatMessage(): Promise<void> {
     addBubble('ai', reply);
     appendChatMessage(getDateStr(), { role: 'ai', text: reply, at: Date.now() });
   } catch {
-    addBubble('ai', '지금은 응답을 받지 못했어요. 잠시 후 다시 시도해 주세요.');
+    addBubble('ai', MSG.AI_RESPONSE_FAIL);
   }
 
   updateTurnCounter(loadChatHistory(getDateStr()).length);
