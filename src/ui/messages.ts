@@ -1,19 +1,22 @@
 /**
- * i18n Lite — highest-frequency 한국어 UX 메시지의 단일 진입점.
+ * i18n Lite — 사용자 가시 toast/dialog 텍스트의 단일 진입점.
  *
  * 어조 규칙 (위반 시 lint 또는 PR review에서 catch):
  * - 캐주얼 `~했어요` 톤 (정중체 `~했습니다` 금지, 명사형 `~됨` 금지)
  * - 마침표는 모든 메시지(toast 포함) 끝에 사용
  * - 이모지는 success(✅) / info(ℹ️) / error(❌) 3종만, 그 외 emoji 금지
  *
- * 본 모듈은 Lite — 305개 분산 한국어 문자열 중 빈도 ≥2의 핵심 5개만 통합.
- * Full i18n (`t('key')` 시스템 + 다국어 카탈로그)은 v3.6 별도 사이클.
+ * v3.6에서 빈도 ≥2 규칙을 폐기 — 사용자 가시 메시지는 빈도 무관 모두 통합.
+ * Full i18n (`t('key')` 시스템 + 다국어 카탈로그)은 v3.7+ 별 사이클로,
+ * 본 모듈은 그때까지 staging 역할.
  */
 export const MSG = {
   TRY_AGAIN: '잠시 후 다시 시도해 주세요.',
   SAVE_SUCCESS: '저장되었어요.',
   AI_RESPONSE_FAIL: '지금은 AI 응답을 받지 못했어요. 잠시 후 다시 시도해 주세요.',
   DEMO_API_KEY_PROMPT: 'AI 응답을 받으려면 API 키를 등록해 주세요.',
+  INTERESTS_UPDATED: '관심 분야가 업데이트되었어요.',
+  ANSWER_SAVED: '답변이 저장되었어요.',
   partialTranslateFail: (count: number): string =>
     `일부 카드 번역에 실패했어요 (${count}건). 잠시 후 다시 시도해 주세요.`,
 } as const;

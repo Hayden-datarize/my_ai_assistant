@@ -29,9 +29,21 @@ export function showTranslateError(err: unknown): void {
     (typeof message === 'string' && message.includes('session blocked'));
 
   const msg = isAuth
-    ? 'API 키가 유효하지 않아요. 설정에서 다시 입력해주세요.' // 단일 호출 — i18n Lite 미적용 (빈도 1)
+    ? 'API 키가 유효하지 않아요. 설정에서 다시 입력해주세요.' // v3.6 i18n Lite 정책 graduation 후에도 인라인 — v3.7+ MSG 이전 후보
     : `번역에 실패했어요. ${MSG.TRY_AGAIN}`;
 
+  if (lastShownError === msg) return;
+  lastShownError = msg;
+  showToast(msg);
+}
+
+/**
+ * Partial-failure toast for the translate queue's onDrain. Same dedup
+ * mechanism as showCapToast / showTranslateError — identical messages
+ * within session collapse to a single toast.
+ */
+export function showPartialTranslateFail(failedCount: number): void {
+  const msg = MSG.partialTranslateFail(failedCount);
   if (lastShownError === msg) return;
   lastShownError = msg;
   showToast(msg);

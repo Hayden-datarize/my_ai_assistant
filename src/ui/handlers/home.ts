@@ -27,7 +27,7 @@ import { detectLanguage } from '../../utils/lang';
 import { openMemoModal } from '../modals/memo';
 import { createLangToggle, type LangToggleEl, type LangState } from '../components/cardLangToggle';
 import { checkAndIncrement, getCap, getTodayCount } from '../../state/usage';
-import { showCapToast, showTranslateError } from '../translateToast';
+import { showCapToast, showTranslateError, showPartialTranslateFail } from '../translateToast';
 import { getCachedUser, type LegacyUser } from '../../state/user';
 import { MSG } from '../messages';
 
@@ -113,11 +113,15 @@ const titleQueue = new TranslateQueue(
     concurrency: 3,
     delayMs: 200,
     onDrain: ({ failedCount }) => {
-      showToast(MSG.partialTranslateFail(failedCount));
+      showPartialTranslateFail(failedCount);
     },
   },
 );
 
+/**
+ * @internal — 자기 모듈 내부 helper. 외부 caller(archive 등) 통합은 v3.7+ 실수요 발생 시.
+ * Test가 import하기 위해 export 유지하되, 일반 사용은 home.ts 내부에서만.
+ */
 export function swapTitleInDOM(id: string, titleKo: string, root: ParentNode = document): void {
   const titleEl = root.querySelector(`[data-briefing-id="${id}"] .card-title`);
   if (titleEl) titleEl.textContent = titleKo;
@@ -704,7 +708,7 @@ async function submitAnswer(): Promise<void> {
   addBubble('user', text);
   appendChatMessage(getDateStr(), { role: 'user', text, at: Date.now() });
   document.getElementById('chatContainer')?.scrollIntoView({ behavior: 'smooth', block: 'start' });
-  showToast('답변이 저장되었어요.');
+  showToast(MSG.ANSWER_SAVED);
 
   // AI feedback via chat — requires API key
   const key = getApiKey();

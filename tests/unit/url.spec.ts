@@ -29,4 +29,23 @@ describe('isHttpsUrl', () => {
     expect(isHttpsUrl(123)).toBe(false);
     expect(isHttpsUrl({})).toBe(false);
   });
+
+  it('rejects bare-path scheme (defense-in-depth, v3.6 P2-2)', () => {
+    expect(isHttpsUrl('https:foo')).toBe(false);
+    expect(isHttpsUrl('https:foo/bar')).toBe(false);
+    expect(isHttpsUrl('https:./relative')).toBe(false);
+  });
+
+  it('rejects backslash variants (v3.6 P2-2)', () => {
+    expect(isHttpsUrl('https:\\\\evil.com')).toBe(false);
+  });
+
+  it('rejects empty hostname (v3.6 P2-2)', () => {
+    expect(isHttpsUrl('https://')).toBe(false);
+    expect(isHttpsUrl('https:///path')).toBe(false);
+  });
+
+  it('rejects case-insensitive bare-path scheme (v3.6 P2-2 회귀)', () => {
+    expect(isHttpsUrl('HTTPS:foo')).toBe(false);
+  });
 });

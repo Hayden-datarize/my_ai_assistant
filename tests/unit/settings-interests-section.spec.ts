@@ -42,9 +42,10 @@ describe('settings tab: interests section', () => {
     const btn = container.querySelector<HTMLButtonElement>('#editInterestsBtn');
     expect(btn).not.toBeNull();
     btn?.click();
-    // Wait for async dynamic import resolution
-    await new Promise((r) => setTimeout(r, 50));
-    expect(document.querySelector('.dg-modal')).not.toBeNull();
+    // Poll for dynamic import resolution + DOM mount.
+    await vi.waitFor(() => {
+      expect(document.querySelector('.dg-modal')).not.toBeNull();
+    });
   });
 
   it('re-renders chips when dg:interests:changed fires', async () => {
@@ -59,10 +60,10 @@ describe('settings tab: interests section', () => {
     localStorage.setItem('user', JSON.stringify(raw));
     document.dispatchEvent(new CustomEvent('dg:interests:changed'));
 
-    // Allow handler to run
-    await new Promise((r) => setTimeout(r, 20));
-    const chips = container.querySelectorAll('.interest-chip');
-    expect(chips.length).toBe(3);
+    // Poll until chip count reflects updated interests.
+    await vi.waitFor(() => {
+      expect(container.querySelectorAll('.interest-chip').length).toBe(3);
+    });
   });
 
   it('shows placeholder when user has zero interests', async () => {
