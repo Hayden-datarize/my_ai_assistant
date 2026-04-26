@@ -16,38 +16,10 @@ import { openModal, closeModal } from './shared';
 import { INTERESTS } from '../../utils/categories';
 import { escapeHtml } from '../../utils/escapeHtml';
 import { showToast } from '../../utils/toast';
-
-const USER_STORAGE = 'user';
-
-interface LegacyUser {
-  name: string;
-  interests: string[];
-  onboardedAt: string;
-  streak: number;
-  lastActiveDate: string;
-  xp: number;
-  level: number;
-}
-
-function loadUser(): LegacyUser | null {
-  try {
-    const raw = localStorage.getItem(USER_STORAGE);
-    return raw ? (JSON.parse(raw) as LegacyUser) : null;
-  } catch {
-    return null;
-  }
-}
-
-function saveUser(u: LegacyUser): void {
-  try {
-    localStorage.setItem(USER_STORAGE, JSON.stringify(u));
-  } catch {
-    /* ignore */
-  }
-}
+import { getCachedUser, saveUser } from '../../state/user';
 
 export function openInterestsModal(): void {
-  const user = loadUser();
+  const user = getCachedUser();
   if (!user) return;
 
   const current = new Set(user.interests);
