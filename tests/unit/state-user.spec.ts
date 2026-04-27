@@ -1,5 +1,5 @@
 import { describe, it, expect, beforeEach, vi } from 'vitest';
-import { loadUserData, saveUser, recordActivity, checkAndUpdateStreak } from '../../src/state/user';
+import { loadUserData, saveUser, recordActivity, checkAndUpdateStreak, getSaveErrorMessage } from '../../src/state/user';
 
 describe('state/user', () => {
   beforeEach(() => localStorage.clear());
@@ -41,5 +41,28 @@ describe('state/user', () => {
     saveUser({ name: 'H', interests: [], onboardedAt: '', streak: 5, lastActiveDate: '2026-04-19', xp: 0, level: 1 });
     checkAndUpdateStreak();
     expect(loadUserData()!.streak).toBe(5);
+  });
+
+  it('getSaveErrorMessage returns quota message for QuotaExceededError', () => {
+    const err = new DOMException('quota', 'QuotaExceededError');
+    expect(getSaveErrorMessage(err)).toBe('❌ 저장 공간이 가득 찼어요. 설정에서 번역 캐시를 초기화해 주세요.');
+  });
+
+  it('getSaveErrorMessage returns fallback message for generic Error', () => {
+    const err = new Error('boom');
+    expect(getSaveErrorMessage(err)).toBe('❌ 저장하지 못했어요. 잠시 후 다시 시도해 주세요.');
+  });
+
+  it('getSaveErrorMessage returns fallback message for string error', () => {
+    expect(getSaveErrorMessage('some string')).toBe('❌ 저장하지 못했어요. 잠시 후 다시 시도해 주세요.');
+  });
+
+  it('saveUser throws DOMException when setItem throws QuotaExceededError', () => {
+    const spy = vi.spyOn(Storage.prototype, 'setItem').mockImplementationOnce(() => {
+      throw new DOMException('quota', 'QuotaExceededError');
+    });
+    const u = { name: 'H', interests: [], onboardedAt: '', streak: 0, lastActiveDate: '', xp: 0, level: 1 };
+    expect(() => saveUser(u)).toThrow(DOMException);
+    spy.mockRestore();
   });
 });
