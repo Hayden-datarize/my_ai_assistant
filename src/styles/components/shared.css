@@ -3,13 +3,28 @@
    Loaded into @layer components
    ============================================ */
 
-/* Toast */
+/* Toast — top container (general) */
 .toast-container {
   position: fixed; top: 20px; left: 50%;
   transform: translateX(-50%);
   z-index: var(--z-toast); display: flex;
   flex-direction: column; gap: 8px;
   pointer-events: none; max-width: 400px; width: calc(100% - 40px);
+}
+/* Toast — bottom container (undo, above bottom-nav) */
+.toast-container--undo {
+  position: fixed;
+  bottom: calc(var(--nav-height) + var(--safe-bottom) + 16px);
+  top: auto;
+  left: 50%;
+  transform: translateX(-50%);
+  z-index: var(--z-toast); display: flex;
+  flex-direction: column; gap: 8px;
+  pointer-events: none; max-width: 400px; width: calc(100% - 40px);
+}
+/* Desktop: bottom-nav가 숨겨지므로 단순 16px */
+@media (min-width: 768px) {
+  .toast-container--undo { bottom: calc(var(--safe-bottom) + 16px); }
 }
 .toast {
   padding: 12px 16px; border-radius: var(--radius-md);
@@ -19,8 +34,36 @@
   animation: toastIn 0.3s ease, toastOut 0.3s ease 2.7s forwards;
   pointer-events: auto;
 }
+/* Undo 변형: 하단 진입 + 액션 버튼, 자동 fade out 비활성(JS가 leaving 클래스 제어) */
+.toast.toast--undo {
+  justify-content: space-between;
+  animation: toastInUp 0.3s ease;
+}
+.toast.toast--undo.toast-leaving {
+  animation: toastOutDown 0.25s ease forwards;
+}
+.toast--undo button {
+  flex-shrink: 0;
+  min-height: 44px; min-width: 64px;
+  padding: 6px 12px;
+  background: transparent;
+  border: 1px solid var(--primary);
+  border-radius: var(--radius-sm);
+  color: var(--primary);
+  font-weight: 600; font-size: 0.85rem;
+  cursor: pointer;
+}
+.toast--undo button:hover { background: color-mix(in srgb, var(--primary) 8%, transparent); }
+.toast--undo button:focus-visible { outline: 2px solid var(--primary); outline-offset: 2px; }
 @keyframes toastIn { from { opacity: 0; transform: translateY(-12px); } to { opacity: 1; transform: translateY(0); } }
 @keyframes toastOut { from { opacity: 1; } to { opacity: 0; transform: translateY(-12px); } }
+@keyframes toastInUp { from { opacity: 0; transform: translateY(12px); } to { opacity: 1; transform: translateY(0); } }
+@keyframes toastOutDown { from { opacity: 1; } to { opacity: 0; transform: translateY(12px); } }
+@media (prefers-reduced-motion: reduce) {
+  .toast,
+  .toast.toast--undo,
+  .toast.toast--undo.toast-leaving { animation-duration: 0.01s; }
+}
 
 /* Empty state */
 .empty-state {

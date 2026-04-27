@@ -115,7 +115,7 @@ describe('openInterestsModal', () => {
     const saveBtn = document.getElementById('saveInterestsBtn') as HTMLButtonElement;
     saveBtn.click();
 
-    const toast = document.querySelector('.dg-toast');
+    const toast = document.querySelector('.toast');
     expect(toast?.textContent).toContain('저장 공간이 가득 찼어요');
   });
 
@@ -130,7 +130,7 @@ describe('openInterestsModal', () => {
     const saveBtn = document.getElementById('saveInterestsBtn') as HTMLButtonElement;
     saveBtn.click();
 
-    const toast = document.querySelector('.dg-toast');
+    const toast = document.querySelector('.toast');
     expect(toast?.textContent).toContain('저장하지 못했어요');
   });
 

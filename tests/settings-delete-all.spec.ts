@@ -40,7 +40,7 @@ describe('settings delete all answers', () => {
     expect(confirmSpy.mock.calls[0]?.[0]).toContain('2개');
     const { loadAnswers } = await import('../src/state/persistence');
     expect(loadAnswers()).toEqual([]);
-    expect(document.querySelector('.dg-toast--undo')).not.toBeNull();
+    expect(document.querySelector('.toast--undo')).not.toBeNull();
   });
 
   it('cancel keeps answers untouched', async () => {
@@ -52,7 +52,7 @@ describe('settings delete all answers', () => {
 
     const { loadAnswers } = await import('../src/state/persistence');
     expect(loadAnswers()).toHaveLength(1);
-    expect(document.querySelector('.dg-toast--undo')).toBeNull();
+    expect(document.querySelector('.toast--undo')).toBeNull();
   });
 
   it('disables button when no answers', async () => {
@@ -71,9 +71,79 @@ describe('settings delete all answers', () => {
     vi.spyOn(window, 'confirm').mockReturnValue(true);
 
     document.querySelector<HTMLButtonElement>('#deleteAllAnswersBtn')!.click();
-    document.querySelector<HTMLButtonElement>('.dg-toast--undo button')!.click();
+    document.querySelector<HTMLButtonElement>('.toast--undo button')!.click();
 
     const { loadAnswers } = await import('../src/state/persistence');
     expect(loadAnswers()).toHaveLength(2);
+  });
+
+  it('Undo 클릭 시 atomic single write로 복원하고 DELETE_UNDO_RESTORED 토스트를 표시한다', async () => {
+    saveAnswers([
+      { id: 'a', text: 'one', date: '2026-04-27' },
+      { id: 'b', text: 'two', date: '2026-04-27' },
+      { id: 'c', text: 'three', date: '2026-04-27' },
+    ] as never);
+    await mountSettings();
+    vi.spyOn(window, 'confirm').mockReturnValue(true);
+
+    document.querySelector<HTMLButtonElement>('#deleteAllAnswersBtn')!.click();
+
+    const setItemSpy = vi.spyOn(Storage.prototype, 'setItem');
+
+    document.querySelector<HTMLButtonElement>('.toast--undo button')!.click();
+
+    // atomic: dg.answers setItem 1회만 (saveAnswers(snapshot))
+    const calls = setItemSpy.mock.calls.filter(([k]) => k === 'dg.answers');
+    expect(calls).toHaveLength(1);
+
+    const { MSG } = await import('../src/ui/messages');
+    expect(document.body.textContent).toContain(MSG.DELETE_UNDO_RESTORED);
+
+    setItemSpy.mockRestore();
+  });
+
+  it('storage throw 시 showToast(getSaveErrorMessage(err)) 호출 (P2-6)', async () => {
+    saveAnswers([
+      { id: 'a', text: 'one', date: '2026-04-27' },
+      { id: 'b', text: 'two', date: '2026-04-27' },
+    ] as never);
+    await mountSettings();
+    vi.spyOn(window, 'confirm').mockReturnValue(true);
+
+    // dg.answers 키만 throw (다른 setItem은 통과)
+    const setItemSpy = vi.spyOn(Storage.prototype, 'setItem').mockImplementation((k: string) => {
+      if (k === 'dg.answers') {
+        throw new DOMException('quota', 'QuotaExceededError');
+      }
+    });
+
+    document.querySelector<HTMLButtonElement>('#deleteAllAnswersBtn')!.click();
+
+    // 답변 잔존 + 에러 토스트 정확 메시지 + Undo 토스트 미표출
+    const { loadAnswers } = await import('../src/state/persistence');
+    const { MSG } = await import('../src/ui/messages');
+    expect(loadAnswers()).toHaveLength(2);
+    const toastText = document.getElementById('toastContainer')?.textContent ?? '';
+    expect(toastText).toContain(MSG.SAVE_QUOTA_EXCEEDED);
+    expect(document.querySelector('.toast--undo')).toBeNull();
+
+    setItemSpy.mockRestore();
+  });
+
+  it('5초 후 Undo 버튼이 DOM에서 사라진다 (P2-7 통합)', async () => {
+    saveAnswers([
+      { id: 'a', text: 'one', date: '2026-04-27' },
+      { id: 'b', text: 'two', date: '2026-04-27' },
+    ] as never);
+    await mountSettings();
+    vi.spyOn(window, 'confirm').mockReturnValue(true);
+
+    document.querySelector<HTMLButtonElement>('#deleteAllAnswersBtn')!.click();
+    expect(document.querySelector('.toast--undo')).not.toBeNull();
+
+    vi.advanceTimersByTime(5000);
+    // leaving 클래스 → 250ms 후 remove (toast.ts 패턴)
+    vi.advanceTimersByTime(300);
+    expect(document.querySelector('.toast--undo')).toBeNull();
   });
 });

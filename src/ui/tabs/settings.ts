@@ -7,7 +7,7 @@ import { clearAllTranslations } from '../../state/briefings';
 import { resetToastDedup } from '../translateToast';
 import { clearSessionBlock } from '../../services/translate';
 import { MSG } from '../messages';
-import { loadAnswers, deleteAllAnswers, appendAnswer } from '../../state/persistence';
+import { loadAnswers, deleteAllAnswers, saveAnswers } from '../../state/persistence';
 import { getSaveErrorMessage } from '../../state/user';
 
 const STORAGE_KEY_APIKEY = 'dg_gemini_key'; // legacy storage key — preserved for cutover compat
@@ -155,8 +155,9 @@ export function bindHandlers(): void {
         actionLabel: MSG.DELETE_UNDO_ACTION,
         onUndo: () => {
           try {
-            snapshot.forEach((a) => appendAnswer(a));
+            saveAnswers([...snapshot, ...loadAnswers()]);
             refresh();
+            showToast(MSG.DELETE_UNDO_RESTORED);
           } catch (_err) {
             showToast(MSG.DELETE_UNDO_FAILED);
           }

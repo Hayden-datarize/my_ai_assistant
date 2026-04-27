@@ -69,7 +69,7 @@ describe('archive bulk delete', () => {
 
     const { loadAnswers } = await import('../src/state/persistence');
     expect(loadAnswers().map((a) => a.id)).toEqual(['b']);
-    expect(document.querySelector('.dg-toast--undo')).not.toBeNull();
+    expect(document.querySelector('.toast--undo')).not.toBeNull();
   });
 
   it('cancels confirm leaves answers untouched', async () => {
@@ -81,7 +81,7 @@ describe('archive bulk delete', () => {
 
     const { loadAnswers } = await import('../src/state/persistence');
     expect(loadAnswers()).toHaveLength(3);
-    expect(document.querySelector('.dg-toast--undo')).toBeNull();
+    expect(document.querySelector('.toast--undo')).toBeNull();
   });
 
   it('undo restores all deleted answers', async () => {
@@ -91,10 +91,32 @@ describe('archive bulk delete', () => {
     document.querySelector<HTMLElement>('.archive-card[data-answer-id="a"]')!.click();
     document.querySelector<HTMLElement>('.archive-card[data-answer-id="b"]')!.click();
     document.querySelector<HTMLButtonElement>('#archiveBulkDelete')!.click();
-    document.querySelector<HTMLButtonElement>('.dg-toast--undo button')!.click();
+    document.querySelector<HTMLButtonElement>('.toast--undo button')!.click();
 
     const { loadAnswers } = await import('../src/state/persistence');
     expect(loadAnswers()).toHaveLength(3);
+  });
+
+  it('Undo 클릭 시 atomic single write로 복원하고 DELETE_UNDO_RESTORED 토스트를 표시한다', async () => {
+    await setupArchive();
+    vi.spyOn(window, 'confirm').mockReturnValue(true);
+    document.querySelector<HTMLButtonElement>('#archiveSelectToggle')!.click();
+    document.querySelector<HTMLElement>('.archive-card[data-answer-id="a"]')!.click();
+    document.querySelector<HTMLElement>('.archive-card[data-answer-id="b"]')!.click();
+    document.querySelector<HTMLButtonElement>('#archiveBulkDelete')!.click();
+
+    const setItemSpy = vi.spyOn(Storage.prototype, 'setItem');
+
+    document.querySelector<HTMLButtonElement>('.toast--undo button')!.click();
+
+    // atomic: dg.answers setItem 1회만 (saveAnswers([...current, ...snapshot]))
+    const calls = setItemSpy.mock.calls.filter(([k]) => k === 'dg.answers');
+    expect(calls).toHaveLength(1);
+
+    const { MSG } = await import('../src/ui/messages');
+    expect(document.body.textContent).toContain(MSG.DELETE_UNDO_RESTORED);
+
+    setItemSpy.mockRestore();
   });
 
   // P1-1 review fix: ✕ click in select mode must be no-op (defense in depth — CSS hide + JS guard)
@@ -112,9 +134,55 @@ describe('archive bulk delete', () => {
     // 가드 통과: 답변 그대로 + undo 토스트 안 뜸 + 선택 상태 유지 (selectedIds → CSS .selected)
     const { loadAnswers } = await import('../src/state/persistence');
     expect(loadAnswers()).toHaveLength(3);
-    expect(document.querySelector('.dg-toast--undo')).toBeNull();
+    expect(document.querySelector('.toast--undo')).toBeNull();
     expect(
       document.querySelector('.archive-card[data-answer-id="a"]')?.classList.contains('selected')
     ).toBe(true);
+  });
+
+  it('storage throw 시 showToast(getSaveErrorMessage(err)) 호출 (P2-6)', async () => {
+    await setupArchive();
+    vi.spyOn(window, 'confirm').mockReturnValue(true);
+
+    // dg.answers 키만 throw (다른 setItem은 통과)
+    const setItemSpy = vi.spyOn(Storage.prototype, 'setItem').mockImplementation((k: string) => {
+      if (k === 'dg.answers') {
+        throw new DOMException('quota', 'QuotaExceededError');
+      }
+    });
+
+    // 선택 모드 진입 → 두 카드 선택 → bulk delete trigger
+    document.querySelector<HTMLButtonElement>('#archiveSelectToggle')!.click();
+    document.querySelector<HTMLElement>('.archive-card[data-answer-id="a"]')!.click();
+    document.querySelector<HTMLElement>('.archive-card[data-answer-id="c"]')!.click();
+    document.querySelector<HTMLButtonElement>('#archiveBulkDelete')!.click();
+
+    // 카드 잔존 + 에러 토스트 정확 메시지 + Undo 토스트 미표출
+    const { loadAnswers } = await import('../src/state/persistence');
+    const { MSG } = await import('../src/ui/messages');
+    expect(loadAnswers()).toHaveLength(3);
+    const toastText = document.getElementById('toastContainer')?.textContent ?? '';
+    expect(toastText).toContain(MSG.SAVE_QUOTA_EXCEEDED);
+    expect(document.querySelector('.toast--undo')).toBeNull();
+
+    setItemSpy.mockRestore();
+  });
+
+  it('5초 후 Undo 버튼이 DOM에서 사라진다 (P2-7 통합)', async () => {
+    await setupArchive();
+    vi.spyOn(window, 'confirm').mockReturnValue(true);
+
+    // 선택 모드 진입 → 두 카드 선택 → bulk delete trigger
+    document.querySelector<HTMLButtonElement>('#archiveSelectToggle')!.click();
+    document.querySelector<HTMLElement>('.archive-card[data-answer-id="a"]')!.click();
+    document.querySelector<HTMLElement>('.archive-card[data-answer-id="b"]')!.click();
+    document.querySelector<HTMLButtonElement>('#archiveBulkDelete')!.click();
+
+    expect(document.querySelector('.toast--undo')).not.toBeNull();
+
+    vi.advanceTimersByTime(5000);
+    // leaving 클래스 → 250ms 후 remove (toast.ts 패턴)
+    vi.advanceTimersByTime(300);
+    expect(document.querySelector('.toast--undo')).toBeNull();
   });
 });

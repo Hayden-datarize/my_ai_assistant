@@ -1,16 +1,27 @@
 /**
- * Lightweight transient notification. Appends a styled toast to #modalRoot (or body)
- * and auto-dismisses after `durationMs`.
+ * Lightweight transient notification. Appends a styled toast to a top-center
+ * container and auto-dismisses after `durationMs`.
  */
-export function showToast(message: string, durationMs = 2500): void {
+function ensureContainer(id: string, modifier?: 'undo'): HTMLElement {
+  let el = document.getElementById(id);
+  if (el) return el;
+  el = document.createElement('div');
+  el.id = id;
+  el.className = modifier ? `toast-container toast-container--${modifier}` : 'toast-container';
   const root = document.getElementById('modalRoot') ?? document.body;
+  root.append(el);
+  return el;
+}
+
+export function showToast(message: string, durationMs = 2500): void {
+  const container = ensureContainer('toastContainer');
   const el = document.createElement('div');
-  el.className = 'dg-toast';
+  el.className = 'toast';
   el.setAttribute('role', 'status');
   el.textContent = message;
-  root.append(el);
+  container.append(el);
   setTimeout(() => {
-    el.classList.add('dg-toast-leaving');
+    el.classList.add('toast-leaving');
     setTimeout(() => el.remove(), 250);
   }, durationMs);
 }
@@ -43,9 +54,9 @@ export function showUndoToast(opts: {
     activeUndoEl = null;
   }
 
-  const root = document.getElementById('modalRoot') ?? document.body;
+  const container = ensureContainer('toastContainer--undo', 'undo');
   const el = document.createElement('div');
-  el.className = 'dg-toast dg-toast--undo';
+  el.className = 'toast toast--undo';
   el.setAttribute('role', 'status');
 
   const msg = document.createElement('span');
@@ -65,12 +76,15 @@ export function showUndoToast(opts: {
   });
 
   el.append(msg, btn);
-  root.append(el);
+  container.append(el);
   activeUndoEl = el;
 
   activeUndoTimer = window.setTimeout(() => {
-    el.remove();
-    activeUndoEl = null;
-    activeUndoTimer = null;
+    el.classList.add('toast-leaving');
+    window.setTimeout(() => {
+      el.remove();
+      activeUndoEl = null;
+      activeUndoTimer = null;
+    }, 250);
   }, duration);
 }
