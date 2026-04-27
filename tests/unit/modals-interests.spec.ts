@@ -21,6 +21,10 @@ describe('openInterestsModal', () => {
     }));
   });
 
+  afterEach(() => {
+    vi.restoreAllMocks();
+  });
+
   it('shows current interests as checked, others unchecked', async () => {
     const { openInterestsModal } = await import('../../src/ui/modals/interests');
     openInterestsModal();
@@ -98,10 +102,6 @@ describe('openInterestsModal', () => {
     expect(() => openInterestsModal()).not.toThrow();
     // Modal should not open
     expect(document.querySelector('.dg-modal')).toBeNull();
-  });
-
-  afterEach(() => {
-    vi.restoreAllMocks();
   });
 
   it('shows quota toast when saveUser throws QuotaExceededError', async () => {
