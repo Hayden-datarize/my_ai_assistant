@@ -20,3 +20,21 @@ describe('MSG delete keys', () => {
     expect(MSG.DELETE_UNDO_FAILED).toBe('복원 실패했어요.');
   });
 });
+
+describe('MSG.SCRAP_* keys (v3.9)', () => {
+  it('정의되어 있고 끝 마침표 규칙을 준수한다', () => {
+    expect(MSG.SCRAP_UNDO_TOAST).toBe('스크랩을 해제했어요.');
+    expect(MSG.SCRAP_UNDO_RESTORED).toBe('스크랩을 복원했어요.');
+    expect(typeof MSG.SCRAP_BULK_CONFIRM).toBe('function');
+    expect(MSG.SCRAP_BULK_CONFIRM(3)).toContain('3개');
+    expect(typeof MSG.SCRAP_BULK_UNDO_TOAST).toBe('function');
+    expect(MSG.SCRAP_BULK_UNDO_TOAST(3)).toContain('3개');
+  });
+
+  it('어조 일관성: 끝 마침표 + 캐주얼 ~했어요/~할까요', () => {
+    expect(MSG.SCRAP_UNDO_TOAST.endsWith('.')).toBe(true);
+    expect(MSG.SCRAP_UNDO_RESTORED.endsWith('.')).toBe(true);
+    expect(MSG.SCRAP_BULK_CONFIRM(1).endsWith('.')).toBe(true);
+    expect(MSG.SCRAP_BULK_UNDO_TOAST(1).endsWith('.')).toBe(true);
+  });
+});

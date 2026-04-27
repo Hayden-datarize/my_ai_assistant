@@ -29,4 +29,9 @@ export const MSG = {
   DELETE_UNDO_ACTION: '되돌리기',
   DELETE_UNDO_RESTORED: '복원되었어요.',
   DELETE_UNDO_FAILED: '복원 실패했어요.',
+  SCRAP_UNDO_TOAST: '스크랩을 해제했어요.',
+  SCRAP_UNDO_RESTORED: '스크랩을 복원했어요.',
+  SCRAP_BULK_CONFIRM: (n: number) =>
+    `선택한 스크랩 ${n}개를 해제할까요?\n5초 안에 되돌릴 수 있어요.`,
+  SCRAP_BULK_UNDO_TOAST: (n: number) => `${n}개 스크랩을 해제했어요.`,
 } as const;
