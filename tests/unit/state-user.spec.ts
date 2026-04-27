@@ -1,5 +1,6 @@
 import { describe, it, expect, beforeEach, vi } from 'vitest';
 import { loadUserData, saveUser, recordActivity, checkAndUpdateStreak, getSaveErrorMessage } from '../../src/state/user';
+import { MSG } from '../../src/ui/messages';
 
 describe('state/user', () => {
   beforeEach(() => localStorage.clear());
@@ -45,16 +46,16 @@ describe('state/user', () => {
 
   it('getSaveErrorMessage returns quota message for QuotaExceededError', () => {
     const err = new DOMException('quota', 'QuotaExceededError');
-    expect(getSaveErrorMessage(err)).toBe('❌ 저장 공간이 가득 찼어요. 설정에서 번역 캐시를 초기화해 주세요.');
+    expect(getSaveErrorMessage(err)).toBe(MSG.SAVE_QUOTA_EXCEEDED);
   });
 
   it('getSaveErrorMessage returns fallback message for generic Error', () => {
     const err = new Error('boom');
-    expect(getSaveErrorMessage(err)).toBe('❌ 저장하지 못했어요. 잠시 후 다시 시도해 주세요.');
+    expect(getSaveErrorMessage(err)).toBe(MSG.SAVE_FAILED);
   });
 
   it('getSaveErrorMessage returns fallback message for string error', () => {
-    expect(getSaveErrorMessage('some string')).toBe('❌ 저장하지 못했어요. 잠시 후 다시 시도해 주세요.');
+    expect(getSaveErrorMessage('some string')).toBe(MSG.SAVE_FAILED);
   });
 
   it('saveUser throws DOMException when setItem throws QuotaExceededError', () => {

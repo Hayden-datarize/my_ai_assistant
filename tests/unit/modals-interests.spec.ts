@@ -145,7 +145,10 @@ describe('openInterestsModal', () => {
     const saveBtn = document.getElementById('saveInterestsBtn') as HTMLButtonElement;
     saveBtn.click();
 
-    // Modal should still be open — save button is still in the DOM
+    // Modal wrapper(.dg-modal) should still be in DOM — closeModal() removes it.
+    // Asserting the wrapper itself (not just the save button) guards against
+    // future refactors that might keep the button alive while detaching the modal.
+    expect(document.querySelector('.dg-modal')).not.toBeNull();
     expect(document.getElementById('saveInterestsBtn')).not.toBeNull();
   });
 });
