@@ -91,4 +91,74 @@ describe('Archive scrap 카드 마크업 통일 (T4)', () => {
       expect.objectContaining({ title: '기록 상세' })
     );
   });
+
+  it('scrap 카드 ✕ 클릭 → toggleScrap → SCRAP_UNDO_TOAST 표시', async () => {
+    const { saveBriefings, loadBriefings } = await import('../src/state/briefings');
+    saveBriefings([
+      {
+        id: 'b1',
+        date: '2026-04-27',
+        url: 'https://example.com',
+        title: 'T1',
+        summary: 'S1',
+        scrapped: true,
+        read: false,
+        memo: '',
+      },
+    ]);
+
+    const container = document.createElement('div');
+    container.id = 'archiveTab';
+    document.body.appendChild(container);
+
+    const tab = await import('../src/ui/tabs/archive');
+    const handlers = await import('../src/ui/handlers/archive');
+    const { MSG } = await import('../src/ui/messages');
+    tab.renderArchive(container);
+    handlers.mountArchiveHandlers();
+
+    document.querySelector<HTMLButtonElement>('[data-filter="scrap"]')!.click();
+    document
+      .querySelector<HTMLButtonElement>('.archive-card--scrap .archive-card-delete')!
+      .click();
+
+    expect(loadBriefings()[0]?.scrapped).toBe(false);
+    expect(document.body.textContent).toContain(MSG.SCRAP_UNDO_TOAST);
+  });
+
+  it('Undo 클릭 → scrap 복원 + SCRAP_UNDO_RESTORED 토스트', async () => {
+    const { saveBriefings, loadBriefings } = await import('../src/state/briefings');
+    saveBriefings([
+      {
+        id: 'b1',
+        date: '2026-04-27',
+        url: 'https://example.com',
+        title: 'T1',
+        summary: 'S1',
+        scrapped: true,
+        read: false,
+        memo: '',
+      },
+    ]);
+
+    const container = document.createElement('div');
+    container.id = 'archiveTab';
+    document.body.appendChild(container);
+
+    const tab = await import('../src/ui/tabs/archive');
+    const handlers = await import('../src/ui/handlers/archive');
+    const { MSG } = await import('../src/ui/messages');
+    tab.renderArchive(container);
+    handlers.mountArchiveHandlers();
+
+    document.querySelector<HTMLButtonElement>('[data-filter="scrap"]')!.click();
+    document
+      .querySelector<HTMLButtonElement>('.archive-card--scrap .archive-card-delete')!
+      .click();
+
+    document.querySelector<HTMLButtonElement>('.toast--undo button')!.click();
+
+    expect(loadBriefings()[0]?.scrapped).toBe(true);
+    expect(document.body.textContent).toContain(MSG.SCRAP_UNDO_RESTORED);
+  });
 });

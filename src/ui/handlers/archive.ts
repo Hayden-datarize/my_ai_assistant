@@ -6,7 +6,7 @@
 
 import { on } from '../events';
 import { loadAnswers, saveAnswers, deleteAnswerById, deleteAnswersByIds } from '../../state/persistence';
-import { loadBriefings } from '../../state/briefings';
+import { loadBriefings, saveBriefings, toggleScrap } from '../../state/briefings';
 import { openModal, closeModal } from '../modals/shared';
 import { escapeHtml } from '../../utils/escapeHtml';
 import { showToast, showUndoToast } from '../../utils/toast';
@@ -34,7 +34,8 @@ function handleCardClickInSelectMode(e: Event): void {
   // ✕ 버튼 클릭 시 선택 모드 토글 건너뜀 — document-level 핸들러가 처리
   if ((e.target as HTMLElement).closest('.archive-card-delete')) return;
   e.stopPropagation();
-  const id = card.dataset['answerId'];
+  // 답변 vs scrap 분기 — selectedIds는 단일 Set, 필터 잠금으로 mixed 불가 (T5)
+  const id = card.dataset['answerId'] ?? card.dataset['briefingId'];
   if (!id) return;
   if (selectedIds.has(id)) {
     selectedIds.delete(id);
@@ -51,6 +52,21 @@ function handleSelectToggle(): void {
   const toggle = document.getElementById('archiveSelectToggle');
   toggle?.setAttribute('aria-pressed', String(selectMode));
   document.getElementById('archiveTab')?.classList.toggle('archive--select-mode', selectMode);
+
+  // 필터 chip 잠금 (T5 신설) — active 외 chip을 disabled + aria-disabled
+  // selectedIds 단일 Set 정책상 답변/scrap 혼합 선택을 차단하기 위함
+  document.querySelectorAll<HTMLButtonElement>('.filter-chip').forEach((chip) => {
+    const isActive = chip.dataset['filter'] === currentFilter;
+    if (isActive) {
+      chip.disabled = false;
+      chip.removeAttribute('aria-disabled');
+    } else {
+      chip.disabled = selectMode;
+      if (selectMode) chip.setAttribute('aria-disabled', 'true');
+      else chip.removeAttribute('aria-disabled');
+    }
+  });
+
   if (!selectMode) {
     selectedIds.clear();
     document.querySelectorAll('.archive-card.selected').forEach((c) =>
@@ -63,6 +79,55 @@ function handleSelectToggle(): void {
 function handleBulkDeleteClick(): void {
   const n = selectedIds.size;
   if (n === 0) return;
+
+  // scrap 벌크 분기 (T5 신설)
+  if (currentFilter === 'scrap') {
+    if (!window.confirm(MSG.SCRAP_BULK_CONFIRM(n))) return;
+    const ids = [...selectedIds];
+    const briefings = loadBriefings();
+    const snapshotIds = briefings
+      .filter((b) => ids.includes(b.id) && b.scrapped)
+      .map((b) => b.id);
+    try {
+      // atomic single write — race-safe
+      const next = briefings.map((b) =>
+        ids.includes(b.id) ? { ...b, scrapped: false } : b
+      );
+      saveBriefings(next);
+    } catch (err) {
+      showToast(getSaveErrorMessage(err));
+      return;
+    }
+    selectedIds.clear();
+    selectMode = false;
+    document.getElementById('archiveSelectToggle')?.setAttribute('aria-pressed', 'false');
+    document.getElementById('archiveTab')?.classList.remove('archive--select-mode');
+    document.querySelectorAll<HTMLButtonElement>('.filter-chip').forEach((chip) => {
+      chip.disabled = false;
+      chip.removeAttribute('aria-disabled');
+    });
+    rerenderList();
+    updateBulkButton();
+    showUndoToast({
+      message: MSG.SCRAP_BULK_UNDO_TOAST(n),
+      actionLabel: MSG.DELETE_UNDO_ACTION,
+      onUndo: () => {
+        try {
+          const cur = loadBriefings();
+          const restored = cur.map((b) =>
+            snapshotIds.includes(b.id) ? { ...b, scrapped: true } : b
+          );
+          saveBriefings(restored);
+          rerenderList();
+          showToast(MSG.SCRAP_UNDO_RESTORED);
+        } catch {
+          showToast(MSG.DELETE_UNDO_FAILED);
+        }
+      },
+    });
+    return;
+  }
+
   if (!window.confirm(MSG.DELETE_CONFIRM_BULK(n))) return;
   const ids = [...selectedIds];
   const snapshot = loadAnswers().filter((a) => selectedIds.has(a.id));
@@ -76,6 +141,11 @@ function handleBulkDeleteClick(): void {
   selectMode = false;
   document.getElementById('archiveSelectToggle')?.setAttribute('aria-pressed', 'false');
   document.getElementById('archiveTab')?.classList.remove('archive--select-mode');
+  // 필터 chip 복원 (T5 신설)
+  document.querySelectorAll<HTMLButtonElement>('.filter-chip').forEach((chip) => {
+    chip.disabled = false;
+    chip.removeAttribute('aria-disabled');
+  });
   rerenderList();
   updateBulkButton();
   showUndoToast({
@@ -130,33 +200,69 @@ function handleCardDeleteClick(e: Event): void {
   if (selectMode) return;
   e.stopPropagation(); // detail 모달 진입 막기
   const card = btn.closest<HTMLElement>('.archive-card');
-  const id = card?.dataset['answerId'];
-  if (!id) return;
+  if (!card) return;
 
-  const snapshot = loadAnswers().find((a) => a.id === id);
-  if (!snapshot) return;
+  const answerId = card.dataset['answerId'];
+  if (answerId) {
+    const snapshot = loadAnswers().find((a) => a.id === answerId);
+    if (!snapshot) return;
 
-  try {
-    deleteAnswerById(id);
-  } catch (err) {
-    showToast(getSaveErrorMessage(err));
+    try {
+      deleteAnswerById(answerId);
+    } catch (err) {
+      showToast(getSaveErrorMessage(err));
+      return;
+    }
+
+    rerenderList();
+    showUndoToast({
+      message: MSG.DELETE_UNDO_TOAST,
+      actionLabel: MSG.DELETE_UNDO_ACTION,
+      onUndo: () => {
+        try {
+          saveAnswers([snapshot, ...loadAnswers()]);
+          rerenderList();
+          showToast(MSG.DELETE_UNDO_RESTORED);
+        } catch {
+          showToast(MSG.DELETE_UNDO_FAILED);
+        }
+      },
+    });
     return;
   }
 
-  rerenderList();
-  showUndoToast({
-    message: MSG.DELETE_UNDO_TOAST,
-    actionLabel: MSG.DELETE_UNDO_ACTION,
-    onUndo: () => {
-      try {
-        saveAnswers([snapshot, ...loadAnswers()]);
-        rerenderList();
-        showToast(MSG.DELETE_UNDO_RESTORED);
-      } catch {
-        showToast(MSG.DELETE_UNDO_FAILED);
-      }
-    },
-  });
+  // scrap 카드 분기 (T5 신설) — toggleScrap → SCRAP_UNDO_TOAST
+  if (card.classList.contains('archive-card--scrap')) {
+    const briefingId = card.dataset['briefingId'];
+    if (!briefingId) return;
+    const briefings = loadBriefings();
+    const idx = briefings.findIndex((b) => b.id === briefingId);
+    if (idx < 0) return;
+
+    try {
+      toggleScrap(idx);
+    } catch (err) {
+      showToast(getSaveErrorMessage(err));
+      return;
+    }
+
+    rerenderList();
+    showUndoToast({
+      message: MSG.SCRAP_UNDO_TOAST,
+      actionLabel: MSG.DELETE_UNDO_ACTION,
+      onUndo: () => {
+        try {
+          const cur = loadBriefings();
+          const i = cur.findIndex((b) => b.id === briefingId);
+          if (i >= 0 && !cur[i]!.scrapped) toggleScrap(i);
+          rerenderList();
+          showToast(MSG.SCRAP_UNDO_RESTORED);
+        } catch {
+          showToast(MSG.DELETE_UNDO_FAILED);
+        }
+      },
+    });
+  }
 }
 
 export function mountArchiveHandlers(): void {
@@ -237,7 +343,15 @@ export function rerenderList(): void {
       const summary = document.createElement('div');
       summary.className = 'archive-summary';
       summary.textContent = b.summary;
-      card.append(date, title, summary);
+
+      // ✕ 버튼 (T5 신설) — 스크랩 해제
+      const deleteBtn = document.createElement('button');
+      deleteBtn.className = 'archive-card-delete';
+      deleteBtn.type = 'button';
+      deleteBtn.setAttribute('aria-label', '스크랩 해제');
+      deleteBtn.textContent = '×';
+
+      card.append(date, title, summary, deleteBtn);
       // per-card listener 제거 — handleCardClick(delegation)이 처리
       list.append(card);
     }
