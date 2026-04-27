@@ -119,12 +119,13 @@ describe('settings delete all answers', () => {
 
     document.querySelector<HTMLButtonElement>('#deleteAllAnswersBtn')!.click();
 
-    // 답변 잔존 + 에러 토스트 표시
+    // 답변 잔존 + 에러 토스트 정확 메시지 + Undo 토스트 미표출
     const { loadAnswers } = await import('../src/state/persistence');
+    const { MSG } = await import('../src/ui/messages');
     expect(loadAnswers()).toHaveLength(2);
-    // 토스트 컨테이너에 텍스트가 들어가있어야
     const toastText = document.getElementById('toastContainer')?.textContent ?? '';
-    expect(toastText.length).toBeGreaterThan(0);
+    expect(toastText).toContain(MSG.SAVE_QUOTA_EXCEEDED);
+    expect(document.querySelector('.toast--undo')).toBeNull();
 
     setItemSpy.mockRestore();
   });

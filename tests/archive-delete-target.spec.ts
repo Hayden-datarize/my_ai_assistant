@@ -147,6 +147,7 @@ describe('archive target delete', () => {
     document.body.appendChild(container);
     const tab = await import('../src/ui/tabs/archive');
     const handlers = await import('../src/ui/handlers/archive');
+    const { MSG } = await import('../src/ui/messages');
     tab.renderArchive(container);
     handlers.mountArchiveHandlers();
 
@@ -159,11 +160,11 @@ describe('archive target delete', () => {
 
     document.querySelector<HTMLButtonElement>('.archive-card-delete')!.click();
 
-    // 카드 잔존 + 에러 토스트 표시
+    // 카드 잔존 + 에러 토스트 정확 메시지 + Undo 토스트 미표출
     expect(document.querySelector('.archive-card[data-answer-id="a"]')).not.toBeNull();
-    // 토스트 컨테이너에 텍스트가 들어가있어야 (메시지 정확 일치는 검증 어렵지만 길이 0 이상)
     const toastText = document.getElementById('toastContainer')?.textContent ?? '';
-    expect(toastText.length).toBeGreaterThan(0);
+    expect(toastText).toContain(MSG.SAVE_QUOTA_EXCEEDED);
+    expect(document.querySelector('.toast--undo')).toBeNull();
 
     setItemSpy.mockRestore();
   });
