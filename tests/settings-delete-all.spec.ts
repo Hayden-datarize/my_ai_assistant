@@ -76,4 +76,29 @@ describe('settings delete all answers', () => {
     const { loadAnswers } = await import('../src/state/persistence');
     expect(loadAnswers()).toHaveLength(2);
   });
+
+  it('Undo 클릭 시 atomic single write로 복원하고 DELETE_UNDO_RESTORED 토스트를 표시한다', async () => {
+    saveAnswers([
+      { id: 'a', text: 'one', date: '2026-04-27' },
+      { id: 'b', text: 'two', date: '2026-04-27' },
+      { id: 'c', text: 'three', date: '2026-04-27' },
+    ] as never);
+    await mountSettings();
+    vi.spyOn(window, 'confirm').mockReturnValue(true);
+
+    document.querySelector<HTMLButtonElement>('#deleteAllAnswersBtn')!.click();
+
+    const setItemSpy = vi.spyOn(Storage.prototype, 'setItem');
+
+    document.querySelector<HTMLButtonElement>('.toast--undo button')!.click();
+
+    // atomic: dg.answers setItem 1회만 (saveAnswers(snapshot))
+    const calls = setItemSpy.mock.calls.filter(([k]) => k === 'dg.answers');
+    expect(calls).toHaveLength(1);
+
+    const { MSG } = await import('../src/ui/messages');
+    expect(document.body.textContent).toContain(MSG.DELETE_UNDO_RESTORED);
+
+    setItemSpy.mockRestore();
+  });
 });

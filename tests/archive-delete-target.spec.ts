@@ -76,6 +76,40 @@ describe('archive target delete', () => {
     expect(loadAnswers()[0]?.id).toBe('a');
   });
 
+  it('Undo 클릭 시 atomic single write로 복원하고 DELETE_UNDO_RESTORED 토스트를 표시한다', async () => {
+    saveAnswers([
+      { id: 'a', questionId: 'q1', text: 'one', authorId: 'self', createdAt: '2026-04-27T00:00:00.000Z', schemaVersion: 1, date: '2026-04-27' },
+    ] as never);
+
+    const container = document.createElement('div');
+    container.id = 'archiveTab';
+    document.body.appendChild(container);
+
+    const tab = await import('../src/ui/tabs/archive');
+    const handlers = await import('../src/ui/handlers/archive');
+    tab.renderArchive(container);
+    handlers.mountArchiveHandlers();
+
+    // 단건 ✕ 클릭
+    document.querySelector<HTMLButtonElement>('.archive-card-delete')!.click();
+
+    // setItem 호출 카운트는 Undo 시점부터 측정
+    const setItemSpy = vi.spyOn(Storage.prototype, 'setItem');
+
+    // Undo 클릭
+    document.querySelector<HTMLButtonElement>('.toast--undo button')!.click();
+
+    // atomic: dg.answers setItem 1회만 (saveAnswers([...current, snapshot]))
+    const calls = setItemSpy.mock.calls.filter(([k]) => k === 'dg.answers');
+    expect(calls).toHaveLength(1);
+
+    // DELETE_UNDO_RESTORED 토스트 표시
+    const { MSG } = await import('../src/ui/messages');
+    expect(document.body.textContent).toContain(MSG.DELETE_UNDO_RESTORED);
+
+    setItemSpy.mockRestore();
+  });
+
   it('shows error toast and keeps card on storage throw', async () => {
     saveAnswers([
       { id: 'a', questionId: 'q1', text: 'one', authorId: 'self', createdAt: '2026-04-27T00:00:00.000Z', schemaVersion: 1, date: '2026-04-27' },

@@ -5,7 +5,7 @@
  */
 
 import { on } from '../events';
-import { loadAnswers, appendAnswer, deleteAnswerById, deleteAnswersByIds } from '../../state/persistence';
+import { loadAnswers, saveAnswers, deleteAnswerById, deleteAnswersByIds } from '../../state/persistence';
 import { loadBriefings } from '../../state/briefings';
 import { openModal, closeModal } from '../modals/shared';
 import { escapeHtml } from '../../utils/escapeHtml';
@@ -83,8 +83,9 @@ function handleBulkDeleteClick(): void {
     actionLabel: MSG.DELETE_UNDO_ACTION,
     onUndo: () => {
       try {
-        snapshot.forEach((a) => appendAnswer(a));
+        saveAnswers([...loadAnswers(), ...snapshot]);
         rerenderList();
+        showToast(MSG.DELETE_UNDO_RESTORED);
       } catch {
         showToast(MSG.DELETE_UNDO_FAILED);
       }
@@ -142,8 +143,9 @@ function handleCardDeleteClick(e: Event): void {
     actionLabel: MSG.DELETE_UNDO_ACTION,
     onUndo: () => {
       try {
-        appendAnswer(snapshot);
+        saveAnswers([...loadAnswers(), snapshot]);
         rerenderList();
+        showToast(MSG.DELETE_UNDO_RESTORED);
       } catch {
         showToast(MSG.DELETE_UNDO_FAILED);
       }

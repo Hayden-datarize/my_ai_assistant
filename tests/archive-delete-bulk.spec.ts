@@ -97,6 +97,28 @@ describe('archive bulk delete', () => {
     expect(loadAnswers()).toHaveLength(3);
   });
 
+  it('Undo 클릭 시 atomic single write로 복원하고 DELETE_UNDO_RESTORED 토스트를 표시한다', async () => {
+    await setupArchive();
+    vi.spyOn(window, 'confirm').mockReturnValue(true);
+    document.querySelector<HTMLButtonElement>('#archiveSelectToggle')!.click();
+    document.querySelector<HTMLElement>('.archive-card[data-answer-id="a"]')!.click();
+    document.querySelector<HTMLElement>('.archive-card[data-answer-id="b"]')!.click();
+    document.querySelector<HTMLButtonElement>('#archiveBulkDelete')!.click();
+
+    const setItemSpy = vi.spyOn(Storage.prototype, 'setItem');
+
+    document.querySelector<HTMLButtonElement>('.toast--undo button')!.click();
+
+    // atomic: dg.answers setItem 1회만 (saveAnswers([...current, ...snapshot]))
+    const calls = setItemSpy.mock.calls.filter(([k]) => k === 'dg.answers');
+    expect(calls).toHaveLength(1);
+
+    const { MSG } = await import('../src/ui/messages');
+    expect(document.body.textContent).toContain(MSG.DELETE_UNDO_RESTORED);
+
+    setItemSpy.mockRestore();
+  });
+
   // P1-1 review fix: ✕ click in select mode must be no-op (defense in depth — CSS hide + JS guard)
   it('ignores ✕ click in select mode (no confirm-less single delete)', async () => {
     await setupArchive();
