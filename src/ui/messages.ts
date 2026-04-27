@@ -26,7 +26,7 @@ export const MSG = {
   DELETE_CONFIRM_ALL: (n: number) =>
     `archive 답변 ${n}개를 모두 삭제할까요?\n5초 안에 되돌릴 수 있어요.`,
   DELETE_UNDO_TOAST: '삭제되었어요.',
-  DELETE_UNDO_ACTION: '되돌리기.',
+  DELETE_UNDO_ACTION: '되돌리기',
   DELETE_UNDO_RESTORED: '복원되었어요.',
   DELETE_UNDO_FAILED: '복원 실패했어요.',
 } as const;
