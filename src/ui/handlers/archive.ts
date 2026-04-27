@@ -113,7 +113,13 @@ function handleCardClick(e: Event): void {
     return;
   }
 
-  // briefing 카드는 data-answer-id 없음 — per-card listener가 처리하도록 여기서는 무시
+  // scrap 카드 분기 (T4 신설) — data-briefing-id 기반 delegation
+  if (card.classList.contains('archive-card--scrap')) {
+    const briefingId = card.dataset['briefingId'];
+    const briefing = loadBriefings().find((b) => b.id === briefingId);
+    if (briefing) showArchiveDetail({ kind: 'briefing', briefing });
+    return;
+  }
 }
 
 function handleCardDeleteClick(e: Event): void {
@@ -219,7 +225,9 @@ export function rerenderList(): void {
     }
     for (const b of scrapped) {
       const card = document.createElement('article');
-      card.className = 'archive-card';
+      card.className = 'archive-card archive-card--scrap';
+      card.dataset['briefingId'] = b.id;
+
       const date = document.createElement('div');
       date.className = 'archive-date';
       date.textContent = b.date;
@@ -230,7 +238,7 @@ export function rerenderList(): void {
       summary.className = 'archive-summary';
       summary.textContent = b.summary;
       card.append(date, title, summary);
-      card.addEventListener('click', () => showArchiveDetail({ kind: 'briefing', briefing: b }));
+      // per-card listener 제거 — handleCardClick(delegation)이 처리
       list.append(card);
     }
     return;
