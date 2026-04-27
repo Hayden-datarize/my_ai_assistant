@@ -17,6 +17,8 @@ export const MSG = {
   DEMO_API_KEY_PROMPT: 'AI 응답을 받으려면 API 키를 등록해 주세요.',
   INTERESTS_UPDATED: '관심 분야가 업데이트되었어요.',
   ANSWER_SAVED: '답변이 저장되었어요.',
+  SAVE_FAILED: '❌ 저장하지 못했어요. 잠시 후 다시 시도해 주세요.',
+  SAVE_QUOTA_EXCEEDED: '❌ 저장 공간이 가득 찼어요. 설정에서 번역 캐시를 초기화해 주세요.',
   partialTranslateFail: (count: number): string =>
     `일부 카드 번역에 실패했어요 (${count}건). 잠시 후 다시 시도해 주세요.`,
 } as const;
