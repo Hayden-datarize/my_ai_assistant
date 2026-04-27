@@ -5,7 +5,7 @@
  */
 
 import { on } from '../events';
-import { loadAnswers, appendAnswer, deleteAnswerById } from '../../state/persistence';
+import { loadAnswers, appendAnswer, deleteAnswerById, deleteAnswersByIds } from '../../state/persistence';
 import { loadBriefings } from '../../state/briefings';
 import { openModal, closeModal } from '../modals/shared';
 import { escapeHtml } from '../../utils/escapeHtml';
@@ -16,6 +16,104 @@ import { MSG } from '../messages';
 
 let currentFilter = 'all';
 let currentQuery = '';
+
+// 선택 모드 상태
+const selectedIds = new Set<string>();
+let selectMode = false;
+
+function updateBulkButton(): void {
+  const bulk = document.getElementById('archiveBulkDelete') as HTMLButtonElement | null;
+  if (!bulk) return;
+  bulk.disabled = selectedIds.size === 0;
+  bulk.textContent = `선택 항목 삭제 (${selectedIds.size})`;
+}
+
+function handleCardClickInSelectMode(e: Event): void {
+  const card = (e.target as HTMLElement).closest<HTMLElement>('.archive-card');
+  if (!card) return;
+  // ✕ 버튼 클릭 시 선택 모드 토글 건너뜀 — document-level 핸들러가 처리
+  if ((e.target as HTMLElement).closest('.archive-card-delete')) return;
+  e.stopPropagation();
+  const id = card.dataset['answerId'];
+  if (!id) return;
+  if (selectedIds.has(id)) {
+    selectedIds.delete(id);
+    card.classList.remove('selected');
+  } else {
+    selectedIds.add(id);
+    card.classList.add('selected');
+  }
+  updateBulkButton();
+}
+
+function handleSelectToggle(): void {
+  selectMode = !selectMode;
+  const toggle = document.getElementById('archiveSelectToggle');
+  toggle?.setAttribute('aria-pressed', String(selectMode));
+  document.getElementById('archiveTab')?.classList.toggle('archive--select-mode', selectMode);
+  if (!selectMode) {
+    selectedIds.clear();
+    document.querySelectorAll('.archive-card.selected').forEach((c) =>
+      c.classList.remove('selected')
+    );
+  }
+  updateBulkButton();
+}
+
+function handleBulkDeleteClick(): void {
+  const n = selectedIds.size;
+  if (n === 0) return;
+  if (!window.confirm(MSG.DELETE_CONFIRM_BULK(n))) return;
+  const ids = [...selectedIds];
+  const snapshot = loadAnswers().filter((a) => selectedIds.has(a.id));
+  try {
+    deleteAnswersByIds(ids);
+  } catch (err) {
+    showToast(getSaveErrorMessage(err));
+    return;
+  }
+  selectedIds.clear();
+  selectMode = false;
+  document.getElementById('archiveSelectToggle')?.setAttribute('aria-pressed', 'false');
+  document.getElementById('archiveTab')?.classList.remove('archive--select-mode');
+  rerenderList();
+  updateBulkButton();
+  showUndoToast({
+    message: MSG.DELETE_UNDO_TOAST,
+    actionLabel: MSG.DELETE_UNDO_ACTION,
+    onUndo: () => {
+      try {
+        snapshot.forEach((a) => appendAnswer(a));
+        rerenderList();
+      } catch {
+        showToast(MSG.DELETE_UNDO_FAILED);
+      }
+    },
+  });
+}
+
+/** 카드 클릭 — 이벤트 위임 (populateList + rerenderList 모두 커버) */
+function handleCardClick(e: Event): void {
+  // ✕ 버튼은 handleCardDeleteClick에서 처리
+  if ((e.target as HTMLElement).closest('.archive-card-delete')) return;
+
+  const card = (e.target as HTMLElement).closest<HTMLElement>('.archive-card');
+  if (!card) return;
+
+  if (selectMode) {
+    handleCardClickInSelectMode(e);
+    return;
+  }
+
+  const id = card.dataset['answerId'];
+  if (id) {
+    const answer = loadAnswers().find((a) => a.id === id);
+    if (answer) showArchiveDetail({ kind: 'answer', answer });
+    return;
+  }
+
+  // briefing 카드는 data-answer-id 없음 — per-card listener가 처리하도록 여기서는 무시
+}
 
 function handleCardDeleteClick(e: Event): void {
   const btn = (e.target as HTMLElement).closest<HTMLButtonElement>('.archive-card-delete');
@@ -53,6 +151,19 @@ function handleCardDeleteClick(e: Event): void {
 export function mountArchiveHandlers(): void {
   // archive 카드 ✕ 버튼 클릭 — 이벤트 위임
   document.addEventListener('click', handleCardDeleteClick);
+
+  // archive 카드 클릭 — 이벤트 위임 (선택 모드 + detail 모달)
+  document.addEventListener('click', handleCardClick);
+
+  // 선택 모드 토글 버튼 — 이벤트 위임 (archive 탭 렌더 전에 mount되므로)
+  document.addEventListener('click', (e) => {
+    if ((e.target as HTMLElement).closest('#archiveSelectToggle')) handleSelectToggle();
+  });
+
+  // 벌크 삭제 버튼 — 이벤트 위임
+  document.addEventListener('click', (e) => {
+    if ((e.target as HTMLElement).closest('#archiveBulkDelete')) handleBulkDeleteClick();
+  });
 
   on('dg:archive:filter', ({ filter }) => {
     currentFilter = filter;
@@ -156,10 +267,7 @@ export function rerenderList(): void {
       tag.textContent = toKoType(a.type);
       card.append(tag);
     }
-    card.addEventListener('click', (e) => {
-      if ((e.target as HTMLElement).closest('.archive-card-delete')) return;
-      showArchiveDetail({ kind: 'answer', answer: a });
-    });
+    // 카드 클릭은 document-level 이벤트 위임(handleCardClick)이 처리
     list.append(card);
   }
 }

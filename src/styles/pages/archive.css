@@ -79,3 +79,35 @@
   border: 1px solid var(--border); background: var(--bg-card);
   font-size: 0.8rem; color: var(--text-primary); font-family: var(--font-body);
 }
+
+/* Archive header row — heading + select-mode action buttons */
+.archive-header-row {
+  display: flex; align-items: center; justify-content: space-between;
+  flex-wrap: wrap; gap: 8px; margin-bottom: 4px;
+}
+.archive-header-actions {
+  display: flex; gap: 8px; align-items: center;
+}
+.archive-header-actions button {
+  padding: 4px 12px; border-radius: var(--radius-sm);
+  border: 1px solid var(--border); background: var(--bg-card);
+  color: var(--text-primary); font-size: 0.8rem; cursor: pointer;
+  font-family: var(--font-body);
+}
+.archive-header-actions button:disabled {
+  opacity: 0.4; cursor: default;
+}
+
+/* Select mode — hide ✕ buttons, highlight selected cards */
+.archive--select-mode .archive-card-delete {
+  display: none;
+}
+
+.archive--select-mode .archive-card {
+  cursor: pointer;
+}
+
+.archive--select-mode .archive-card.selected {
+  outline: 2px solid var(--primary, #2563eb);
+  outline-offset: -2px;
+}
