@@ -1,12 +1,14 @@
 import { loadSlackSettings, saveSlackSettings, clearSlackSettings } from '../../state/slack';
 import { sendToSlack, buildAnswerBlocks } from '../../services/slack';
-import { showToast } from '../../utils/toast';
+import { showToast, showUndoToast } from '../../utils/toast';
 import { INTERESTS } from '../../utils/categories';
 import { getCap, setCap, getTodayCount } from '../../state/usage';
 import { clearAllTranslations } from '../../state/briefings';
 import { resetToastDedup } from '../translateToast';
 import { clearSessionBlock } from '../../services/translate';
 import { MSG } from '../messages';
+import { loadAnswers, deleteAllAnswers, appendAnswer } from '../../state/persistence';
+import { getSaveErrorMessage } from '../../state/user';
 
 const STORAGE_KEY_APIKEY = 'dg_gemini_key'; // legacy storage key — preserved for cutover compat
 const USER_STORAGE = 'user';
@@ -77,16 +79,21 @@ export function renderSettings(container: HTMLElement): void {
           <p style="font-size:0.8rem;color:var(--text-secondary);margin-top:8px;">※ 이 Webhook URL은 이 브라우저에만 저장됩니다.</p>
         </details>
       </section>
+      <section class="settings-group">
+        <div class="settings-group-title">데이터 삭제</div>
+        <p class="settings-help" style="font-size:0.85rem;color:var(--text-secondary);margin-bottom:12px;">archive 답변을 모두 삭제해요. 삭제 후 5초 안에 되돌릴 수 있어요.</p>
+        <button id="deleteAllAnswersBtn" type="button" class="btn btn-secondary btn-block" disabled>
+          전체 답변 초기화
+        </button>
+      </section>
     </div>
   `;
-  bindHandlers(container);
+  // Track this container before bindHandlers so it can be used via currentSettingsContainer.
+  currentSettingsContainer = container;
+  bindHandlers();
   bindSlackHandlers(container);
   bindInterestsHandlers(container);
   wireTranslateSection(container);
-
-  // Track this container as the current target for the module-level
-  // dg:interests:changed listener (see top of file).
-  currentSettingsContainer = container;
 }
 
 function wireTranslateSection(container: HTMLElement): void {
@@ -117,9 +124,46 @@ function wireTranslateSection(container: HTMLElement): void {
   refresh();
 }
 
-function bindHandlers(container: HTMLElement): void {
+export function bindHandlers(): void {
+  const container = currentSettingsContainer;
+  if (!container) return;
+
   const saveBtn = container.querySelector<HTMLButtonElement>('#saveApiKeyBtn');
   if (saveBtn) saveBtn.addEventListener('click', () => onSaveKey(container));
+
+  const deleteAllBtn = container.querySelector<HTMLButtonElement>('#deleteAllAnswersBtn');
+  if (deleteAllBtn) {
+    const refresh = () => {
+      deleteAllBtn.disabled = loadAnswers().length === 0;
+    };
+    refresh();
+
+    deleteAllBtn.addEventListener('click', () => {
+      const n = loadAnswers().length;
+      if (n === 0) return;
+      if (!window.confirm(MSG.DELETE_CONFIRM_ALL(n))) return;
+      const snapshot = loadAnswers();
+      try {
+        deleteAllAnswers();
+      } catch (err) {
+        showToast(getSaveErrorMessage(err));
+        return;
+      }
+      refresh();
+      showUndoToast({
+        message: MSG.DELETE_UNDO_TOAST,
+        actionLabel: MSG.DELETE_UNDO_ACTION,
+        onUndo: () => {
+          try {
+            snapshot.forEach((a) => appendAnswer(a));
+            refresh();
+          } catch (_err) {
+            showToast(MSG.DELETE_UNDO_FAILED);
+          }
+        },
+      });
+    });
+  }
 }
 
 function renderCurrentInterests(container: HTMLElement): void {
