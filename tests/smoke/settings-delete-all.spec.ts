@@ -36,10 +36,10 @@ test('settings 전체 답변 초기화 + undo 복원', async ({ page }) => {
   // JavaScript click to bypass pointer-interception by the nav overlay.
   await page.locator('#deleteAllAnswersBtn').scrollIntoViewIfNeeded();
   await page.locator('#deleteAllAnswersBtn').evaluate((el: HTMLButtonElement) => el.click());
-  await expect(page.locator('.dg-toast--undo')).toBeVisible();
+  await expect(page.locator('.toast--undo')).toBeVisible();
   await page.locator('#bottomNav button[data-tab-id="archive"]').click();
   await expect(page.locator('.archive-card')).toHaveCount(0);
-  await page.click('.dg-toast--undo button');
+  await page.click('.toast--undo button');
   await page.locator('#bottomNav button[data-tab-id="archive"]').click();
   await expect(page.locator('.archive-card')).toHaveCount(2);
 });

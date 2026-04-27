@@ -47,7 +47,7 @@ describe('archive target delete', () => {
     const { loadAnswers } = await import('../src/state/persistence');
     expect(loadAnswers()).toHaveLength(1);
     expect(loadAnswers()[0]?.id).toBe('b');
-    expect(document.querySelector('.dg-toast--undo')).not.toBeNull();
+    expect(document.querySelector('.toast--undo')).not.toBeNull();
   });
 
   it('restores answer when undo clicked within 5s', async () => {
@@ -68,7 +68,7 @@ describe('archive target delete', () => {
       .querySelector<HTMLButtonElement>('.archive-card-delete')!
       .click();
     document
-      .querySelector<HTMLButtonElement>('.dg-toast--undo button')!
+      .querySelector<HTMLButtonElement>('.toast--undo button')!
       .click();
 
     const { loadAnswers } = await import('../src/state/persistence');
@@ -99,7 +99,7 @@ describe('archive target delete', () => {
     // 카드가 DOM에 남아 있어야 함 (delete 실패)
     expect(document.querySelector('.archive-card[data-answer-id="a"]')).not.toBeNull();
     // undo 토스트는 뜨면 안 됨
-    expect(document.querySelector('.dg-toast--undo')).toBeNull();
+    expect(document.querySelector('.toast--undo')).toBeNull();
     setItem.mockRestore();
   });
 });

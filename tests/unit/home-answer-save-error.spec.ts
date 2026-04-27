@@ -27,7 +27,7 @@ describe('home — applyAnswerActivity 에러 처리', () => {
     const { applyAnswerActivity } = await import('../../src/ui/handlers/home');
     applyAnswerActivity({ ...user });
 
-    const toast = document.querySelector('.dg-toast');
+    const toast = document.querySelector('.toast');
     expect(toast?.textContent).toContain('저장 공간이 가득 찼어요');
   });
 
@@ -45,7 +45,7 @@ describe('home — applyAnswerActivity 에러 처리', () => {
     const { applyAnswerActivity } = await import('../../src/ui/handlers/home');
     applyAnswerActivity({ ...user });
 
-    const toast = document.querySelector('.dg-toast');
+    const toast = document.querySelector('.toast');
     expect(toast?.textContent).toContain('저장하지 못했어요');
   });
 

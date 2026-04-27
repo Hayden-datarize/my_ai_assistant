@@ -28,10 +28,10 @@ it('does X', async () => {
 await new Promise((r) => setTimeout(r, 100));
 
 // ✅ vitest
-await vi.waitFor(() => expect(document.querySelector('.dg-toast')).not.toBeNull());
+await vi.waitFor(() => expect(document.querySelector('.toast')).not.toBeNull());
 
 // ✅ Playwright
-await expect.poll(() => page.locator('.dg-toast').count()).toBeGreaterThan(0);
+await expect.poll(() => page.locator('.toast').count()).toBeGreaterThan(0);
 ```
 
 예외: `vi.useFakeTimers()` + `vi.advanceTimersByTime(N)`로 의도적 timer 검증은 OK.

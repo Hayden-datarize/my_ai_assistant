@@ -115,6 +115,6 @@ test('settings: toast on save', async ({ page }) => {
 
   await page.click('#saveInterestsBtn');
 
-  const toast = page.locator('.dg-toast', { hasText: '관심 분야가 업데이트' }).first();
+  const toast = page.locator('.toast', { hasText: '관심 분야가 업데이트' }).first();
   await expect(toast).toBeVisible({ timeout: 3000 });
 });

@@ -69,7 +69,7 @@ describe('archive bulk delete', () => {
 
     const { loadAnswers } = await import('../src/state/persistence');
     expect(loadAnswers().map((a) => a.id)).toEqual(['b']);
-    expect(document.querySelector('.dg-toast--undo')).not.toBeNull();
+    expect(document.querySelector('.toast--undo')).not.toBeNull();
   });
 
   it('cancels confirm leaves answers untouched', async () => {
@@ -81,7 +81,7 @@ describe('archive bulk delete', () => {
 
     const { loadAnswers } = await import('../src/state/persistence');
     expect(loadAnswers()).toHaveLength(3);
-    expect(document.querySelector('.dg-toast--undo')).toBeNull();
+    expect(document.querySelector('.toast--undo')).toBeNull();
   });
 
   it('undo restores all deleted answers', async () => {
@@ -91,7 +91,7 @@ describe('archive bulk delete', () => {
     document.querySelector<HTMLElement>('.archive-card[data-answer-id="a"]')!.click();
     document.querySelector<HTMLElement>('.archive-card[data-answer-id="b"]')!.click();
     document.querySelector<HTMLButtonElement>('#archiveBulkDelete')!.click();
-    document.querySelector<HTMLButtonElement>('.dg-toast--undo button')!.click();
+    document.querySelector<HTMLButtonElement>('.toast--undo button')!.click();
 
     const { loadAnswers } = await import('../src/state/persistence');
     expect(loadAnswers()).toHaveLength(3);
@@ -112,7 +112,7 @@ describe('archive bulk delete', () => {
     // 가드 통과: 답변 그대로 + undo 토스트 안 뜸 + 선택 상태 유지 (selectedIds → CSS .selected)
     const { loadAnswers } = await import('../src/state/persistence');
     expect(loadAnswers()).toHaveLength(3);
-    expect(document.querySelector('.dg-toast--undo')).toBeNull();
+    expect(document.querySelector('.toast--undo')).toBeNull();
     expect(
       document.querySelector('.archive-card[data-answer-id="a"]')?.classList.contains('selected')
     ).toBe(true);

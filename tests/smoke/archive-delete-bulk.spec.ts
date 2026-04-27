@@ -28,7 +28,7 @@ test('선택 모드에서 다건 선택 + 벌크 삭제 + undo 복원', async ({
   await expect(page.locator('.archive-card[data-answer-id="e1"]')).toHaveCount(0);
   await expect(page.locator('.archive-card[data-answer-id="e3"]')).toHaveCount(0);
   await expect(page.locator('.archive-card[data-answer-id="e2"]')).toBeVisible();
-  await page.click('.dg-toast--undo button');
+  await page.click('.toast--undo button');
   await expect(page.locator('.archive-card[data-answer-id="e1"]')).toBeVisible();
 });
 

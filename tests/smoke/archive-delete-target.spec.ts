@@ -38,10 +38,10 @@ test('archive 카드 ✕로 답변 삭제 후 undo로 복원', async ({ page }) 
   await expect(page.locator('.archive-card[data-answer-id="e2e-a"]')).toHaveCount(0);
 
   // undo 토스트가 떴는지 확인
-  await expect(page.locator('.dg-toast--undo')).toBeVisible();
+  await expect(page.locator('.toast--undo')).toBeVisible();
 
   // undo 버튼 클릭 → 복원
-  await page.click('.dg-toast--undo button');
+  await page.click('.toast--undo button');
 
   // 카드가 다시 나타나는지 확인
   await expect(page.locator('.archive-card[data-answer-id="e2e-a"]')).toBeVisible();

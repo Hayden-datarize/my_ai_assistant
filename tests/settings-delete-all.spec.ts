@@ -40,7 +40,7 @@ describe('settings delete all answers', () => {
     expect(confirmSpy.mock.calls[0]?.[0]).toContain('2개');
     const { loadAnswers } = await import('../src/state/persistence');
     expect(loadAnswers()).toEqual([]);
-    expect(document.querySelector('.dg-toast--undo')).not.toBeNull();
+    expect(document.querySelector('.toast--undo')).not.toBeNull();
   });
 
   it('cancel keeps answers untouched', async () => {
@@ -52,7 +52,7 @@ describe('settings delete all answers', () => {
 
     const { loadAnswers } = await import('../src/state/persistence');
     expect(loadAnswers()).toHaveLength(1);
-    expect(document.querySelector('.dg-toast--undo')).toBeNull();
+    expect(document.querySelector('.toast--undo')).toBeNull();
   });
 
   it('disables button when no answers', async () => {
@@ -71,7 +71,7 @@ describe('settings delete all answers', () => {
     vi.spyOn(window, 'confirm').mockReturnValue(true);
 
     document.querySelector<HTMLButtonElement>('#deleteAllAnswersBtn')!.click();
-    document.querySelector<HTMLButtonElement>('.dg-toast--undo button')!.click();
+    document.querySelector<HTMLButtonElement>('.toast--undo button')!.click();
 
     const { loadAnswers } = await import('../src/state/persistence');
     expect(loadAnswers()).toHaveLength(2);
