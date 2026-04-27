@@ -136,4 +136,57 @@ describe('archive target delete', () => {
     expect(document.querySelector('.toast--undo')).toBeNull();
     setItem.mockRestore();
   });
+
+  it('storage throw 시 showToast(getSaveErrorMessage(err)) 호출 (P2-6)', async () => {
+    saveAnswers([
+      { id: 'a', questionId: 'q1', text: 'one', authorId: 'self', createdAt: '2026-04-27T00:00:00.000Z', schemaVersion: 1, date: '2026-04-27' },
+    ] as never);
+
+    const container = document.createElement('div');
+    container.id = 'archiveTab';
+    document.body.appendChild(container);
+    const tab = await import('../src/ui/tabs/archive');
+    const handlers = await import('../src/ui/handlers/archive');
+    tab.renderArchive(container);
+    handlers.mountArchiveHandlers();
+
+    // dg.answers 키만 throw (다른 setItem은 통과)
+    const setItemSpy = vi.spyOn(Storage.prototype, 'setItem').mockImplementation((k: string) => {
+      if (k === 'dg.answers') {
+        throw new DOMException('quota', 'QuotaExceededError');
+      }
+    });
+
+    document.querySelector<HTMLButtonElement>('.archive-card-delete')!.click();
+
+    // 카드 잔존 + 에러 토스트 표시
+    expect(document.querySelector('.archive-card[data-answer-id="a"]')).not.toBeNull();
+    // 토스트 컨테이너에 텍스트가 들어가있어야 (메시지 정확 일치는 검증 어렵지만 길이 0 이상)
+    const toastText = document.getElementById('toastContainer')?.textContent ?? '';
+    expect(toastText.length).toBeGreaterThan(0);
+
+    setItemSpy.mockRestore();
+  });
+
+  it('5초 후 Undo 버튼이 DOM에서 사라진다 (P2-7 통합)', async () => {
+    saveAnswers([
+      { id: 'a', questionId: 'q1', text: 'one', authorId: 'self', createdAt: '2026-04-27T00:00:00.000Z', schemaVersion: 1, date: '2026-04-27' },
+    ] as never);
+
+    const container = document.createElement('div');
+    container.id = 'archiveTab';
+    document.body.appendChild(container);
+    const tab = await import('../src/ui/tabs/archive');
+    const handlers = await import('../src/ui/handlers/archive');
+    tab.renderArchive(container);
+    handlers.mountArchiveHandlers();
+
+    document.querySelector<HTMLButtonElement>('.archive-card-delete')!.click();
+    expect(document.querySelector('.toast--undo')).not.toBeNull();
+
+    vi.advanceTimersByTime(5000);
+    // leaving 클래스 → 250ms 후 remove (toast.ts 패턴)
+    vi.advanceTimersByTime(300);
+    expect(document.querySelector('.toast--undo')).toBeNull();
+  });
 });

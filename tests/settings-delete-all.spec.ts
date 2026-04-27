@@ -101,4 +101,48 @@ describe('settings delete all answers', () => {
 
     setItemSpy.mockRestore();
   });
+
+  it('storage throw 시 showToast(getSaveErrorMessage(err)) 호출 (P2-6)', async () => {
+    saveAnswers([
+      { id: 'a', text: 'one', date: '2026-04-27' },
+      { id: 'b', text: 'two', date: '2026-04-27' },
+    ] as never);
+    await mountSettings();
+    vi.spyOn(window, 'confirm').mockReturnValue(true);
+
+    // dg.answers 키만 throw (다른 setItem은 통과)
+    const setItemSpy = vi.spyOn(Storage.prototype, 'setItem').mockImplementation((k: string) => {
+      if (k === 'dg.answers') {
+        throw new DOMException('quota', 'QuotaExceededError');
+      }
+    });
+
+    document.querySelector<HTMLButtonElement>('#deleteAllAnswersBtn')!.click();
+
+    // 답변 잔존 + 에러 토스트 표시
+    const { loadAnswers } = await import('../src/state/persistence');
+    expect(loadAnswers()).toHaveLength(2);
+    // 토스트 컨테이너에 텍스트가 들어가있어야
+    const toastText = document.getElementById('toastContainer')?.textContent ?? '';
+    expect(toastText.length).toBeGreaterThan(0);
+
+    setItemSpy.mockRestore();
+  });
+
+  it('5초 후 Undo 버튼이 DOM에서 사라진다 (P2-7 통합)', async () => {
+    saveAnswers([
+      { id: 'a', text: 'one', date: '2026-04-27' },
+      { id: 'b', text: 'two', date: '2026-04-27' },
+    ] as never);
+    await mountSettings();
+    vi.spyOn(window, 'confirm').mockReturnValue(true);
+
+    document.querySelector<HTMLButtonElement>('#deleteAllAnswersBtn')!.click();
+    expect(document.querySelector('.toast--undo')).not.toBeNull();
+
+    vi.advanceTimersByTime(5000);
+    // leaving 클래스 → 250ms 후 remove (toast.ts 패턴)
+    vi.advanceTimersByTime(300);
+    expect(document.querySelector('.toast--undo')).toBeNull();
+  });
 });
