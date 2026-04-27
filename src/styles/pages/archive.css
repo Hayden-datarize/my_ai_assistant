@@ -45,6 +45,22 @@
   margin-top: 6px;
 }
 
+/* Archive Card — v3.8 */
+.archive-card { position: relative; }
+.archive-card-delete {
+  position: absolute;
+  top: 8px;
+  right: 8px;
+  background: transparent;
+  border: 0;
+  cursor: pointer;
+  font-size: 1.1rem;
+  color: var(--text-tertiary);
+  line-height: 1;
+  padding: 2px 4px;
+}
+.archive-card-delete:hover { color: var(--text-primary); }
+
 /* Archive Search */
 .archive-search-wrap { position: relative; margin-bottom: 12px; }
 .archive-search {

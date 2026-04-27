@@ -5,17 +5,55 @@
  */
 
 import { on } from '../events';
-import { loadAnswers } from '../../state/persistence';
+import { loadAnswers, appendAnswer, deleteAnswerById } from '../../state/persistence';
 import { loadBriefings } from '../../state/briefings';
 import { openModal, closeModal } from '../modals/shared';
 import { escapeHtml } from '../../utils/escapeHtml';
-import { showToast } from '../../utils/toast';
+import { showToast, showUndoToast } from '../../utils/toast';
 import { toKoType } from '../../utils/typeLabel';
+import { getSaveErrorMessage } from '../../state/user';
+import { MSG } from '../messages';
 
 let currentFilter = 'all';
 let currentQuery = '';
 
+function handleCardDeleteClick(e: Event): void {
+  const btn = (e.target as HTMLElement).closest<HTMLButtonElement>('.archive-card-delete');
+  if (!btn) return;
+  e.stopPropagation(); // detail 모달 진입 막기
+  const card = btn.closest<HTMLElement>('.archive-card');
+  const id = card?.dataset['answerId'];
+  if (!id) return;
+
+  const snapshot = loadAnswers().find((a) => a.id === id);
+  if (!snapshot) return;
+
+  try {
+    deleteAnswerById(id);
+  } catch (err) {
+    showToast(getSaveErrorMessage(err));
+    return;
+  }
+
+  rerenderList();
+  showUndoToast({
+    message: MSG.DELETE_UNDO_TOAST,
+    actionLabel: MSG.DELETE_UNDO_ACTION,
+    onUndo: () => {
+      try {
+        appendAnswer(snapshot);
+        rerenderList();
+      } catch {
+        showToast(MSG.DELETE_UNDO_FAILED);
+      }
+    },
+  });
+}
+
 export function mountArchiveHandlers(): void {
+  // archive 카드 ✕ 버튼 클릭 — 이벤트 위임
+  document.addEventListener('click', handleCardDeleteClick);
+
   on('dg:archive:filter', ({ filter }) => {
     currentFilter = filter;
     rerenderList();
@@ -49,7 +87,7 @@ export function hydrateArchive(): void {
   });
 }
 
-function rerenderList(): void {
+export function rerenderList(): void {
   const list = document.getElementById('archiveList');
   if (!list) return;
   list.replaceChildren();
@@ -98,6 +136,7 @@ function rerenderList(): void {
   for (const a of filtered) {
     const card = document.createElement('article');
     card.className = 'archive-card';
+    card.dataset['answerId'] = a.id;
     const date = document.createElement('div');
     date.className = 'archive-date';
     const dateText = a.date ?? (a.createdAt ? new Date(a.createdAt).toLocaleDateString('ko-KR') : '');
@@ -105,14 +144,22 @@ function rerenderList(): void {
     const body = document.createElement('div');
     body.className = 'archive-text';
     body.textContent = a.text.length > 140 ? `${a.text.slice(0, 140)}…` : a.text;
-    card.append(date, body);
+    const deleteBtn = document.createElement('button');
+    deleteBtn.className = 'archive-card-delete';
+    deleteBtn.type = 'button';
+    deleteBtn.setAttribute('aria-label', '답변 삭제');
+    deleteBtn.textContent = '×';
+    card.append(date, body, deleteBtn);
     if (a.type) {
       const tag = document.createElement('span');
       tag.className = 'archive-type';
       tag.textContent = toKoType(a.type);
       card.append(tag);
     }
-    card.addEventListener('click', () => showArchiveDetail({ kind: 'answer', answer: a }));
+    card.addEventListener('click', (e) => {
+      if ((e.target as HTMLElement).closest('.archive-card-delete')) return;
+      showArchiveDetail({ kind: 'answer', answer: a });
+    });
     list.append(card);
   }
 }

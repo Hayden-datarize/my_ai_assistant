@@ -52,6 +52,7 @@ function populateList(container: HTMLElement): void {
   for (const a of answers) {
     const card = document.createElement('article');
     card.className = 'archive-card';
+    card.dataset['answerId'] = a.id;
 
     const dateEl = document.createElement('div');
     dateEl.className = 'archive-date';
@@ -61,7 +62,13 @@ function populateList(container: HTMLElement): void {
     textEl.className = 'archive-text';
     textEl.textContent = a.text; // textContent — XSS 안전
 
-    card.append(dateEl, textEl);
+    const deleteBtn = document.createElement('button');
+    deleteBtn.className = 'archive-card-delete';
+    deleteBtn.type = 'button';
+    deleteBtn.setAttribute('aria-label', '답변 삭제');
+    deleteBtn.textContent = '×';
+
+    card.append(dateEl, textEl, deleteBtn);
     list.append(card);
   }
 }
