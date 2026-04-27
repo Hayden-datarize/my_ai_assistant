@@ -28,11 +28,10 @@ import { openMemoModal } from '../modals/memo';
 import { createLangToggle, type LangToggleEl, type LangState } from '../components/cardLangToggle';
 import { checkAndIncrement, getCap, getTodayCount } from '../../state/usage';
 import { showCapToast, showTranslateError, showPartialTranslateFail } from '../translateToast';
-import { getCachedUser, type LegacyUser } from '../../state/user';
+import { getCachedUser, saveUser, type LegacyUser } from '../../state/user';
 import { MSG } from '../messages';
 
 const API_KEY_STORAGE = 'dg_gemini_key';
-const USER_STORAGE = 'user';
 const THEME_STORAGE = 'theme';
 const TODAY_QUESTION_PREFIX = 'dg.todayQuestion.';
 
@@ -59,10 +58,6 @@ export function pickBriefings(
     }
   }
   return picked;
-}
-
-function saveUser(u: LegacyUser): void {
-  try { localStorage.setItem(USER_STORAGE, JSON.stringify(u)); } catch { /* ignore */ }
 }
 
 /**
