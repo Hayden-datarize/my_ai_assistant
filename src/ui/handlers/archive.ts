@@ -118,6 +118,9 @@ function handleCardClick(e: Event): void {
 function handleCardDeleteClick(e: Event): void {
   const btn = (e.target as HTMLElement).closest<HTMLButtonElement>('.archive-card-delete');
   if (!btn) return;
+  // 선택 모드에서는 ✕ 비활성 (CSS hide와 별개로 JS 가드 — defense in depth)
+  // FOUC/키보드/CSS-off/향후 CSS 변경에서도 confirm-less 단건 삭제를 차단
+  if (selectMode) return;
   e.stopPropagation(); // detail 모달 진입 막기
   const card = btn.closest<HTMLElement>('.archive-card');
   const id = card?.dataset['answerId'];

@@ -96,4 +96,25 @@ describe('archive bulk delete', () => {
     const { loadAnswers } = await import('../src/state/persistence');
     expect(loadAnswers()).toHaveLength(3);
   });
+
+  // P1-1 review fix: ✕ click in select mode must be no-op (defense in depth — CSS hide + JS guard)
+  it('ignores ✕ click in select mode (no confirm-less single delete)', async () => {
+    await setupArchive();
+    document.querySelector<HTMLButtonElement>('#archiveSelectToggle')!.click();
+    // 선택 모드 ON 상태에서 카드 한 건 선택
+    document.querySelector<HTMLElement>('.archive-card[data-answer-id="a"]')!.click();
+    // CSS가 disable 시켜도 jsdom에서는 element가 존재 → 프로그래매틱 click 가능
+    const deleteBtn = document.querySelector<HTMLButtonElement>(
+      '.archive-card[data-answer-id="a"] .archive-card-delete'
+    );
+    expect(deleteBtn, '✕ button still in DOM in select mode').not.toBeNull();
+    deleteBtn!.click();
+    // 가드 통과: 답변 그대로 + undo 토스트 안 뜸 + 선택 상태 유지 (selectedIds → CSS .selected)
+    const { loadAnswers } = await import('../src/state/persistence');
+    expect(loadAnswers()).toHaveLength(3);
+    expect(document.querySelector('.dg-toast--undo')).toBeNull();
+    expect(
+      document.querySelector('.archive-card[data-answer-id="a"]')?.classList.contains('selected')
+    ).toBe(true);
+  });
 });
