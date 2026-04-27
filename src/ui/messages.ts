@@ -21,4 +21,12 @@ export const MSG = {
   SAVE_QUOTA_EXCEEDED: '❌ 저장 공간이 가득 찼어요. 설정에서 번역 캐시를 초기화해 주세요.',
   partialTranslateFail: (count: number): string =>
     `일부 카드 번역에 실패했어요 (${count}건). 잠시 후 다시 시도해 주세요.`,
+  DELETE_CONFIRM_BULK: (n: number) =>
+    `선택한 답변 ${n}개를 삭제할까요?\n5초 안에 되돌릴 수 있어요.`,
+  DELETE_CONFIRM_ALL: (n: number) =>
+    `archive 답변 ${n}개를 모두 삭제할까요?\n5초 안에 되돌릴 수 있어요.`,
+  DELETE_UNDO_TOAST: '삭제되었어요.',
+  DELETE_UNDO_ACTION: '되돌리기',
+  DELETE_UNDO_RESTORED: '복원되었어요.',
+  DELETE_UNDO_FAILED: '복원 실패했어요.',
 } as const;

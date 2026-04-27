@@ -45,6 +45,22 @@
   margin-top: 6px;
 }
 
+/* Archive Card — v3.8 */
+.archive-card { position: relative; }
+.archive-card-delete {
+  position: absolute;
+  top: 8px;
+  right: 8px;
+  background: transparent;
+  border: 0;
+  cursor: pointer;
+  font-size: 1.1rem;
+  color: var(--text-tertiary);
+  line-height: 1;
+  padding: 2px 4px;
+}
+.archive-card-delete:hover { color: var(--text-primary); }
+
 /* Archive Search */
 .archive-search-wrap { position: relative; margin-bottom: 12px; }
 .archive-search {
@@ -62,4 +78,36 @@
   padding: 6px 12px; border-radius: var(--radius-sm);
   border: 1px solid var(--border); background: var(--bg-card);
   font-size: 0.8rem; color: var(--text-primary); font-family: var(--font-body);
+}
+
+/* Archive header row — heading + select-mode action buttons */
+.archive-header-row {
+  display: flex; align-items: center; justify-content: space-between;
+  flex-wrap: wrap; gap: 8px; margin-bottom: 4px;
+}
+.archive-header-actions {
+  display: flex; gap: 8px; align-items: center;
+}
+.archive-header-actions button {
+  padding: 4px 12px; border-radius: var(--radius-sm);
+  border: 1px solid var(--border); background: var(--bg-card);
+  color: var(--text-primary); font-size: 0.8rem; cursor: pointer;
+  font-family: var(--font-body);
+}
+.archive-header-actions button:disabled {
+  opacity: 0.4; cursor: default;
+}
+
+/* Select mode — hide ✕ buttons, highlight selected cards */
+.archive--select-mode .archive-card-delete {
+  display: none;
+}
+
+.archive--select-mode .archive-card {
+  cursor: pointer;
+}
+
+.archive--select-mode .archive-card.selected {
+  outline: 2px solid var(--primary, #2563eb);
+  outline-offset: -2px;
 }
