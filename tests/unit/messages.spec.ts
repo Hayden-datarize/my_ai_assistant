@@ -1,9 +1,14 @@
 import { describe, it, expect } from 'vitest';
 import { MSG } from '../../src/ui/messages';
 
+// 버튼 라벨류 — UI 표준상 끝 마침표 X (메시지 톤 규칙 예외)
+const BUTTON_LABEL_KEYS = new Set(['DELETE_UNDO_ACTION']);
+
 describe('MSG (i18n Lite)', () => {
-  it('all string members end with a period', () => {
-    const stringEntries = Object.entries(MSG).filter(([, v]) => typeof v === 'string');
+  it('all string message members end with a period (button labels exempt)', () => {
+    const stringEntries = Object.entries(MSG).filter(
+      ([k, v]) => typeof v === 'string' && !BUTTON_LABEL_KEYS.has(k),
+    );
     for (const [key, val] of stringEntries) {
       expect(val, `MSG.${key}`).toMatch(/\.$/);
     }
