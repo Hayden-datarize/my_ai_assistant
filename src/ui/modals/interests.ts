@@ -16,7 +16,7 @@ import { openModal, closeModal } from './shared';
 import { INTERESTS } from '../../utils/categories';
 import { escapeHtml } from '../../utils/escapeHtml';
 import { showToast } from '../../utils/toast';
-import { getCachedUser, saveUser } from '../../state/user';
+import { getCachedUser, saveUser, getSaveErrorMessage } from '../../state/user';
 import { MSG } from '../messages';
 
 export function openInterestsModal(): void {
@@ -63,7 +63,12 @@ export function openInterestsModal(): void {
   saveBtn?.addEventListener('click', () => {
     const newInterests = Array.from(boxes).filter((b) => b.checked).map((b) => b.value);
     if (newInterests.length === 0) return;
-    saveUser({ ...user, interests: newInterests });
+    try {
+      saveUser({ ...user, interests: newInterests });
+    } catch (e) {
+      showToast(getSaveErrorMessage(e));
+      return; // modal 유지 — 사용자 재시도 기회
+    }
     closeModal();
     showToast(MSG.INTERESTS_UPDATED);
     document.dispatchEvent(new CustomEvent('dg:interests:changed'));

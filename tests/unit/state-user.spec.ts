@@ -1,5 +1,6 @@
 import { describe, it, expect, beforeEach, vi } from 'vitest';
-import { loadUserData, saveUser, recordActivity, checkAndUpdateStreak } from '../../src/state/user';
+import { loadUserData, saveUser, recordActivity, checkAndUpdateStreak, getSaveErrorMessage } from '../../src/state/user';
+import { MSG } from '../../src/ui/messages';
 
 describe('state/user', () => {
   beforeEach(() => localStorage.clear());
@@ -41,5 +42,28 @@ describe('state/user', () => {
     saveUser({ name: 'H', interests: [], onboardedAt: '', streak: 5, lastActiveDate: '2026-04-19', xp: 0, level: 1 });
     checkAndUpdateStreak();
     expect(loadUserData()!.streak).toBe(5);
+  });
+
+  it('getSaveErrorMessage returns quota message for QuotaExceededError', () => {
+    const err = new DOMException('quota', 'QuotaExceededError');
+    expect(getSaveErrorMessage(err)).toBe(MSG.SAVE_QUOTA_EXCEEDED);
+  });
+
+  it('getSaveErrorMessage returns fallback message for generic Error', () => {
+    const err = new Error('boom');
+    expect(getSaveErrorMessage(err)).toBe(MSG.SAVE_FAILED);
+  });
+
+  it('getSaveErrorMessage returns fallback message for string error', () => {
+    expect(getSaveErrorMessage('some string')).toBe(MSG.SAVE_FAILED);
+  });
+
+  it('saveUser throws DOMException when setItem throws QuotaExceededError', () => {
+    const spy = vi.spyOn(Storage.prototype, 'setItem').mockImplementationOnce(() => {
+      throw new DOMException('quota', 'QuotaExceededError');
+    });
+    const u = { name: 'H', interests: [], onboardedAt: '', streak: 0, lastActiveDate: '', xp: 0, level: 1 };
+    expect(() => saveUser(u)).toThrow(DOMException);
+    spy.mockRestore();
   });
 });

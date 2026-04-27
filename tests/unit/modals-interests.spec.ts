@@ -1,4 +1,4 @@
-import { describe, it, expect, beforeEach } from 'vitest';
+import { describe, it, expect, beforeEach, afterEach, vi } from 'vitest';
 
 describe('openInterestsModal', () => {
   beforeEach(() => {
@@ -19,6 +19,10 @@ describe('openInterestsModal', () => {
       xp: 0,
       level: 1,
     }));
+  });
+
+  afterEach(() => {
+    vi.restoreAllMocks();
   });
 
   it('shows current interests as checked, others unchecked', async () => {
@@ -98,5 +102,53 @@ describe('openInterestsModal', () => {
     expect(() => openInterestsModal()).not.toThrow();
     // Modal should not open
     expect(document.querySelector('.dg-modal')).toBeNull();
+  });
+
+  it('shows quota toast when saveUser throws QuotaExceededError', async () => {
+    const { openInterestsModal } = await import('../../src/ui/modals/interests');
+    openInterestsModal();
+
+    vi.spyOn(Storage.prototype, 'setItem').mockImplementation(() => {
+      throw new DOMException('quota', 'QuotaExceededError');
+    });
+
+    const saveBtn = document.getElementById('saveInterestsBtn') as HTMLButtonElement;
+    saveBtn.click();
+
+    const toast = document.querySelector('.dg-toast');
+    expect(toast?.textContent).toContain('저장 공간이 가득 찼어요');
+  });
+
+  it('shows fallback toast for generic save error', async () => {
+    const { openInterestsModal } = await import('../../src/ui/modals/interests');
+    openInterestsModal();
+
+    vi.spyOn(Storage.prototype, 'setItem').mockImplementation(() => {
+      throw new Error('generic storage error');
+    });
+
+    const saveBtn = document.getElementById('saveInterestsBtn') as HTMLButtonElement;
+    saveBtn.click();
+
+    const toast = document.querySelector('.dg-toast');
+    expect(toast?.textContent).toContain('저장하지 못했어요');
+  });
+
+  it('keeps modal open when save fails (재시도 기회)', async () => {
+    const { openInterestsModal } = await import('../../src/ui/modals/interests');
+    openInterestsModal();
+
+    vi.spyOn(Storage.prototype, 'setItem').mockImplementation(() => {
+      throw new DOMException('quota', 'QuotaExceededError');
+    });
+
+    const saveBtn = document.getElementById('saveInterestsBtn') as HTMLButtonElement;
+    saveBtn.click();
+
+    // Modal wrapper(.dg-modal) should still be in DOM — closeModal() removes it.
+    // Asserting the wrapper itself (not just the save button) guards against
+    // future refactors that might keep the button alive while detaching the modal.
+    expect(document.querySelector('.dg-modal')).not.toBeNull();
+    expect(document.getElementById('saveInterestsBtn')).not.toBeNull();
   });
 });
