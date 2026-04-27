@@ -83,7 +83,7 @@ function handleBulkDeleteClick(): void {
     actionLabel: MSG.DELETE_UNDO_ACTION,
     onUndo: () => {
       try {
-        saveAnswers([...loadAnswers(), ...snapshot]);
+        saveAnswers([...snapshot, ...loadAnswers()]);
         rerenderList();
         showToast(MSG.DELETE_UNDO_RESTORED);
       } catch {
@@ -143,7 +143,7 @@ function handleCardDeleteClick(e: Event): void {
     actionLabel: MSG.DELETE_UNDO_ACTION,
     onUndo: () => {
       try {
-        saveAnswers([...loadAnswers(), snapshot]);
+        saveAnswers([snapshot, ...loadAnswers()]);
         rerenderList();
         showToast(MSG.DELETE_UNDO_RESTORED);
       } catch {

@@ -155,7 +155,7 @@ export function bindHandlers(): void {
         actionLabel: MSG.DELETE_UNDO_ACTION,
         onUndo: () => {
           try {
-            saveAnswers([...loadAnswers(), ...snapshot]);
+            saveAnswers([...snapshot, ...loadAnswers()]);
             refresh();
             showToast(MSG.DELETE_UNDO_RESTORED);
           } catch (_err) {
