@@ -50,6 +50,22 @@ export function appendAnswer(answer: Answer): string {
   return answer.id;
 }
 
+export function deleteAnswerById(id: string): void {
+  const next = loadAnswers().filter((a) => a.id !== id);
+  saveAnswers(next);
+}
+
+export function deleteAnswersByIds(ids: string[]): void {
+  if (ids.length === 0) return;
+  const set = new Set(ids);
+  const next = loadAnswers().filter((a) => !set.has(a.id));
+  saveAnswers(next);
+}
+
+export function deleteAllAnswers(): void {
+  saveAnswers([]);
+}
+
 export function findAnswer(id: string): Answer | undefined {
   return loadAnswers().find(a => a.id === id);
 }
