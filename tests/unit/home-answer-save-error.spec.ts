@@ -7,10 +7,12 @@ describe('home — applyAnswerActivity 에러 처리', () => {
     const root = document.createElement('div');
     root.id = 'modalRoot';
     document.body.appendChild(root);
+    vi.setSystemTime(new Date('2026-04-19'));
   });
 
   afterEach(() => {
     vi.restoreAllMocks();
+    vi.useRealTimers();
   });
 
   it('shows quota toast when localStorage rejects with QuotaExceededError', async () => {
@@ -25,7 +27,7 @@ describe('home — applyAnswerActivity 에러 처리', () => {
     });
 
     const { applyAnswerActivity } = await import('../../src/ui/handlers/home');
-    applyAnswerActivity({ ...user });
+    applyAnswerActivity();
 
     const toast = document.querySelector('.toast');
     expect(toast?.textContent).toContain('저장 공간이 가득 찼어요');
@@ -43,7 +45,7 @@ describe('home — applyAnswerActivity 에러 처리', () => {
     });
 
     const { applyAnswerActivity } = await import('../../src/ui/handlers/home');
-    applyAnswerActivity({ ...user });
+    applyAnswerActivity();
 
     const toast = document.querySelector('.toast');
     expect(toast?.textContent).toContain('저장하지 못했어요');
@@ -61,6 +63,26 @@ describe('home — applyAnswerActivity 에러 처리', () => {
     });
 
     const { applyAnswerActivity } = await import('../../src/ui/handlers/home');
-    expect(() => applyAnswerActivity({ ...user })).not.toThrow();
+    expect(() => applyAnswerActivity()).not.toThrow();
+  });
+
+  it('does not modify localStorage when saveUser fails (atomic single-write)', async () => {
+    const user = {
+      name: 'H', interests: ['ai_ml'], onboardedAt: '2026-04-19',
+      streak: 3, lastActiveDate: '2026-04-15', xp: 50, level: 1,
+    };
+    const original = JSON.stringify(user);
+    localStorage.setItem('user', original);
+
+    vi.spyOn(Storage.prototype, 'setItem').mockImplementation((key, value) => {
+      if (key === 'user' && value !== original) {
+        throw new DOMException('quota', 'QuotaExceededError');
+      }
+    });
+
+    const { applyAnswerActivity } = await import('../../src/ui/handlers/home');
+    applyAnswerActivity();
+
+    expect(localStorage.getItem('user')).toBe(original);
   });
 });

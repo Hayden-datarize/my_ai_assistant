@@ -28,7 +28,7 @@ import { openMemoModal } from '../modals/memo';
 import { createLangToggle, type LangToggleEl, type LangState } from '../components/cardLangToggle';
 import { checkAndIncrement, getCap, getTodayCount } from '../../state/usage';
 import { showCapToast, showTranslateError, showPartialTranslateFail } from '../translateToast';
-import { getCachedUser, saveUser, getSaveErrorMessage, type LegacyUser } from '../../state/user';
+import { getCachedUser, getSaveErrorMessage, recordDailyAnswer } from '../../state/user';
 import { MSG } from '../messages';
 
 const API_KEY_STORAGE = 'dg_gemini_key';
@@ -61,20 +61,15 @@ export function pickBriefings(
 }
 
 /**
- * 답변 제출 후 사용자 활동(XP/level/lastActiveDate) 적용 + persist.
- * `saveUser` 실패 시 분기 토스트 표시 후 silent return — UI/메모리 상태는
- * 이미 변경되어 있으므로 후속 흐름은 그대로 진행된다 (chat bubble 등).
- *
- * 새로고침 시 persist 안 된 변경은 사라진다는 사실은 토스트가 안내.
+ * 답변 제출 후 사용자 활동(streak + XP/level + lastActiveDate)을 적용한다.
+ * 저장 실패 시 분기 토스트 표시 — atomic single-write이므로 in-memory와
+ * persisted state 모두 변경되지 않아 별도 rollback이 필요 없다.
  *
  * @internal
  */
-export function applyAnswerActivity(user: LegacyUser): void {
-  user.xp += 10;
-  user.level = 1 + Math.floor(user.xp / 100);
-  user.lastActiveDate = getDateStr();
+export function applyAnswerActivity(): void {
   try {
-    saveUser(user);
+    recordDailyAnswer(10);
   } catch (e) {
     showToast(getSaveErrorMessage(e));
   }
@@ -297,7 +292,8 @@ export async function hydrateHome(container: HTMLElement): Promise<void> {
   applyTheme();
 }
 
-function hydrateGreetingAndStreak(): void {
+/** @internal — exported for integration tests; production callers are hydrateHome + submitAnswer 내부 */
+export function hydrateGreetingAndStreak(): void {
   const user = getCachedUser();
   const greetingEl = document.getElementById('greetingText');
   if (greetingEl) {
@@ -704,12 +700,9 @@ async function submitAnswer(): Promise<void> {
   });
   const id = appendAnswer(answer);
 
-  // record activity
-  const user = getCachedUser();
-  if (user) {
-    applyAnswerActivity(user);
-    hydrateGreetingAndStreak();
-  }
+  // record daily answer activity (streak + XP)
+  applyAnswerActivity();
+  hydrateGreetingAndStreak();
 
   area.value = '';
   const cc = document.getElementById('charCount');
