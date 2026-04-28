@@ -38,32 +38,31 @@ export function saveUser(u: User): void {
 }
 
 /**
- * XP를 누적하고 레벨을 갱신한 뒤 저장한다.
- * @throws {DOMException} 저장 공간 초과 시 (QuotaExceededError)
+ * 답변 제출 1회의 사용자 활동을 atomic single-write로 기록한다.
+ * - streak: 어제 활동했으면 +1, 아니면 1로 리셋. 같은 날 재제출은 idempotent.
+ * - xp: xpDelta 누적. level = 1 + floor(xp / 100).
+ * - lastActiveDate: 오늘로 갱신.
+ *
+ * 사용자 데이터가 없으면 silent return.
+ *
+ * @throws {DOMException} 저장 공간 초과 시 (QuotaExceededError) — caller에서 처리
  */
-export function recordActivity(xpDelta: number): void {
-  const u = loadUserData();
-  if (!u) return;
-  u.xp += xpDelta;
-  u.level = 1 + Math.floor(u.xp / 100);
-  u.lastActiveDate = getDateStr();
-  saveUser(u);
-}
-
-/**
- * 오늘 첫 접속 시 스트릭을 갱신하고 저장한다.
- * @throws {DOMException} 저장 공간 초과 시 (QuotaExceededError)
- */
-export function checkAndUpdateStreak(): void {
+export function recordDailyAnswer(xpDelta: number): void {
   const u = loadUserData();
   if (!u) return;
   const today = getDateStr();
-  if (u.lastActiveDate === today) return;
-  const y = new Date(today);
-  y.setDate(y.getDate() - 1);
-  const yesterday = getDateStr(y);
-  u.streak = u.lastActiveDate === yesterday ? u.streak + 1 : 1;
+
+  if (u.lastActiveDate !== today) {
+    const y = new Date(today);
+    y.setDate(y.getDate() - 1);
+    const yesterday = getDateStr(y);
+    u.streak = u.lastActiveDate === yesterday ? u.streak + 1 : 1;
+  }
+
+  u.xp += xpDelta;
+  u.level = 1 + Math.floor(u.xp / 100);
   u.lastActiveDate = today;
+
   saveUser(u);
 }
 
@@ -84,7 +83,7 @@ export function updateStreakBanner(rootId = 'streakBanner'): void {
 }
 
 /**
- * saveUser / recordActivity / checkAndUpdateStreak 에서 던져진 에러를
+ * saveUser / recordDailyAnswer 에서 던져진 에러를
  * 사용자 표시용 메시지로 변환한다 (단일 진입점).
  */
 export function getSaveErrorMessage(err: unknown): string {
