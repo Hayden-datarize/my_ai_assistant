@@ -694,6 +694,7 @@ async function submitAnswer(): Promise<void> {
     id: `a_${Date.now()}_${Math.random().toString(36).slice(2, 8)}`,
     questionId,
     text,
+    questionText: questionText || undefined, // v3.11: persist question text alongside answer
     authorId: 'self',
     type: questionType,
     date: getDateStr(),
