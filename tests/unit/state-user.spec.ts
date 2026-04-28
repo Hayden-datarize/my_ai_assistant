@@ -1,5 +1,5 @@
 import { describe, it, expect, beforeEach, vi } from 'vitest';
-import { loadUserData, saveUser, recordActivity, checkAndUpdateStreak, getSaveErrorMessage } from '../../src/state/user';
+import { loadUserData, saveUser, recordDailyAnswer, getSaveErrorMessage } from '../../src/state/user';
 import { MSG } from '../../src/ui/messages';
 
 describe('state/user', () => {
@@ -15,33 +15,61 @@ describe('state/user', () => {
     expect(loadUserData()).toEqual(u);
   });
 
-  it('recordActivity increments xp and levels up per 100 xp', () => {
-    saveUser({ name: 'H', interests: [], onboardedAt: '', streak: 0, lastActiveDate: '', xp: 90, level: 1 });
-    recordActivity(20);
+  it('recordDailyAnswer increments xp and levels up per 100 xp', () => {
+    vi.setSystemTime(new Date('2026-04-19'));
+    saveUser({ name: 'H', interests: [], onboardedAt: '', streak: 0, lastActiveDate: '2026-04-19', xp: 90, level: 1 });
+    recordDailyAnswer(20);
     const u = loadUserData()!;
     expect(u.xp).toBe(110);
     expect(u.level).toBe(2);
   });
 
-  it('checkAndUpdateStreak bumps streak when last active was yesterday', () => {
+  it('recordDailyAnswer bumps streak when last active was yesterday', () => {
     vi.setSystemTime(new Date('2026-04-19'));
     saveUser({ name: 'H', interests: [], onboardedAt: '', streak: 3, lastActiveDate: '2026-04-18', xp: 0, level: 1 });
-    checkAndUpdateStreak();
+    recordDailyAnswer(10);
     expect(loadUserData()!.streak).toBe(4);
   });
 
-  it('checkAndUpdateStreak resets to 1 when last active older than 1 day', () => {
+  it('recordDailyAnswer resets streak to 1 after gap', () => {
     vi.setSystemTime(new Date('2026-04-19'));
     saveUser({ name: 'H', interests: [], onboardedAt: '', streak: 3, lastActiveDate: '2026-04-15', xp: 0, level: 1 });
-    checkAndUpdateStreak();
+    recordDailyAnswer(10);
     expect(loadUserData()!.streak).toBe(1);
   });
 
-  it('checkAndUpdateStreak is idempotent when already ran today', () => {
+  it('recordDailyAnswer keeps streak idempotent on same-day reinvoke (xp still accumulates)', () => {
     vi.setSystemTime(new Date('2026-04-19'));
-    saveUser({ name: 'H', interests: [], onboardedAt: '', streak: 5, lastActiveDate: '2026-04-19', xp: 0, level: 1 });
-    checkAndUpdateStreak();
-    expect(loadUserData()!.streak).toBe(5);
+    saveUser({ name: 'H', interests: [], onboardedAt: '', streak: 5, lastActiveDate: '2026-04-19', xp: 20, level: 1 });
+    recordDailyAnswer(10);
+    const u = loadUserData()!;
+    expect(u.streak).toBe(5);
+    expect(u.xp).toBe(30);
+  });
+
+  it('recordDailyAnswer starts streak at 1 for fresh user (lastActiveDate="")', () => {
+    vi.setSystemTime(new Date('2026-04-19'));
+    saveUser({ name: 'H', interests: [], onboardedAt: '2026-04-19', streak: 0, lastActiveDate: '', xp: 0, level: 1 });
+    recordDailyAnswer(10);
+    const u = loadUserData()!;
+    expect(u.streak).toBe(1);
+    expect(u.lastActiveDate).toBe('2026-04-19');
+  });
+
+  it('recordDailyAnswer no-ops when no user cached', () => {
+    vi.setSystemTime(new Date('2026-04-19'));
+    expect(() => recordDailyAnswer(10)).not.toThrow();
+    expect(loadUserData()).toBeNull();
+  });
+
+  it('recordDailyAnswer propagates DOMException when setItem throws QuotaExceededError', () => {
+    vi.setSystemTime(new Date('2026-04-19'));
+    saveUser({ name: 'H', interests: [], onboardedAt: '', streak: 0, lastActiveDate: '', xp: 0, level: 1 });
+    const spy = vi.spyOn(Storage.prototype, 'setItem').mockImplementationOnce(() => {
+      throw new DOMException('quota', 'QuotaExceededError');
+    });
+    expect(() => recordDailyAnswer(10)).toThrow(DOMException);
+    spy.mockRestore();
   });
 
   it('getSaveErrorMessage returns quota message for QuotaExceededError', () => {
