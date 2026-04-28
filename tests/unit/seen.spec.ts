@@ -1,5 +1,5 @@
 import { describe, it, expect, beforeEach, vi, afterEach } from 'vitest';
-import { isSeen, recordSeen, purgeExpiredSeen } from '../../src/state/seen';
+import { isSeen, recordSeen, purgeExpiredSeen, loadActiveSeenUrls } from '../../src/state/seen';
 
 const KEY = 'seenBriefings';
 const TTL_MS = 30 * 24 * 60 * 60 * 1000;
@@ -75,5 +75,23 @@ describe('state/seen', () => {
     const stored = JSON.parse(localStorage.getItem(KEY)!) as Array<{ url: string }>;
     expect(stored).toHaveLength(1);
     expect(stored[0]!.url).toBe('https://recent.com');
+  });
+
+  it('loadActiveSeenUrls returns a Set of urls within retention window', () => {
+    const now = Date.parse('2026-04-28T00:00:00Z');
+    localStorage.setItem(KEY, JSON.stringify([
+      { url: 'https://recent.com', firstSeenAt: now - 1000 },
+      { url: 'https://expired.com', firstSeenAt: now - TTL_MS - 1000 },
+      { url: 'https://edge.com', firstSeenAt: now - TTL_MS + 1000 },
+    ]));
+    const active = loadActiveSeenUrls(now);
+    expect(active).toBeInstanceOf(Set);
+    expect(active.has('https://recent.com')).toBe(true);
+    expect(active.has('https://edge.com')).toBe(true);
+    expect(active.has('https://expired.com')).toBe(false);
+  });
+
+  it('loadActiveSeenUrls returns empty Set when localStorage empty', () => {
+    expect(loadActiveSeenUrls(Date.parse('2026-04-28'))).toEqual(new Set());
   });
 });

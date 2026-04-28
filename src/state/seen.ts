@@ -47,6 +47,15 @@ export function recordSeen(urls: string[], now: number = Date.now()): void {
   saveSeen(next);
 }
 
+/** 배치 lookup용 — 30일 retention 안에 있는 url 집합. T3 hot-loop 회피용. */
+export function loadActiveSeenUrls(now: number = Date.now()): Set<string> {
+  return new Set(
+    loadSeen()
+      .filter((r) => r.firstSeenAt + TTL_MS > now)
+      .map((r) => r.url),
+  );
+}
+
 /** retention 만료된 항목 제거 (옵셔널 housekeeping). */
 export function purgeExpiredSeen(now: number = Date.now()): void {
   const list = loadSeen();

@@ -29,6 +29,7 @@ import { createLangToggle, type LangToggleEl, type LangState } from '../componen
 import { checkAndIncrement, getCap, getTodayCount } from '../../state/usage';
 import { showCapToast, showTranslateError, showPartialTranslateFail } from '../translateToast';
 import { getCachedUser, getSaveErrorMessage, recordDailyAnswer } from '../../state/user';
+import { loadActiveSeenUrls, recordSeen, purgeExpiredSeen } from '../../state/seen';
 import { MSG } from '../messages';
 
 const API_KEY_STORAGE = 'dg_gemini_key';
@@ -469,14 +470,30 @@ async function refreshBriefings(): Promise<void> {
   }
 
   // v3.2b-ui: dedup via pickBriefings + surface sourceTitle chip
+  // v3.11 T3: 1:N mapping + seen-dedup pre-filter + chosen url 기록
   const picks = user.interests.slice(0, 3);
-  const feedUrls = Array.from(
-    new Set(picks.map(interestToFeed).filter((u): u is string => !!u)),
-  );
+  // 1:N 매핑 → flatMap → Set dedup → 최대 8개 cap (모바일 데이터 보호)
+  const allFeedUrls = Array.from(new Set(picks.flatMap(interestToFeeds)));
+  const feedUrls = allFeedUrls.slice(0, 8);
+
   const fetched = await Promise.all(
     feedUrls.map((u) => fetchFeed(u, { timeoutMs: 5000 })),
   );
-  const chosen = pickBriefings(fetched, 5);
+
+  // dedup: 30d retention 안에 있는 url을 사전에 제거
+  const now = Date.now();
+  purgeExpiredSeen(now);
+  const activeSeenUrls = loadActiveSeenUrls(now);
+  const filtered = fetched.map((f) => ({
+    ...f,
+    items: f.items.filter((it) => !activeSeenUrls.has(it.link)),
+  }));
+
+  // pick: unseen 우선, 부족하면 원본으로 fallback (expired-seen 자동 허용)
+  let chosen = pickBriefings(filtered, 5);
+  if (chosen.length < 5) {
+    chosen = pickBriefings(fetched, 5);
+  }
 
   const today = getDateStr();
   const stored: Briefing[] = chosen.map(({ item, sourceTitle }, i) => ({
@@ -492,6 +509,7 @@ async function refreshBriefings(): Promise<void> {
     ...(item.image ? { imageUrl: item.image } : {}),
   }));
   saveBriefings(stored);
+  recordSeen(stored.map((b) => b.url), now);
   hydrateBriefings();
 
   if (stored.length === 0) {
@@ -516,25 +534,53 @@ function stripTags(s: string): string { return s.replace(/<[^>]*>/g, '').trim();
 // wanted.co.kr/events/tech/rss returned 4xx/5xx via rss2json and were
 // removed in v3.2a-hotfix3. Keep this list in sync with
 // tests/lint/rss-source-allowlist.spec.ts so the lint catches drift.
-function interestToFeed(interestId: string): string | null {
-  const map: Record<string, string> = {
-    recruiting: 'https://medium.com/feed/daangn',
-    onboarding: 'https://medium.com/feed/daangn',
-    culture: 'https://medium.com/feed/daangn',
-    hr_system: 'https://outstanding.kr/feed',
-    labor_law: 'https://outstanding.kr/feed',
-    leadership: 'https://medium.com/feed/daangn',
-    pm: 'https://toss.tech/rss.xml',
-    ai_ml: 'https://tech.kakao.com/feed/',
-    data: 'https://d2.naver.com/d2.atom',
-    startup: 'https://outstanding.kr/feed',
-    marketing: 'https://www.mobiinside.co.kr/feed',
-    productivity: 'https://www.lifehacker.co.kr/feed',
-    career: 'https://www.lifehacker.co.kr/feed',
-    communication: 'https://www.lifehacker.co.kr/feed',
-    self_dev: 'https://www.lifehacker.co.kr/feed',
+export function interestToFeeds(interestId: string): string[] {
+  const map: Record<string, string[]> = {
+    recruiting: ['https://medium.com/feed/daangn', 'https://www.lennysnewsletter.com/feed'],
+    onboarding: ['https://medium.com/feed/daangn', 'https://www.lennysnewsletter.com/feed'],
+    culture: ['https://medium.com/feed/daangn', 'https://blog.pragmaticengineer.com/rss/'],
+    hr_system: ['https://outstanding.kr/feed', 'https://www.mckinsey.com/insights/rss'],
+    labor_law: ['https://outstanding.kr/feed', 'https://www.mckinsey.com/insights/rss'],
+    leadership: [
+      'https://medium.com/feed/daangn',
+      'https://blog.pragmaticengineer.com/rss/',
+      'https://www.lennysnewsletter.com/feed',
+    ],
+    pm: [
+      'https://toss.tech/rss.xml',
+      'https://www.lennysnewsletter.com/feed',
+      'https://blog.bytebytego.com/feed',
+    ],
+    ai_ml: [
+      'https://tech.kakao.com/feed/',
+      'https://openai.com/news/rss.xml',
+      'https://news.hada.io/rss/news',
+    ],
+    data: [
+      'https://d2.naver.com/d2.atom',
+      'https://blog.bytebytego.com/feed',
+      'https://news.hada.io/rss/news',
+    ],
+    startup: [
+      'https://outstanding.kr/feed',
+      'https://techcrunch.com/feed/',
+      'https://news.hada.io/rss/news',
+    ],
+    marketing: ['https://www.mobiinside.co.kr/feed', 'https://www.lennysnewsletter.com/feed'],
+    productivity: ['https://www.lifehacker.co.kr/feed', 'https://blog.pragmaticengineer.com/rss/'],
+    career: [
+      'https://www.lifehacker.co.kr/feed',
+      'https://blog.pragmaticengineer.com/rss/',
+      'https://www.lennysnewsletter.com/feed',
+    ],
+    communication: ['https://www.lifehacker.co.kr/feed', 'https://blog.pragmaticengineer.com/rss/'],
+    self_dev: [
+      'https://www.lifehacker.co.kr/feed',
+      'https://martinfowler.com/feed.atom',
+      'https://blog.pragmaticengineer.com/rss/',
+    ],
   };
-  return map[interestId] ?? null;
+  return map[interestId] ?? [];
 }
 
 async function hydrateQuestion(): Promise<void> {
