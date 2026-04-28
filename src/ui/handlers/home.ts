@@ -369,7 +369,7 @@ export function renderBriefingCard(b: Briefing, idx: number): HTMLElement {
     img.className = 'card-thumb';
     img.src = b.imageUrl;
     img.alt = '';
-    img.setAttribute('loading', 'lazy');
+    img.setAttribute('loading', idx < 3 ? 'eager' : 'lazy');
     img.setAttribute('decoding', 'async');
     img.setAttribute('referrerpolicy', 'no-referrer');
     img.addEventListener('error', () => {

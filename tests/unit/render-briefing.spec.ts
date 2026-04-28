@@ -30,7 +30,7 @@ describe('renderBriefingCard (v3.3.3 cardnews)', () => {
     expect(card.getAttribute('data-tier')).toBe('1');
     const img = card.querySelector<HTMLImageElement>('img.card-thumb');
     expect(img?.getAttribute('src')).toBe('https://img.com/a.jpg');
-    expect(img?.getAttribute('loading')).toBe('lazy');
+    expect(img?.getAttribute('loading')).toBe('eager');
     expect(img?.getAttribute('decoding')).toBe('async');
     expect(img?.getAttribute('referrerpolicy')).toBe('no-referrer');
   });
