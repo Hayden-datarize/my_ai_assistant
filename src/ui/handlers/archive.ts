@@ -13,6 +13,7 @@ import { showToast, showUndoToast } from '../../utils/toast';
 import { toKoType } from '../../utils/typeLabel';
 import { getSaveErrorMessage } from '../../state/user';
 import { MSG } from '../messages';
+import { renderBriefingCard } from './home';
 
 let currentFilter = 'all';
 let currentQuery = '';
@@ -329,32 +330,23 @@ export function rerenderList(): void {
       list.textContent = '아직 스크랩한 기사가 없어요.';
       return;
     }
-    for (const b of scrapped) {
-      const card = document.createElement('article');
-      card.className = 'archive-card archive-card--scrap';
+    // v3.11 T5 — home renderBriefingCard 시각 재사용 (image/source/overlay 일치)
+    // archive-card / archive-card--scrap modifier + ✕ 버튼만 추가 부착
+    scrapped.forEach((b, idx) => {
+      const card = renderBriefingCard(b, idx);
+      card.classList.add('archive-card', 'archive-card--scrap');
+      // data-briefing-id는 renderBriefingCard에서 이미 설정되었으나 명시성 위해 재기록 (harmless)
       card.dataset['briefingId'] = b.id;
 
-      const date = document.createElement('div');
-      date.className = 'archive-date';
-      date.textContent = b.date;
-      const title = document.createElement('div');
-      title.className = 'archive-text';
-      title.textContent = `⭐ ${b.title}`;
-      const summary = document.createElement('div');
-      summary.className = 'archive-summary';
-      summary.textContent = b.summary;
-
-      // ✕ 버튼 (T5 신설) — 스크랩 해제
       const deleteBtn = document.createElement('button');
       deleteBtn.className = 'archive-card-delete';
       deleteBtn.type = 'button';
       deleteBtn.setAttribute('aria-label', '스크랩 해제');
       deleteBtn.textContent = '×';
+      card.append(deleteBtn);
 
-      card.append(date, title, summary, deleteBtn);
-      // per-card listener 제거 — handleCardClick(delegation)이 처리
       list.append(card);
-    }
+    });
     return;
   }
 

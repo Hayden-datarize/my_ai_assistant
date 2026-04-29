@@ -98,6 +98,27 @@
   opacity: 0.4; cursor: default;
 }
 
+/* v3.11 T5 — scrap 카드는 home renderBriefingCard 시각을 재사용한다.
+   .briefing-card 위에 ✕ 버튼이 .card-overlay/.card-actions 위로 떠야 하므로
+   z-index + 가독성용 색·배경을 덮어쓴다. position: absolute는 기본 규칙에서 상속. */
+.archive-card--scrap .archive-card-delete {
+  z-index: 3;
+  width: 28px;
+  height: 28px;
+  padding: 0;
+  border-radius: 50%;
+  background: rgba(0, 0, 0, 0.55);
+  color: #fff;
+  font-size: 1rem;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+}
+.archive-card--scrap .archive-card-delete:hover {
+  background: rgba(0, 0, 0, 0.75);
+  color: #fff;
+}
+
 /* Select mode — hide ✕ buttons, highlight selected cards */
 .archive--select-mode .archive-card-delete {
   display: none;
