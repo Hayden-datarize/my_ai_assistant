@@ -1,5 +1,5 @@
 import { describe, it, expect } from 'vitest';
-import { pickBriefings } from '../../src/ui/handlers/home';
+import { pickBriefings, interestToFeeds } from '../../src/ui/handlers/home';
 import type { FeedResult } from '../../src/services/rss';
 
 const feed = (sourceTitle: string, links: string[]): FeedResult => ({
@@ -76,5 +76,32 @@ describe('v3.3.3 pickBriefings(feeds, 5)', () => {
     ];
     const picked = pickBriefings(feeds, 5);
     expect(picked).toHaveLength(2); // 1 dup removed
+  });
+});
+
+describe('interestToFeeds 1:N mapping', () => {
+  it('returns 2-3 feeds per known interest id', () => {
+    expect(interestToFeeds('ai_ml').length).toBeGreaterThanOrEqual(2);
+    expect(interestToFeeds('startup').length).toBeGreaterThanOrEqual(2);
+    expect(interestToFeeds('career').length).toBeGreaterThanOrEqual(2);
+  });
+
+  it('returns empty array for unknown interest', () => {
+    expect(interestToFeeds('does_not_exist')).toEqual([]);
+  });
+
+  it('all returned urls are absolute https', () => {
+    const all = ['recruiting', 'ai_ml', 'startup', 'self_dev'].flatMap(interestToFeeds);
+    expect(all.every((u) => u.startsWith('https://'))).toBe(true);
+  });
+
+  it('15 unique feeds across all interests', () => {
+    const allInterests = [
+      'recruiting', 'onboarding', 'culture', 'hr_system', 'labor_law',
+      'leadership', 'pm', 'ai_ml', 'data', 'startup', 'marketing',
+      'productivity', 'career', 'communication', 'self_dev',
+    ];
+    const unique = new Set(allInterests.flatMap(interestToFeeds));
+    expect(unique.size).toBe(15);
   });
 });

@@ -82,8 +82,8 @@ test('tier 1: image rendered when imageUrl present', async ({ page }) => {
   await expect(first).toHaveAttribute('data-tier', '1');
   const img = first.locator('img.card-thumb');
   await expect(img).toHaveAttribute('src', /picsum/);
-  // lazy/async + referrerpolicy attributes
-  await expect(img).toHaveAttribute('loading', 'lazy');
+  // v3.11 T4: idx < 3 → 'eager' (LCP 우선); 4+ 카드만 'lazy'
+  await expect(img).toHaveAttribute('loading', 'eager');
   await expect(img).toHaveAttribute('decoding', 'async');
   await expect(img).toHaveAttribute('referrerpolicy', 'no-referrer');
 });

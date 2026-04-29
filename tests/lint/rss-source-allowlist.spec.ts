@@ -10,7 +10,10 @@ import { dirname, resolve } from 'node:path';
  * v3.2a-hotfix3 (2026-04-20) after rss2json began returning 422/500 for
  * every brunch path and 500 for the wanted path. This lint blocks
  * accidental re-introduction of the same dead URLs and prevents drift
- * between the interestToFeed map and the verified-working source list.
+ * between the interestToFeeds map and the verified-working source list.
+ *
+ * v3.11 T3 (2026-04-28): map became 1:N (interestToFeeds) and source pool
+ * expanded from 6 to 15 unique feeds (KR 8 + EN 7) per spec §4.4.
  */
 const ROOT = resolve(dirname(fileURLToPath(import.meta.url)), '..', '..');
 
@@ -21,9 +24,12 @@ const KNOWN_BAD_PATTERNS = [
   /wanted\.co\.kr\/events\/tech\/rss/,
 ];
 
-// Sources confirmed working against rss2json on 2026-04-20. Any URL added
-// to interestToFeed must be in this allowlist (after manual curl check).
+// Sources confirmed working against rss2json. Any URL added to
+// interestToFeeds must be in this allowlist (after manual curl check).
+// 2026-04-20: original 6 KR hosts.
+// 2026-04-28 (v3.11 T3): expanded to 15 unique feeds (KR 8 + EN 7).
 const ALLOWED_HOSTS = new Set([
+  // KR
   'medium.com',
   'outstanding.kr',
   'toss.tech',
@@ -31,20 +37,29 @@ const ALLOWED_HOSTS = new Set([
   'd2.naver.com',
   'www.mobiinside.co.kr',
   'www.lifehacker.co.kr',
+  'news.hada.io',
   'techblog.woowahan.com',
   'engineering.linecorp.com',
+  // EN (v3.11 T3)
+  'www.lennysnewsletter.com',
+  'blog.pragmaticengineer.com',
+  'www.mckinsey.com',
+  'blog.bytebytego.com',
+  'openai.com',
+  'techcrunch.com',
+  'martinfowler.com',
 ]);
 
 function extractInterestMap(src: string): string[] {
-  // Grab the body of the `interestToFeed` map literal and pull every quoted URL.
-  const mapMatch = src.match(/function interestToFeed[\s\S]*?const map[^{]*\{([\s\S]*?)\};/);
-  if (!mapMatch) throw new Error('interestToFeed map literal not found in src/ui/handlers/home.ts');
+  // Grab the body of the `interestToFeeds` map literal and pull every quoted URL.
+  const mapMatch = src.match(/function interestToFeeds[\s\S]*?const map[^{]*\{([\s\S]*?)\};/);
+  if (!mapMatch) throw new Error('interestToFeeds map literal not found in src/ui/handlers/home.ts');
   const body = mapMatch[1] ?? '';
   const urls = [...body.matchAll(/'([^']+)'/g)].map((m) => m[1]!);
   return urls;
 }
 
-describe('RSS source allowlist (home.ts interestToFeed)', () => {
+describe('RSS source allowlist (home.ts interestToFeeds)', () => {
   const urls = extractInterestMap(HOME_TS);
 
   it('contains at least one URL', () => {
@@ -57,7 +72,7 @@ describe('RSS source allowlist (home.ts interestToFeed)', () => {
       const offenders = urls.filter((u) => pattern.test(u));
       expect(
         offenders,
-        `interestToFeed re-introduced dead RSS source(s): ${offenders.join(', ')}`,
+        `interestToFeeds re-introduced dead RSS source(s): ${offenders.join(', ')}`,
       ).toEqual([]);
     },
   );
@@ -72,7 +87,7 @@ describe('RSS source allowlist (home.ts interestToFeed)', () => {
     });
     expect(
       offenders,
-      `interestToFeed has URLs whose hostnames are not on the verified allowlist: ${offenders.join(', ')}\nAdd them to ALLOWED_HOSTS only after a manual curl rss2json check.`,
+      `interestToFeeds has URLs whose hostnames are not on the verified allowlist: ${offenders.join(', ')}\nAdd them to ALLOWED_HOSTS only after a manual curl rss2json check.`,
     ).toEqual([]);
   });
 });

@@ -13,6 +13,8 @@ import { showToast, showUndoToast } from '../../utils/toast';
 import { toKoType } from '../../utils/typeLabel';
 import { getSaveErrorMessage } from '../../state/user';
 import { MSG } from '../messages';
+import { renderBriefingCard } from './home';
+import type { Answer } from '../../state/schema';
 
 let currentFilter = 'all';
 let currentQuery = '';
@@ -176,10 +178,15 @@ function handleCardClick(e: Event): void {
     return;
   }
 
-  const id = card.dataset['answerId'];
-  if (id) {
+  // v3.11 T7 — 답변 카드 → dedicated read-only answer-detail modal (dynamic import for chunk split)
+  if (card.classList.contains('archive-card--answer')) {
+    const id = card.dataset['answerId'];
+    if (!id) return;
     const answer = loadAnswers().find((a) => a.id === id);
-    if (answer) showArchiveDetail({ kind: 'answer', answer });
+    if (!answer) return;
+    void import('../modals/answer-detail').then(({ openAnswerDetail }) => {
+      openAnswerDetail(answer);
+    });
     return;
   }
 
@@ -315,6 +322,61 @@ export function hydrateArchive(): void {
   });
 }
 
+/**
+ * v3.11 T6 — 답변 카드 풍부 layout.
+ * 헤더(유형 칩 + 날짜 + ✕) + 질문 1줄 preview + 본문(CSS line-clamp 3).
+ * questionText 없는 (이전 버전) 답변은 muted '질문 정보 없음' 으로 graceful degrade.
+ */
+function renderAnswerCard(a: Answer): HTMLElement {
+  const card = document.createElement('article');
+  card.className = 'archive-card archive-card--answer';
+  card.dataset['answerId'] = a.id;
+
+  // Header: 유형 칩 + 날짜 + ✕
+  const header = document.createElement('div');
+  header.className = 'archive-card-header';
+
+  if (a.type) {
+    const chip = document.createElement('span');
+    chip.className = 'archive-type-chip';
+    chip.textContent = toKoType(a.type);
+    header.append(chip);
+  }
+
+  const date = document.createElement('time');
+  date.className = 'archive-date';
+  date.textContent = a.date ?? (a.createdAt ? new Date(a.createdAt).toLocaleDateString('ko-KR') : '');
+  header.append(date);
+
+  const deleteBtn = document.createElement('button');
+  deleteBtn.className = 'archive-card-delete';
+  deleteBtn.type = 'button';
+  deleteBtn.setAttribute('aria-label', '답변 삭제');
+  deleteBtn.textContent = '×';
+  header.append(deleteBtn);
+
+  card.append(header);
+
+  // Question preview (1줄)
+  const q = document.createElement('p');
+  if (a.questionText) {
+    q.className = 'archive-card-question';
+    q.textContent = `❓ ${a.questionText}`;
+  } else {
+    q.className = 'archive-card-question archive-card-question--missing';
+    q.textContent = '질문 정보 없음 (이전 버전 답변)';
+  }
+  card.append(q);
+
+  // Answer body (CSS line-clamp 3 — JS truncation 안 함)
+  const body = document.createElement('p');
+  body.className = 'archive-card-body';
+  body.textContent = a.text;
+  card.append(body);
+
+  return card;
+}
+
 export function rerenderList(): void {
   const list = document.getElementById('archiveList');
   if (!list) return;
@@ -329,32 +391,32 @@ export function rerenderList(): void {
       list.textContent = '아직 스크랩한 기사가 없어요.';
       return;
     }
-    for (const b of scrapped) {
-      const card = document.createElement('article');
-      card.className = 'archive-card archive-card--scrap';
-      card.dataset['briefingId'] = b.id;
+    // v3.11 T5 — home renderBriefingCard 시각 재사용 (image/source/overlay 일치)
+    // archive-card / archive-card--scrap modifier + ✕ 버튼만 추가 부착
+    scrapped.forEach((b, idx) => {
+      const card = renderBriefingCard(b, idx);
+      card.classList.add('archive-card', 'archive-card--scrap');
 
-      const date = document.createElement('div');
-      date.className = 'archive-date';
-      date.textContent = b.date;
-      const title = document.createElement('div');
-      title.className = 'archive-text';
-      title.textContent = `⭐ ${b.title}`;
-      const summary = document.createElement('div');
-      summary.className = 'archive-summary';
-      summary.textContent = b.summary;
+      // renderBriefingCard registers idx-based handlers (setRead/toggleScrap/openMemoModal) where
+      // idx indexes home's full briefings list. In archive's filtered scrap subset, idx
+      // mismatches → ♥/✎ would mutate the wrong briefing. Archive uses ✕ for unscrap, so
+      // strip card-actions + replace link to drop the setRead(idx) listener.
+      card.querySelector('.card-actions')?.remove();
+      const oldLink = card.querySelector<HTMLAnchorElement>('.card-main');
+      if (oldLink) {
+        const newLink = oldLink.cloneNode(true) as HTMLAnchorElement;
+        oldLink.replaceWith(newLink);
+      }
 
-      // ✕ 버튼 (T5 신설) — 스크랩 해제
       const deleteBtn = document.createElement('button');
       deleteBtn.className = 'archive-card-delete';
       deleteBtn.type = 'button';
       deleteBtn.setAttribute('aria-label', '스크랩 해제');
       deleteBtn.textContent = '×';
+      card.append(deleteBtn);
 
-      card.append(date, title, summary, deleteBtn);
-      // per-card listener 제거 — handleCardClick(delegation)이 처리
       list.append(card);
-    }
+    });
     return;
   }
 
@@ -372,30 +434,9 @@ export function rerenderList(): void {
   }
 
   for (const a of filtered) {
-    const card = document.createElement('article');
-    card.className = 'archive-card';
-    card.dataset['answerId'] = a.id;
-    const date = document.createElement('div');
-    date.className = 'archive-date';
-    const dateText = a.date ?? (a.createdAt ? new Date(a.createdAt).toLocaleDateString('ko-KR') : '');
-    date.textContent = dateText;
-    const body = document.createElement('div');
-    body.className = 'archive-text';
-    body.textContent = a.text.length > 140 ? `${a.text.slice(0, 140)}…` : a.text;
-    const deleteBtn = document.createElement('button');
-    deleteBtn.className = 'archive-card-delete';
-    deleteBtn.type = 'button';
-    deleteBtn.setAttribute('aria-label', '답변 삭제');
-    deleteBtn.textContent = '×';
-    card.append(date, body, deleteBtn);
-    if (a.type) {
-      const tag = document.createElement('span');
-      tag.className = 'archive-type';
-      tag.textContent = toKoType(a.type);
-      card.append(tag);
-    }
+    // v3.11 T6 — renderAnswerCard 풍부 layout (헤더 + 질문 preview + 본문 line-clamp)
     // 카드 클릭은 document-level 이벤트 위임(handleCardClick)이 처리
-    list.append(card);
+    list.append(renderAnswerCard(a));
   }
 }
 

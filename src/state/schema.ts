@@ -12,6 +12,8 @@ export interface Answer extends Versioned {
   text: string;          // primary answer body (was legacy `answer`)
   authorId: string;      // 'self' for single-user v3.1
   createdAt: string;     // ISO string
+  /** v3.11: 답변 시점의 질문 본문. 기존 답변엔 없음(undefined → archive에서 graceful degrade). */
+  questionText?: string;
   /** legacy: question type label ('분석' | '전환' | '실무' | '성장' | '트렌드' | etc.). optional, kept for archive filter + stats breakdown. */
   type?: string;
   /** legacy AI evaluation score + feedback. optional. */

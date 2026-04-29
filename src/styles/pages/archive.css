@@ -98,6 +98,96 @@
   opacity: 0.4; cursor: default;
 }
 
+/* v3.11 T5 — scrap 카드는 home renderBriefingCard 시각을 재사용한다.
+   .briefing-card 위에 ✕ 버튼이 .card-overlay/.card-actions 위로 떠야 하므로
+   z-index + 가독성용 색·배경을 덮어쓴다. position: absolute는 기본 규칙에서 상속. */
+.archive-card--scrap .archive-card-delete {
+  z-index: 3;
+  width: 28px;
+  height: 28px;
+  padding: 0;
+  border-radius: 50%;
+  background: rgba(0, 0, 0, 0.55);
+  color: #fff;
+  font-size: 1rem;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+}
+.archive-card--scrap .archive-card-delete:hover {
+  background: rgba(0, 0, 0, 0.75);
+  color: #fff;
+}
+
+/* v3.11 T6 — 답변 카드 풍부 layout (헤더 + 질문 preview + 본문 line-clamp) */
+.archive-card--answer {
+  background: var(--bg-card);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-md);
+  padding: 14px 16px;
+  margin-bottom: 10px;
+  cursor: pointer;
+  transition: box-shadow 0.2s;
+}
+.archive-card--answer:hover { box-shadow: var(--shadow-sm); }
+
+.archive-card--answer .archive-card-header {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin-bottom: 8px;
+}
+.archive-card--answer .archive-card-header .archive-date {
+  margin-left: auto;
+  font-size: 0.8rem;
+  color: var(--text-tertiary);
+}
+/* Override the absolute-positioned base style — header flow handles placement */
+.archive-card--answer .archive-card-delete {
+  position: static;
+  top: auto;
+  right: auto;
+  margin-left: 4px;
+  font-size: 1.1rem;
+  color: var(--text-tertiary);
+}
+.archive-card--answer .archive-card-delete:hover { color: var(--text-primary); }
+
+.archive-type-chip {
+  background: var(--bg-input);
+  border-radius: 999px;
+  padding: 2px 10px;
+  font-size: 0.75rem;
+  font-weight: 500;
+  color: var(--text-secondary);
+}
+
+.archive-card-question {
+  font-size: 0.9rem;
+  color: var(--text-primary);
+  margin: 0 0 8px 0;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  font-weight: 500;
+}
+.archive-card-question--missing {
+  color: var(--text-tertiary);
+  font-style: italic;
+  font-weight: 400;
+}
+
+.archive-card-body {
+  display: -webkit-box;
+  -webkit-line-clamp: 3;
+  -webkit-box-orient: vertical;
+  overflow: hidden;
+  margin: 0;
+  font-size: 0.85rem;
+  color: var(--text-secondary);
+  line-height: 1.5;
+}
+
 /* Select mode — hide ✕ buttons, highlight selected cards */
 .archive--select-mode .archive-card-delete {
   display: none;
@@ -110,4 +200,30 @@
 .archive--select-mode .archive-card.selected {
   outline: 2px solid var(--primary, #2563eb);
   outline-offset: -2px;
+}
+
+/* v3.11 T7 — read-only answer detail modal text rules.
+   Outer modal shell (focus trap / ESC / backdrop) handled by .dg-modal in shared.ts. */
+.answer-detail-question {
+  font-size: var(--font-size-lg);
+  font-weight: 600;
+  margin: 0 0 8px 0;
+  color: var(--text-primary);
+}
+.answer-detail-meta {
+  font-size: var(--font-size-sm);
+  color: var(--text-tertiary);
+  margin: 0 0 12px 0;
+}
+.answer-detail-body {
+  white-space: pre-wrap;
+  margin: 0 0 16px 0;
+  color: var(--text-primary);
+}
+.answer-detail-feedback {
+  background: var(--bg-input);
+  padding: 12px;
+  border-radius: var(--radius-md);
+  margin: 0;
+  color: var(--text-secondary);
 }
