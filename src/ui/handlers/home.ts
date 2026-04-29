@@ -174,7 +174,8 @@ function attachLangToggle(card: HTMLElement, briefing: Briefing): void {
   if (main) card.insertBefore(toggle, main);
 }
 
-async function handleLangToggle(
+/** @internal — exported for unit testing the pending UX (v3.11.1 hotfix). */
+export async function handleLangToggle(
   next: LangState,
   summaryEl: HTMLElement,
   briefing: Briefing,
@@ -204,14 +205,24 @@ async function handleLangToggle(
     toggle.setAttribute('aria-disabled', 'true');
     return;
   }
+  // v3.11.1 hotfix — async API 동안 button 잠금 + summary placeholder.
+  // 버튼만 즉시 flip되고 summary는 1~2초 후 도착하던 race로 사용자가 다중 클릭
+  // 하면 state 토글이 꼬였음. pending state로 입력 자연 차단.
+  toggle.disabled = true;
+  toggle.setAttribute('aria-disabled', 'true');
+  summaryEl.textContent = '번역 중…';
   try {
     const ko = await summarizeOrTranslateBody(originalBody, apiKey);
     setTranslation(briefing.id, { summaryKo: ko });
     briefing.summaryKo = ko;
     summaryEl.textContent = ko;
   } catch (err) {
+    summaryEl.textContent = originalBody;
     showTranslateError(err);
     toggle.setLangState('en');
+  } finally {
+    toggle.disabled = false;
+    toggle.removeAttribute('aria-disabled');
   }
 }
 
