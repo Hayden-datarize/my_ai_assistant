@@ -53,6 +53,7 @@ describe('answer-detail modal (v3.11 T7)', () => {
     });
     openAnswerDetail(a);
     expect(document.body.textContent).toContain('great insight!');
+    expect(document.body.textContent).toContain('8점');
   });
 
   it('does not render evaluation marker (💡) when evaluation absent', () => {
@@ -65,5 +66,23 @@ describe('answer-detail modal (v3.11 T7)', () => {
     });
     openAnswerDetail(a);
     expect(document.body.textContent).not.toContain('💡');
+  });
+
+  it('omits "점" suffix when evaluation has feedback but no numeric score', () => {
+    const a = makeAnswer({
+      id: 'a5',
+      questionId: 'q5',
+      text: 'a',
+      authorId: 'self',
+      questionText: 'q',
+      // 런타임 edge case: 과거 데이터에 score 누락 가능. 타입은 number 강제이므로 cast.
+      evaluation: { feedback: 'good without score' } as unknown as {
+        score: number;
+        feedback: string;
+      },
+    });
+    openAnswerDetail(a);
+    expect(document.body.textContent).toContain('good without score');
+    expect(document.body.textContent).not.toContain('점');
   });
 });

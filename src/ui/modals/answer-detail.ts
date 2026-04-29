@@ -39,10 +39,12 @@ export function openAnswerDetail(a: Answer): void {
   // Body: full text — white-space: pre-wrap CSS 가 줄바꿈 보존
   parts.push(`<p class="answer-detail-body">${escapeHtml(a.text)}</p>`);
 
-  // Evaluation feedback (있을 때만)
+  // Evaluation feedback (있을 때만) — legacy parity: score + feedback
   if (a.evaluation?.feedback) {
+    const score =
+      typeof a.evaluation.score === 'number' ? `${a.evaluation.score}점 — ` : '';
     parts.push(
-      `<p class="answer-detail-feedback">💡 ${escapeHtml(a.evaluation.feedback)}</p>`
+      `<p class="answer-detail-feedback">💡 AI 평가 ${score}${escapeHtml(a.evaluation.feedback)}</p>`
     );
   }
 
