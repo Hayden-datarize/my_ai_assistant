@@ -119,6 +119,75 @@
   color: #fff;
 }
 
+/* v3.11 T6 — 답변 카드 풍부 layout (헤더 + 질문 preview + 본문 line-clamp) */
+.archive-card--answer {
+  background: var(--bg-card);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-md);
+  padding: 14px 16px;
+  margin-bottom: 10px;
+  cursor: pointer;
+  transition: box-shadow 0.2s;
+}
+.archive-card--answer:hover { box-shadow: var(--shadow-sm); }
+
+.archive-card--answer .archive-card-header {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin-bottom: 8px;
+}
+.archive-card--answer .archive-card-header .archive-date {
+  margin-left: auto;
+  font-size: 0.8rem;
+  color: var(--text-tertiary);
+}
+/* Override the absolute-positioned base style — header flow handles placement */
+.archive-card--answer .archive-card-delete {
+  position: static;
+  top: auto;
+  right: auto;
+  margin-left: 4px;
+  font-size: 1.1rem;
+  color: var(--text-tertiary);
+}
+.archive-card--answer .archive-card-delete:hover { color: var(--text-primary); }
+
+.archive-type-chip {
+  background: var(--bg-input);
+  border-radius: 999px;
+  padding: 2px 10px;
+  font-size: 0.75rem;
+  font-weight: 500;
+  color: var(--text-secondary);
+}
+
+.archive-card-question {
+  font-size: 0.9rem;
+  color: var(--text-primary);
+  margin: 0 0 8px 0;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  font-weight: 500;
+}
+.archive-card-question--missing {
+  color: var(--text-tertiary);
+  font-style: italic;
+  font-weight: 400;
+}
+
+.archive-card-body {
+  display: -webkit-box;
+  -webkit-line-clamp: 3;
+  -webkit-box-orient: vertical;
+  overflow: hidden;
+  margin: 0;
+  font-size: 0.85rem;
+  color: var(--text-secondary);
+  line-height: 1.5;
+}
+
 /* Select mode — hide ✕ buttons, highlight selected cards */
 .archive--select-mode .archive-card-delete {
   display: none;
