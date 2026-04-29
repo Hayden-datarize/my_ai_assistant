@@ -92,4 +92,50 @@ describe('archive scrap card uses briefing-card visual structure (v3.11 T5)', ()
     expect(btn).not.toBeNull();
     expect(btn?.getAttribute('aria-label')).toBe('스크랩 해제');
   });
+
+  it('scrap card has no .card-actions (♥/✎ removed) — prevents idx-mismatch corruption', async () => {
+    const { saveBriefings } = await import('../../src/state/briefings');
+    saveBriefings([
+      { id: 'A', date: '2026-04-28', url: 'https://a.com', title: 'A', summary: '', scrapped: false, read: false, memo: '', sourceTitle: 'S' },
+      { id: 'B', date: '2026-04-28', url: 'https://b.com', title: 'B', summary: '', scrapped: false, read: false, memo: '', sourceTitle: 'S' },
+      { id: 'C', date: '2026-04-28', url: 'https://c.com', title: 'C', summary: '', scrapped: true,  read: false, memo: '', sourceTitle: 'S' },
+    ]);
+    const container = document.createElement('div');
+    container.id = 'archiveTab';
+    document.body.appendChild(container);
+    const tab = await import('../../src/ui/tabs/archive');
+    const handlers = await import('../../src/ui/handlers/archive');
+    tab.renderArchive(container);
+    handlers.mountArchiveHandlers();
+    document.querySelector<HTMLButtonElement>('[data-filter="scrap"]')!.click();
+    const card = document.querySelector<HTMLElement>('.archive-card--scrap');
+    expect(card).not.toBeNull();
+    // No ♥ or ✎ buttons exposed in archive — prevents idx-bound mutate of wrong briefing
+    expect(card!.querySelector('.card-actions')).toBeNull();
+    expect(card!.querySelectorAll('button[data-action="scrap"], button[data-action="memo"]').length).toBe(0);
+  });
+
+  it('scrap card .card-main link click does NOT trigger setRead on a different briefing', async () => {
+    const { loadBriefings, saveBriefings } = await import('../../src/state/briefings');
+    saveBriefings([
+      { id: 'A', date: '2026-04-28', url: 'https://a.com', title: 'A', summary: '', scrapped: false, read: false, memo: '', sourceTitle: 'S' },
+      { id: 'B', date: '2026-04-28', url: 'https://b.com', title: 'B', summary: '', scrapped: false, read: false, memo: '', sourceTitle: 'S' },
+      { id: 'C', date: '2026-04-28', url: 'https://c.com', title: 'C', summary: '', scrapped: true, read: false, memo: '', sourceTitle: 'S' },
+    ]);
+    const container = document.createElement('div');
+    container.id = 'archiveTab';
+    document.body.appendChild(container);
+    const tab = await import('../../src/ui/tabs/archive');
+    const handlers = await import('../../src/ui/handlers/archive');
+    tab.renderArchive(container);
+    handlers.mountArchiveHandlers();
+    document.querySelector<HTMLButtonElement>('[data-filter="scrap"]')!.click();
+    const card = document.querySelector<HTMLElement>('.archive-card--scrap')!;
+    const link = card.querySelector<HTMLAnchorElement>('.card-main')!;
+    link.click();
+    // Verify briefing A (idx=0 in full list) is NOT mutated by the click
+    const after = loadBriefings();
+    expect(after[0]?.read).toBe(false);  // A still unread
+    expect(after[1]?.read).toBe(false);  // B still unread
+  });
 });

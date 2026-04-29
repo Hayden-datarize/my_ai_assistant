@@ -335,8 +335,17 @@ export function rerenderList(): void {
     scrapped.forEach((b, idx) => {
       const card = renderBriefingCard(b, idx);
       card.classList.add('archive-card', 'archive-card--scrap');
-      // data-briefing-id는 renderBriefingCard에서 이미 설정되었으나 명시성 위해 재기록 (harmless)
-      card.dataset['briefingId'] = b.id;
+
+      // renderBriefingCard registers idx-based handlers (setRead/toggleScrap/openMemoModal) where
+      // idx indexes home's full briefings list. In archive's filtered scrap subset, idx
+      // mismatches → ♥/✎ would mutate the wrong briefing. Archive uses ✕ for unscrap, so
+      // strip card-actions + replace link to drop the setRead(idx) listener.
+      card.querySelector('.card-actions')?.remove();
+      const oldLink = card.querySelector<HTMLAnchorElement>('.card-main');
+      if (oldLink) {
+        const newLink = oldLink.cloneNode(true) as HTMLAnchorElement;
+        oldLink.replaceWith(newLink);
+      }
 
       const deleteBtn = document.createElement('button');
       deleteBtn.className = 'archive-card-delete';
