@@ -178,10 +178,15 @@ function handleCardClick(e: Event): void {
     return;
   }
 
-  const id = card.dataset['answerId'];
-  if (id) {
+  // v3.11 T7 — 답변 카드 → dedicated read-only answer-detail modal (dynamic import for chunk split)
+  if (card.classList.contains('archive-card--answer')) {
+    const id = card.dataset['answerId'];
+    if (!id) return;
     const answer = loadAnswers().find((a) => a.id === id);
-    if (answer) showArchiveDetail({ kind: 'answer', answer });
+    if (!answer) return;
+    void import('../modals/answer-detail').then(({ openAnswerDetail }) => {
+      openAnswerDetail(answer);
+    });
     return;
   }
 

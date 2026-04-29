@@ -201,3 +201,29 @@
   outline: 2px solid var(--primary, #2563eb);
   outline-offset: -2px;
 }
+
+/* v3.11 T7 — read-only answer detail modal text rules.
+   Outer modal shell (focus trap / ESC / backdrop) handled by .dg-modal in shared.ts. */
+.answer-detail-question {
+  font-size: var(--font-size-lg);
+  font-weight: 600;
+  margin: 0 0 8px 0;
+  color: var(--text-primary);
+}
+.answer-detail-meta {
+  font-size: var(--font-size-sm);
+  color: var(--text-tertiary);
+  margin: 0 0 12px 0;
+}
+.answer-detail-body {
+  white-space: pre-wrap;
+  margin: 0 0 16px 0;
+  color: var(--text-primary);
+}
+.answer-detail-feedback {
+  background: var(--bg-input);
+  padding: 12px;
+  border-radius: var(--radius-md);
+  margin: 0;
+  color: var(--text-secondary);
+}
