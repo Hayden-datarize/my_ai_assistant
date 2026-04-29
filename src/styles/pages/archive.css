@@ -98,6 +98,14 @@
   opacity: 0.4; cursor: default;
 }
 
+/* v3.11.1 hotfix — home briefing은 full-bleed 카드뉴스(aspect 4/5)라 archive list
+   컨텍스트에서 화면을 꽉 채운다. archive 스크랩 카드는 list 친화 사이즈로 강제 + 마진. */
+.archive-card--scrap {
+  aspect-ratio: auto;
+  height: 140px;
+  margin-bottom: 10px;
+}
+
 /* v3.11 T5 — scrap 카드는 home renderBriefingCard 시각을 재사용한다.
    .briefing-card 위에 ✕ 버튼이 .card-overlay/.card-actions 위로 떠야 하므로
    z-index + 가독성용 색·배경을 덮어쓴다. position: absolute는 기본 규칙에서 상속. */
