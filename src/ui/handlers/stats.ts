@@ -14,6 +14,7 @@ import { showToast } from '../../utils/toast';
 import { toKoType } from '../../utils/typeLabel';
 import { getDateStr } from '../../utils/dates';
 import { getCachedUser } from '../../state/user';
+import { getCurrentTier } from '../../state/leveling';
 
 const WEEKDAY_KO = ['월', '화', '수', '목', '금', '토', '일'];
 
@@ -251,8 +252,9 @@ function hydrateBadges(): void {
   if (answers.length >= 10) earned.push({ icon: '📚', label: '열 걸음' });
   if (answers.length >= 30) earned.push({ icon: '🎯', label: '한 달 완성' });
   if (user && user.streak >= 7) earned.push({ icon: '🔥', label: '주간 스트릭' });
-  if (user && user.level >= 3) earned.push({ icon: '🌳', label: '나무' });
-  if (user && user.level >= 5) earned.push({ icon: '🏔️', label: '산' });
+  // v3.12 T2 임시 — level 필드 drop. T11에서 hydrateBadges 자체가 catalog 기반으로 rewrite되며 자연 사라짐.
+  if (user && user.xp >= 300) earned.push({ icon: '🌳', label: '나무' });
+  if (user && user.xp >= 1000) earned.push({ icon: '🏔️', label: '산' });
   if (earned.length === 0) {
     const hint = document.createElement('p');
     hint.textContent = '첫 답변을 남기면 뱃지가 열려요.';
@@ -307,7 +309,9 @@ function hydrateGrowthSummary(): void {
     return;
   }
   const recent = answers.slice(0, 7).length;
-  el.textContent = `최근 ${recent}개의 기록으로 레벨 ${user.level}까지 도달했어요. 오늘도 한 걸음 더 나아가 볼까요?`;
+  // v3.12 T2: level 필드 drop. tierName으로 표현. T11에서 동일 패턴 유지 (영구).
+  const tierName = getCurrentTier(user.xp).name;
+  el.textContent = `최근 ${recent}개의 기록으로 ${tierName} 단계까지 도달했어요. 오늘도 한 걸음 더 나아가 볼까요?`;
 }
 
 function showDayDetail(date: string, onClose?: () => void): void {

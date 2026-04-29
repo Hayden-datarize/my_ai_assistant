@@ -1,5 +1,6 @@
 import { getDateStr } from '../utils/dates';
 import { MSG } from '../ui/messages';
+import { migrateUserToV2 } from './migration';
 
 export interface User {
   name: string;
@@ -8,7 +9,10 @@ export interface User {
   streak: number;
   lastActiveDate: string;
   xp: number;
-  level: number;
+  // ❌ removed: level (computed via getCurrentTier(xp).id)
+  earnedBadges: Record<string, number>;     // badgeId → unlockedAt epoch ms
+  gamificationMigrated: boolean;            // 환영 모달 1회 보장 flag
+  schemaVersion: 2;
 }
 
 /** home.ts / stats.ts 레거시 호환 alias */
@@ -16,10 +20,16 @@ export type LegacyUser = User;
 
 const KEY = 'user';
 
-export function getCachedUser(): LegacyUser | null {
+export function getCachedUser(): User | null {
   try {
     const raw = localStorage.getItem(KEY);
-    return raw ? (JSON.parse(raw) as LegacyUser) : null;
+    if (!raw) return null;
+    const parsed = JSON.parse(raw);
+    if (parsed && parsed.schemaVersion === 2) return parsed as User;
+    // lazy migrate v1 → v2 (or partial shape)
+    const migrated = migrateUserToV2(parsed);
+    localStorage.setItem(KEY, JSON.stringify(migrated));
+    return migrated;
   } catch {
     return null;
   }
@@ -40,7 +50,7 @@ export function saveUser(u: User): void {
 /**
  * 답변 제출 1회의 사용자 활동을 atomic single-write로 기록한다.
  * - streak: 어제 활동했으면 +1, 아니면 1로 리셋. 같은 날 재제출은 idempotent.
- * - xp: xpDelta 누적. level = 1 + floor(xp / 100).
+ * - xp: xpDelta 누적. tier는 getCurrentTier(xp)로 derive (level 필드 X).
  * - lastActiveDate: 오늘로 갱신.
  *
  * 사용자 데이터가 없으면 silent return.
@@ -60,10 +70,11 @@ export function recordDailyAnswer(xpDelta: number): void {
   }
 
   u.xp += xpDelta;
-  u.level = 1 + Math.floor(u.xp / 100);
+  // ❌ removed: u.level = 1 + Math.floor(u.xp / 100);
   u.lastActiveDate = today;
 
   saveUser(u);
+  // sweep call은 T4에서 추가
 }
 
 export function updateGreeting(rootId = 'greeting'): void {
