@@ -177,4 +177,26 @@
     font-size: 0.7rem;
     opacity: 0.7;
   }
+
+  /* v3.12 T12 — Locked badge tooltip */
+  .badge.show-tooltip::after {
+    content: attr(data-tooltip);
+    position: absolute;
+    bottom: calc(100% + 6px);
+    left: 50%;
+    transform: translateX(-50%);
+    padding: 6px 10px;
+    background: var(--text-primary, #1f2937);
+    color: var(--bg-card, #fff);
+    font-size: 0.75rem;
+    border-radius: 4px;
+    white-space: nowrap;
+    z-index: 10;
+    pointer-events: none;
+    animation: tooltipIn 0.15s ease-out;
+  }
+  @keyframes tooltipIn {
+    from { opacity: 0; transform: translateX(-50%) translateY(4px); }
+    to   { opacity: 1; transform: translateX(-50%) translateY(0); }
+  }
 }

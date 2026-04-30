@@ -254,6 +254,13 @@ const CATEGORY_LABELS: Record<string, string> = {
 };
 const CATEGORY_ORDER = ['streak', 'volume', 'tier', 'diversity', 'engagement'] as const;
 
+function showTooltip(btn: HTMLButtonElement): void {
+  // close previously open tooltip(s)
+  document.querySelectorAll('.badge.show-tooltip').forEach(el => el.classList.remove('show-tooltip'));
+  btn.classList.add('show-tooltip');
+  setTimeout(() => btn.classList.remove('show-tooltip'), 3000);
+}
+
 function hydrateBadges(): void {
   const wrap = document.getElementById('badgesGrid');
   const user = getCachedUser();
@@ -304,8 +311,18 @@ function hydrateBadges(): void {
         btn.append(lock);
       }
       btn.addEventListener('click', async () => {
-        const { openBadgeDetail } = await import('../modals/badge-detail');
-        openBadgeDetail(def.id);
+        if (isEarned) {
+          const { openBadgeDetail } = await import('../modals/badge-detail');
+          openBadgeDetail(def.id);
+        } else {
+          showTooltip(btn);
+        }
+      });
+      btn.addEventListener('keydown', (e) => {
+        if (e.key === 'Enter' || e.key === ' ') {
+          e.preventDefault();
+          btn.click();
+        }
       });
       grid.append(btn);
     }
