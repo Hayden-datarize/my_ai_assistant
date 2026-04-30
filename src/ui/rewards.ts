@@ -47,6 +47,25 @@ function escapeText(s: string): string {
   return s.replace(/[&<>"']/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]!));
 }
 
+const CONFETTI_COLORS = ['#16a34a', '#3b82f6', '#f59e0b', '#ef4444', '#a855f7', '#ec4899'];
+const CONFETTI_COUNT = 30;
+
+function playConfetti(): void {
+  const root = document.getElementById('modalRoot') ?? document.body;
+  const wrap = document.createElement('div');
+  wrap.className = 'confetti-burst';
+  for (let i = 0; i < CONFETTI_COUNT; i++) {
+    const p = document.createElement('span');
+    p.className = 'confetti-particle';
+    p.style.setProperty('--angle', `${(360 / CONFETTI_COUNT) * i}deg`);
+    p.style.setProperty('--color', CONFETTI_COLORS[i % CONFETTI_COLORS.length]!);
+    p.style.setProperty('--delay', `${(i % 5) * 30}ms`);
+    wrap.append(p);
+  }
+  root.append(wrap);
+  setTimeout(() => wrap.remove(), 1100);
+}
+
 function spawnXpFloat(amount: number): void {
   const startEl = document.querySelector<HTMLElement>('.chat-bubble:last-of-type');
   const xpBadge = document.getElementById('xpBadge');
@@ -112,7 +131,7 @@ export function mountRewards(): void {
       <button type="button" class="toast-close" aria-label="닫기">×</button>
     `;
     spawnToast(html, 'levelup', TOAST_DURATIONS.levelup);
-    // T8에서 playConfetti() 호출 추가
+    playConfetti();
   }));
 
   disposers.push(on('dg:reward:streak-milestone', ({ days }) => {
