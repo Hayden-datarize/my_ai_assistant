@@ -65,11 +65,14 @@ import type { User } from './user';
  * - add earnedBadges / gamificationMigrated / schemaVersion: 2
  *
  * backfill (이미 자격 있는 뱃지 unlock)은 T13 환영 모달에서 처리.
+ *
+ * v3.12.1: `any` → `unknown` (sibling 컨벤션 일치, migrateAnswer/Settings와 동일).
  */
-export function migrateUserToV2(raw: any): User {
-  const v2: any = { ...raw, schemaVersion: 2 };
+export function migrateUserToV2(raw: unknown): User {
+  const r = (raw ?? {}) as Record<string, unknown>;
+  const v2 = { ...r, schemaVersion: 2 } as Record<string, unknown>;
   delete v2.level;
   v2.earnedBadges = v2.earnedBadges ?? {};
   v2.gamificationMigrated = v2.gamificationMigrated ?? false;
-  return v2 as User;
+  return v2 as unknown as User;
 }
