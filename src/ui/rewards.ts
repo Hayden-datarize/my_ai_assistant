@@ -1,6 +1,7 @@
 import { on } from './events';
 import { findBadge } from '../state/badgeCatalog';
 import { TIERS } from '../state/leveling';
+import { escapeHtml } from '../utils/escapeHtml';
 
 const MAX_VISIBLE = 3;
 const TOAST_DURATIONS = { badge: 3000, levelup: 4000, streak: 3000 } as const;
@@ -40,11 +41,6 @@ function removeToast(el: HTMLElement): void {
   if (!el.parentElement) return;
   el.remove();
   activeCount = Math.max(0, activeCount - 1);
-}
-
-function escapeText(s: string): string {
-  // 카탈로그 데이터만 들어옴 — 그래도 방어적으로 escape
-  return s.replace(/[&<>"']/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]!));
 }
 
 const CONFETTI_COLORS = ['#16a34a', '#3b82f6', '#f59e0b', '#ef4444', '#a855f7', '#ec4899'];
@@ -107,9 +103,9 @@ export function mountRewards(): void {
     const def = findBadge(badgeId);
     if (!def) return;
     const html = `
-      <span class="toast-icon">${escapeText(def.icon)}</span>
-      <span class="toast-text">🎯 <strong>${escapeText(def.name)}</strong> 뱃지 획득!</span>
-      <button type="button" class="toast-detail" data-badge-id="${escapeText(def.id)}">자세히</button>
+      <span class="toast-icon">${escapeHtml(def.icon)}</span>
+      <span class="toast-text">🎯 <strong>${escapeHtml(def.name)}</strong> 뱃지 획득!</span>
+      <button type="button" class="toast-detail" data-badge-id="${escapeHtml(def.id)}">자세히</button>
       <button type="button" class="toast-close" aria-label="닫기">×</button>
     `;
     const el = spawnToast(html, 'badge', TOAST_DURATIONS.badge);
@@ -126,8 +122,8 @@ export function mountRewards(): void {
     const tier = TIERS.find(t => t.id === tierId);
     if (!tier) return;
     const html = `
-      <span class="toast-icon">${escapeText(tier.icon)}</span>
-      <span class="toast-text"><strong>${escapeText(tier.name)}</strong> 레벨 달성!</span>
+      <span class="toast-icon">${escapeHtml(tier.icon)}</span>
+      <span class="toast-text"><strong>${escapeHtml(tier.name)}</strong> 레벨 달성!</span>
       <button type="button" class="toast-close" aria-label="닫기">×</button>
     `;
     spawnToast(html, 'levelup', TOAST_DURATIONS.levelup);
