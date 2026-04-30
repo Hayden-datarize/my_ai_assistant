@@ -7,6 +7,7 @@ import { loadBriefings, type Briefing } from './briefings';
 import { loadAnswers } from './persistence';
 import { BADGE_CATALOG } from './badgeCatalog';
 import { INTERESTS } from '../utils/categories';
+import { getMissionDef } from './missionCatalog';
 
 /**
  * interest ID(snake_case)를 RSS 텍스트에 매칭 가능한 keyword 배열로 확장.
@@ -88,6 +89,13 @@ export function takeSnapshot(): Snapshot {
     engagedInterests: engaged,
     uniqueScrapCategories: uniqueCount,
     earnedBadgeIds: new Set(Object.keys(u?.earnedBadges ?? {})),
+    // v3.13 T5: 미션 필드 — shallow clone (원본 변형 방지)
+    missionsActive: (u?.missions?.active ?? []).map(m => ({ ...m })),
+    missionsCumulative: {
+      daily: u?.missions?.cumulative?.dailyCount ?? 0,
+      weekly: u?.missions?.cumulative?.weeklyCount ?? 0,
+      monthly: u?.missions?.cumulative?.monthlyCount ?? 0,
+    },
   };
 }
 
@@ -116,6 +124,18 @@ export function detectEvents(prev: Snapshot, curr: Snapshot): GameEvent[] {
       out.push({ kind: 'badge', badgeId: b.id, at });
     }
   }
+
+  // v3.13 T5: mission-complete — false → true 전환만 emit
+  for (const cm of (curr.missionsActive ?? [])) {
+    const pm = (prev.missionsActive ?? []).find(p => p.defId === cm.defId);
+    if (!pm) continue;                                  // 새 instance → event 아님
+    if (!pm.completed && cm.completed) {
+      const def = getMissionDef(cm.defId);
+      if (!def) continue;
+      out.push({ kind: 'mission-complete', defId: cm.defId, period: cm.period, rewardXp: def.rewardXp, at });
+    }
+  }
+
   return out;
 }
 

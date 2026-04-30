@@ -8,6 +8,8 @@ function snap(over: Partial<Snapshot> = {}): Snapshot {
     uniqueAnsweredTypes: new Set(), selectedInterests: new Set(),
     engagedInterests: new Set(), uniqueScrapCategories: 0,
     earnedBadgeIds: new Set(),
+    missionsActive: [],
+    missionsCumulative: { daily: 0, weekly: 0, monthly: 0 },
     ...over,
   };
 }
