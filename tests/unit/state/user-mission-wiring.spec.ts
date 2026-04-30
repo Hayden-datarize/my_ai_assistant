@@ -1,4 +1,4 @@
-import { describe, it, expect, beforeEach, vi } from 'vitest';
+import { describe, it, expect, beforeEach } from 'vitest';
 import { recordDailyAnswer, getCachedUser, saveUser } from '../../../src/state/user';
 import { migrateUserToV3 } from '../../../src/state/migration';
 

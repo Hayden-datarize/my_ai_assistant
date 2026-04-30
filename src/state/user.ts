@@ -97,7 +97,8 @@ export function recordDailyAnswer(xpDelta: number): void {
   // lazy regen (in-memory only — saveUser 는 caller 책임, 아래 단일 호출)
   getActiveMissions(new Date(), u);
 
-  // prev snapshot은 lazy regen 이후 — 새 미션 instance가 포함돼야 mission-complete diff가 작동
+  // prev snapshot은 localStorage 기준 — lazy regen 결과는 saveUser 이후에야 persist됨.
+  // detectEvents (T5/T9 guard) 가 새 instance + 즉시 완수 케이스를 정확히 처리한다.
   const prev = takeSnapshot();
 
   if (u.lastActiveDate !== today) {
