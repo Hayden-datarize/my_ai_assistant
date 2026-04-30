@@ -2,6 +2,7 @@ import { describe, it, expect, beforeEach, vi } from 'vitest';
 import { takeSnapshot, detectEvents, runSweep, persistUnlocks } from '../../../src/state/achievements';
 import type { Snapshot, GameEvent } from '../../../src/state/gameTypes';
 import { saveUser, loadUserData } from '../../../src/state/user';
+import { mkUser } from './userFixture';
 
 beforeEach(() => localStorage.clear());
 
@@ -61,7 +62,7 @@ describe('achievements — detectEvents', () => {
   });
 
   it('takeSnapshot: empty user → zeros', () => {
-    saveUser({ name: 'x', interests: [], onboardedAt: '', streak: 0, lastActiveDate: '', xp: 0, earnedBadges: {}, gamificationMigrated: false, schemaVersion: 2 });
+    saveUser(mkUser());
     const snap = takeSnapshot();
     expect(snap.xp).toBe(0);
     expect(snap.streak).toBe(0);
@@ -69,7 +70,7 @@ describe('achievements — detectEvents', () => {
   });
 
   it('persistUnlocks: badge events → user.earnedBadges 갱신', () => {
-    saveUser({ name: 'x', interests: [], onboardedAt: '', streak: 0, lastActiveDate: '', xp: 0, earnedBadges: {}, gamificationMigrated: false, schemaVersion: 2 });
+    saveUser(mkUser());
     const events: GameEvent[] = [{ kind: 'badge', badgeId: 'streak-3', at: 1700000000000 }];
     persistUnlocks(events);
     const u = loadUserData()!;
@@ -77,7 +78,7 @@ describe('achievements — detectEvents', () => {
   });
 
   it('runSweep: events 없으면 dispatch도 persist도 안 함', () => {
-    saveUser({ name: 'x', interests: [], onboardedAt: '', streak: 0, lastActiveDate: '', xp: 0, earnedBadges: {}, gamificationMigrated: false, schemaVersion: 2 });
+    saveUser(mkUser());
     const spy = vi.spyOn(document, 'dispatchEvent');
     const same = emptySnap({ xp: 100 });
     runSweep(same, same);
@@ -87,11 +88,7 @@ describe('achievements — detectEvents', () => {
 
 describe('takeSnapshot — engagedInterests integration (P1-A fix)', () => {
   it('한국어 label keyword 매칭: 인사제도 텍스트 → hr_system engaged', () => {
-    saveUser({
-      name: 'x', interests: ['hr_system', 'ai_ml'], onboardedAt: '',
-      streak: 0, lastActiveDate: '', xp: 0,
-      earnedBadges: {}, gamificationMigrated: false, schemaVersion: 2,
-    });
+    saveUser(mkUser({ interests: ['hr_system', 'ai_ml'] }));
     // briefings 직접 seed (briefings.ts 우회)
     localStorage.setItem('briefings', JSON.stringify([
       { id: '1', date: '2026-04-30', url: 'https://x.com', title: '신규 인사제도 도입 사례', summary: '...', scrapped: true, read: false, memo: '', sourceTitle: '' },
@@ -102,11 +99,7 @@ describe('takeSnapshot — engagedInterests integration (P1-A fix)', () => {
   });
 
   it('snake_case ID는 텍스트에 직접 안 나타나도 label split keyword가 매칭', () => {
-    saveUser({
-      name: 'x', interests: ['self_dev'], onboardedAt: '',
-      streak: 0, lastActiveDate: '', xp: 0,
-      earnedBadges: {}, gamificationMigrated: false, schemaVersion: 2,
-    });
+    saveUser(mkUser({ interests: ['self_dev'] }));
     localStorage.setItem('briefings', JSON.stringify([
       { id: '1', date: '2026-04-30', url: 'https://x.com', title: '자기계발 루틴 5선', summary: '...', scrapped: true, read: false, memo: '', sourceTitle: '' },
     ]));
@@ -115,11 +108,7 @@ describe('takeSnapshot — engagedInterests integration (P1-A fix)', () => {
   });
 
   it('스크랩 안 된 briefing은 engagedInterests 매칭 안 됨', () => {
-    saveUser({
-      name: 'x', interests: ['hr_system'], onboardedAt: '',
-      streak: 0, lastActiveDate: '', xp: 0,
-      earnedBadges: {}, gamificationMigrated: false, schemaVersion: 2,
-    });
+    saveUser(mkUser({ interests: ['hr_system'] }));
     localStorage.setItem('briefings', JSON.stringify([
       { id: '1', date: '2026-04-30', url: 'https://x.com', title: '인사제도 사례', summary: '...', scrapped: false, read: false, memo: '', sourceTitle: '' },
     ]));

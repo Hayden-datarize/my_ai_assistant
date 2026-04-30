@@ -1,7 +1,8 @@
 import { getDateStr } from '../utils/dates';
 import { MSG } from '../ui/messages';
-import { migrateUserToV2 } from './migration';
+import { migrateUserToV2, migrateUserToV3 } from './migration';
 import { takeSnapshot, runSweep } from './achievements';
+import type { MissionInstance } from './missionTypes';
 
 export interface User {
   name: string;
@@ -13,7 +14,14 @@ export interface User {
   // ❌ removed: level (computed via getCurrentTier(xp).id)
   earnedBadges: Record<string, number>;     // badgeId → unlockedAt epoch ms
   gamificationMigrated: boolean;            // 환영 모달 1회 보장 flag
-  schemaVersion: 2;
+  schemaVersion: 3;
+  missions: {
+    active: MissionInstance[];
+    cumulative: { dailyCount: number; weeklyCount: number; monthlyCount: number };
+    lastDailySeed: string;
+    currentWeekIso: string;
+    currentMonthIso: string;
+  };
 }
 
 /** home.ts / stats.ts 레거시 호환 alias */
@@ -26,15 +34,17 @@ export function getCachedUser(): User | null {
     const raw = localStorage.getItem(KEY);
     if (!raw) return null;
     const parsed = JSON.parse(raw);
-    const candidate = (parsed && parsed.schemaVersion === 2)
-      ? (parsed as User)
+    let user = (parsed?.schemaVersion === 2 || parsed?.schemaVersion === 3)
+      ? parsed
       : migrateUserToV2(parsed);
-    if (!isValidUserShape(candidate)) return null;
-    if (parsed?.schemaVersion !== 2) {
-      // lazy migrate v1 → v2 (정상 데이터만 persist; 손상 데이터는 위에서 null)
-      localStorage.setItem(KEY, JSON.stringify(candidate));
+    user = migrateUserToV3(user);
+    if (!isValidUserShape(user)) return null;
+    if (parsed?.schemaVersion !== 3) {
+      // lazy migrate v1/v2 → v3 (정상 데이터만 persist; 손상 데이터는 위에서 null)
+      // setItem 실패(Quota 등)는 무시 — in-memory 변환 결과는 그대로 반환
+      try { localStorage.setItem(KEY, JSON.stringify(user)); } catch { /* ignore */ }
     }
-    return candidate;
+    return user as User;
   } catch {
     return null;
   }

@@ -1,6 +1,7 @@
 import { describe, it, expect, beforeEach, vi, afterEach } from 'vitest';
 import { hydrateStats } from '../../../src/ui/handlers/stats';
 import { saveUser } from '../../../src/state/user';
+import { mkUser } from '../state/userFixture';
 
 const STATS_DOM = `
   <span id="statStreak"></span><span id="statAnswers"></span>
@@ -15,7 +16,7 @@ const STATS_DOM = `
 beforeEach(() => {
   localStorage.clear();
   document.body.innerHTML = STATS_DOM;
-  saveUser({ name: 'x', interests: [], onboardedAt: '', streak: 0, lastActiveDate: '', xp: 0, earnedBadges: {}, gamificationMigrated: true, schemaVersion: 2 });
+  saveUser(mkUser({ gamificationMigrated: true }));
 });
 
 afterEach(() => { vi.useRealTimers(); });

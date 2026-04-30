@@ -1,10 +1,11 @@
 import { describe, it, expect, beforeEach, vi } from 'vitest';
 import { saveUser, recordDailyAnswer } from '../../../src/state/user';
-import { toggleScrap, saveMemo, saveBriefings, type Briefing } from '../../../src/state/briefings';
+import { toggleScrap, saveMemo, saveBriefings } from '../../../src/state/briefings';
+import { mkUser } from './userFixture';
 
 beforeEach(() => {
   localStorage.clear();
-  saveUser({ name: 'x', interests: [], onboardedAt: '', streak: 0, lastActiveDate: '', xp: 95, earnedBadges: {}, gamificationMigrated: false, schemaVersion: 2 });
+  saveUser(mkUser({ xp: 95 }));
 });
 
 function captureRewardEvents(): string[] {

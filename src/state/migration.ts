@@ -58,6 +58,7 @@ export function migrateUnknown<T extends Record<string, unknown>>(raw: T): T & {
 }
 
 import type { User } from './user';
+import type { MissionInstance } from './missionTypes';
 
 /**
  * v3.12: User v1 → v2 마이그레이션.
@@ -75,4 +76,36 @@ export function migrateUserToV2(raw: unknown): User {
   v2.earnedBadges = v2.earnedBadges ?? {};
   v2.gamificationMigrated = v2.gamificationMigrated ?? false;
   return v2 as unknown as User;
+}
+
+/**
+ * v3.13: schema v2 → v3 — missions 필드 추가.
+ * - active 빈 배열, cumulative 0, ISO 필드 빈 문자열.
+ * - shape guard: missions 필드 NaN/잘못된 타입 차단 (silent corruption 방지).
+ * - idempotent: 이미 v3이고 missions.active가 배열이면 필드만 보강 후 반환.
+ */
+export function migrateUserToV3(raw: unknown): User {
+  const v = (raw as User & { schemaVersion?: number });
+  if (v?.schemaVersion === 3 && v.missions && Array.isArray(v.missions.active)) {
+    const m = v.missions;
+    m.cumulative = m.cumulative ?? { dailyCount: 0, weeklyCount: 0, monthlyCount: 0 };
+    if (typeof m.cumulative.dailyCount !== 'number') m.cumulative.dailyCount = 0;
+    if (typeof m.cumulative.weeklyCount !== 'number') m.cumulative.weeklyCount = 0;
+    if (typeof m.cumulative.monthlyCount !== 'number') m.cumulative.monthlyCount = 0;
+    if (typeof m.lastDailySeed !== 'string') m.lastDailySeed = '';
+    if (typeof m.currentWeekIso !== 'string') m.currentWeekIso = '';
+    if (typeof m.currentMonthIso !== 'string') m.currentMonthIso = '';
+    return v as User;
+  }
+  return {
+    ...(v as User),
+    schemaVersion: 3,
+    missions: {
+      active: [] as MissionInstance[],
+      cumulative: { dailyCount: 0, weeklyCount: 0, monthlyCount: 0 },
+      lastDailySeed: '',
+      currentWeekIso: '',
+      currentMonthIso: '',
+    },
+  };
 }

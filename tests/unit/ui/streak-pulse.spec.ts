@@ -3,6 +3,7 @@ import { mountRewards, __resetForTest } from '../../../src/ui/rewards';
 import { hydrateStats } from '../../../src/ui/handlers/stats';
 import { dispatch } from '../../../src/ui/events';
 import { saveUser } from '../../../src/state/user';
+import { mkUser } from '../state/userFixture';
 
 beforeEach(() => {
   document.body.innerHTML = `
@@ -22,7 +23,7 @@ beforeEach(() => {
   `;
   sessionStorage.clear();
   localStorage.clear();
-  saveUser({ name: 'x', interests: [], onboardedAt: '', streak: 7, lastActiveDate: '', xp: 100, earnedBadges: {}, gamificationMigrated: true, schemaVersion: 2 });
+  saveUser(mkUser({ streak: 7, xp: 100, gamificationMigrated: true }));
   __resetForTest();
   mountRewards();
 });

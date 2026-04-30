@@ -2,6 +2,7 @@ import { describe, it, expect, beforeEach } from 'vitest';
 import { hydrateStats } from '../../../src/ui/handlers/stats';
 import { saveUser } from '../../../src/state/user';
 import { saveBriefings } from '../../../src/state/briefings';
+import { mkUser } from '../state/userFixture';
 
 const STATS_DOM = `
   <span id="statStreak"></span><span id="statAnswers"></span>
@@ -21,7 +22,7 @@ beforeEach(() => {
 
 describe('hydrateBadges (catalog 기반)', () => {
   it('빈 user (xp=0, no badges) → 18 grid + 0 earned', () => {
-    saveUser({ name: 'x', interests: [], onboardedAt: '', streak: 0, lastActiveDate: '', xp: 0, earnedBadges: {}, gamificationMigrated: true, schemaVersion: 2 });
+    saveUser(mkUser({ gamificationMigrated: true }));
     hydrateStats();
     const grid = document.getElementById('badgesGrid')!;
     expect(grid.querySelectorAll('.badge')).toHaveLength(18);
@@ -30,14 +31,14 @@ describe('hydrateBadges (catalog 기반)', () => {
   });
 
   it('count 헤더 — earned/총 18', () => {
-    saveUser({ name: 'x', interests: [], onboardedAt: '', streak: 0, lastActiveDate: '', xp: 0, earnedBadges: { 'streak-3': 1700000000000, 'answers-1': 1700000000000 }, gamificationMigrated: true, schemaVersion: 2 });
+    saveUser(mkUser({ earnedBadges: { 'streak-3': 1700000000000, 'answers-1': 1700000000000 }, gamificationMigrated: true }));
     hydrateStats();
     const heading = document.querySelector('.badges-section h3');
     expect(heading?.textContent).toMatch(/2\s*\/\s*18/);
   });
 
   it('5 카테고리 grouping (Streak → Volume → Tier → Diversity → Engagement)', () => {
-    saveUser({ name: 'x', interests: [], onboardedAt: '', streak: 0, lastActiveDate: '', xp: 0, earnedBadges: {}, gamificationMigrated: true, schemaVersion: 2 });
+    saveUser(mkUser({ gamificationMigrated: true }));
     hydrateStats();
     const headings = Array.from(document.querySelectorAll('.badges-category h4')).map(h => h.textContent);
     expect(headings).toEqual([
@@ -50,7 +51,7 @@ describe('hydrateBadges (catalog 기반)', () => {
   });
 
   it('v3.12.2 회귀: 부모 #badgesGrid는 grid container 아님 — 카테고리별 nested .badges-grid가 가로 grid 담당', () => {
-    saveUser({ name: 'x', interests: [], onboardedAt: '', streak: 0, lastActiveDate: '', xp: 0, earnedBadges: {}, gamificationMigrated: true, schemaVersion: 2 });
+    saveUser(mkUser({ gamificationMigrated: true }));
     hydrateStats();
     const parent = document.getElementById('badgesGrid')!;
     // 부모는 단순 placeholder — .badges-grid class 가지면 nested grid container 충돌 (badge들이 1열 stack됨)
@@ -61,7 +62,7 @@ describe('hydrateBadges (catalog 기반)', () => {
   });
 
   it('locked 뱃지 — 🔒 overlay + data-tooltip 존재', () => {
-    saveUser({ name: 'x', interests: [], onboardedAt: '', streak: 0, lastActiveDate: '', xp: 0, earnedBadges: {}, gamificationMigrated: true, schemaVersion: 2 });
+    saveUser(mkUser({ gamificationMigrated: true }));
     hydrateStats();
     const locked = document.querySelector<HTMLElement>('.badge--locked');
     expect(locked?.querySelector('.badge-lock')?.textContent).toBe('🔒');
@@ -69,7 +70,7 @@ describe('hydrateBadges (catalog 기반)', () => {
   });
 
   it('earned 뱃지 — locked overlay 없음 + aria-label에 이름 포함', () => {
-    saveUser({ name: 'x', interests: [], onboardedAt: '', streak: 5, lastActiveDate: '', xp: 0, earnedBadges: { 'streak-3': 1700000000000 }, gamificationMigrated: true, schemaVersion: 2 });
+    saveUser(mkUser({ streak: 5, earnedBadges: { 'streak-3': 1700000000000 }, gamificationMigrated: true }));
     hydrateStats();
     const earned = document.querySelector<HTMLElement>('.badge--earned');
     expect(earned).not.toBeNull();
@@ -78,13 +79,13 @@ describe('hydrateBadges (catalog 기반)', () => {
   });
 
   it('hydrateLevelCard: TIERS import — user.xp=200 → 새잎', () => {
-    saveUser({ name: 'x', interests: [], onboardedAt: '', streak: 0, lastActiveDate: '', xp: 200, earnedBadges: {}, gamificationMigrated: true, schemaVersion: 2 });
+    saveUser(mkUser({ xp: 200, gamificationMigrated: true }));
     hydrateStats();
     expect(document.getElementById('levelName')!.textContent).toBe('새잎');
   });
 
   it('hydrateGrowthSummary: tierName 포함 (level 숫자 X)', () => {
-    saveUser({ name: 'x', interests: [], onboardedAt: '', streak: 0, lastActiveDate: '', xp: 350, earnedBadges: {}, gamificationMigrated: true, schemaVersion: 2 });
+    saveUser(mkUser({ xp: 350, gamificationMigrated: true }));
     saveBriefings([]);
     hydrateStats();
     const summary = document.getElementById('growthSummary')!.textContent ?? '';
@@ -92,7 +93,7 @@ describe('hydrateBadges (catalog 기반)', () => {
   });
 
   it('earned 뱃지 click → openModal (badge-detail)', async () => {
-    saveUser({ name: 'x', interests: [], onboardedAt: '', streak: 5, lastActiveDate: '', xp: 0, earnedBadges: { 'streak-3': 1700000000000 }, gamificationMigrated: true, schemaVersion: 2 });
+    saveUser(mkUser({ streak: 5, earnedBadges: { 'streak-3': 1700000000000 }, gamificationMigrated: true }));
     document.body.insertAdjacentHTML('beforeend', '<div id="modalRoot"></div>');
     hydrateStats();
     const earned = document.querySelector<HTMLButtonElement>('.badge--earned');

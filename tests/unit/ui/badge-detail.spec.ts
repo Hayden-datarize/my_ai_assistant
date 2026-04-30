@@ -1,6 +1,7 @@
 import { describe, it, expect, beforeEach } from 'vitest';
 import { openBadgeDetail } from '../../../src/ui/modals/badge-detail';
 import { saveUser } from '../../../src/state/user';
+import { mkUser } from '../state/userFixture';
 
 beforeEach(() => {
   localStorage.clear();
@@ -22,7 +23,7 @@ describe('openBadgeDetail', () => {
   });
 
   it('earned 뱃지 → unlock date 표시', () => {
-    saveUser({ name: 'x', interests: [], onboardedAt: '', streak: 0, lastActiveDate: '', xp: 0, earnedBadges: { 'streak-3': new Date('2026-04-29').getTime() }, gamificationMigrated: true, schemaVersion: 2 });
+    saveUser(mkUser({ earnedBadges: { 'streak-3': new Date('2026-04-29').getTime() }, gamificationMigrated: true }));
     openBadgeDetail('streak-3');
     const date = document.querySelector('.badge-modal-date');
     expect(date?.textContent).toMatch(/2026-04-29/);

@@ -1,6 +1,7 @@
 import { describe, it, expect, beforeEach } from 'vitest';
-import { loadUserData, saveUser, type User } from '../../../src/state/user';
+import { loadUserData, saveUser } from '../../../src/state/user';
 import { migrateUserToV2 } from '../../../src/state/migration';
+import { mkUser } from './userFixture';
 
 beforeEach(() => localStorage.clear());
 
@@ -17,25 +18,25 @@ describe('user schema v2 migration', () => {
     expect(v2.interests).toEqual(['AI']);
   });
 
-  it('loadUserData: schemaVersion 없으면 lazy migrate + saveUser 1회', () => {
+  it('loadUserData: schemaVersion 없으면 lazy migrate v1→v3 + saveUser 1회', () => {
     localStorage.setItem('user', JSON.stringify({ name: '하든', interests: [], onboardedAt: '2026-01-01', streak: 0, lastActiveDate: '', xp: 0, level: 1 }));
     const u = loadUserData()!;
-    expect(u.schemaVersion).toBe(2);
+    expect(u.schemaVersion).toBe(3);
     expect((u as any).level).toBeUndefined();
     expect(u.earnedBadges).toEqual({});
     const raw = JSON.parse(localStorage.getItem('user')!);
-    expect(raw.schemaVersion).toBe(2);
+    expect(raw.schemaVersion).toBe(3);
   });
 
-  it('loadUserData: schemaVersion 2 idempotent (재호출해도 동일)', () => {
-    saveUser({ name: '하든', interests: [], onboardedAt: '2026-01-01', streak: 0, lastActiveDate: '', xp: 0, earnedBadges: {}, gamificationMigrated: false, schemaVersion: 2 });
+  it('loadUserData: schemaVersion 3 idempotent (재호출해도 동일)', () => {
+    saveUser(mkUser({ name: '하든', onboardedAt: '2026-01-01' }));
     const a = loadUserData()!;
     const b = loadUserData()!;
     expect(a).toEqual(b);
   });
 
   it('recordDailyAnswer: u.level 필드 갱신 안 함 (제거됨)', async () => {
-    saveUser({ name: '하든', interests: [], onboardedAt: '2026-01-01', streak: 0, lastActiveDate: '', xp: 99, earnedBadges: {}, gamificationMigrated: false, schemaVersion: 2 });
+    saveUser(mkUser({ name: '하든', onboardedAt: '2026-01-01', xp: 99 }));
     const { recordDailyAnswer } = await import('../../../src/state/user');
     recordDailyAnswer(10);
     const raw = JSON.parse(localStorage.getItem('user')!);
