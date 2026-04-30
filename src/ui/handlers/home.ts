@@ -792,6 +792,7 @@ async function submitAnswer(): Promise<void> {
   // record daily answer activity (streak + XP)
   applyAnswerActivity();
   hydrateGreetingAndStreak();
+  hydrateMissions();  // v3.13 T12: 답변 제출 후 미션 진행 상황 즉시 반영
 
   area.value = '';
   const cc = document.getElementById('charCount');
