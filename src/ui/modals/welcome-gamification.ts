@@ -75,11 +75,12 @@ export async function maybeShowWelcomeGamification(): Promise<void> {
     },
   });
 
-  // "stats에서 보기" 버튼 — 동적 wiring
-  document.getElementById('goStatsBtn')?.addEventListener('click', async () => {
-    const { closeModal } = await import('./shared');
-    const { switchTab } = await import('../nav');
-    closeModal();           // fires onClose → gamificationMigrated set + focus restore
-    switchTab('stats');
-  });
+  // "stats에서 보기" 버튼 — modal scope query (P2-NEW-1: document scope ID 충돌 방어)
+  document.querySelector<HTMLButtonElement>('.dg-modal #goStatsBtn')
+    ?.addEventListener('click', async () => {
+      const { closeModal } = await import('./shared');
+      const { switchTab } = await import('../nav');
+      closeModal();           // fires onClose → gamificationMigrated set + focus restore
+      switchTab('stats');
+    });
 }

@@ -84,4 +84,29 @@ describe('maybeShowWelcomeGamification', () => {
     expect(switchTabSpy).toHaveBeenCalledWith('stats');
     vi.doUnmock('../../../src/ui/nav');
   });
+
+  it('goStatsBtn은 modal scope (.dg-modal 내부) 에서만 매칭 — document 충돌 ID 방어', async () => {
+    const switchTabSpy = vi.fn();
+    vi.doMock('../../../src/ui/nav', () => ({ switchTab: switchTabSpy }));
+    saveUser({ name: 'x', interests: ['AI'], onboardedAt: '', streak: 5, lastActiveDate: '', xp: 100, earnedBadges: {}, gamificationMigrated: false, schemaVersion: 2 });
+    saveAnswers([{ id: '1', questionId: 'q', text: 'a', authorId: 'self', createdAt: '2026-04-01', schemaVersion: 1 }]);
+
+    // 사전: 동일 ID를 가진 가짜 버튼을 modalRoot 보다 DOM tree-order 앞에 prepend.
+    // document scope query 였으면 decoy가 첫 매치 → modal 버튼은 wire 안 됨 → switchTabSpy 미호출.
+    const decoy = document.createElement('button');
+    decoy.id = 'goStatsBtn';
+    document.body.prepend(decoy);
+
+    await maybeShowWelcomeGamification();
+
+    const modalBtn = document.querySelector<HTMLButtonElement>('.dg-modal #goStatsBtn');
+    expect(modalBtn).not.toBeNull();
+    modalBtn!.click();
+    await new Promise(r => setTimeout(r, 50));
+
+    expect(switchTabSpy).toHaveBeenCalledWith('stats');
+
+    decoy.remove();
+    vi.doUnmock('../../../src/ui/nav');
+  });
 });
