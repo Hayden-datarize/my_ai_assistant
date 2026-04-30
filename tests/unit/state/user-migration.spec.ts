@@ -54,4 +54,53 @@ describe('user schema v2 migration', () => {
     const v2 = migrateUserToV2(partial);
     expect(v2.gamificationMigrated).toBe(true);
   });
+
+  describe('getCachedUser shape guard (P2-NEW-2)', () => {
+    it('손상된 xp (string) → null 반환', () => {
+      localStorage.setItem('user', JSON.stringify({
+        name: 'x', interests: [], onboardedAt: '', streak: 0,
+        lastActiveDate: '', xp: 'abc', schemaVersion: 2,
+        earnedBadges: {}, gamificationMigrated: false,
+      }));
+      expect(loadUserData()).toBeNull();
+    });
+
+    it('손상된 streak (NaN-like) → null 반환', () => {
+      localStorage.setItem('user', JSON.stringify({
+        name: 'x', interests: [], onboardedAt: '', streak: null,
+        lastActiveDate: '', xp: 0, schemaVersion: 2,
+        earnedBadges: {}, gamificationMigrated: false,
+      }));
+      expect(loadUserData()).toBeNull();
+    });
+
+    it('손상된 interests (object) → null 반환', () => {
+      localStorage.setItem('user', JSON.stringify({
+        name: 'x', interests: { fake: 1 }, onboardedAt: '', streak: 0,
+        lastActiveDate: '', xp: 0, schemaVersion: 2,
+        earnedBadges: {}, gamificationMigrated: false,
+      }));
+      expect(loadUserData()).toBeNull();
+    });
+
+    it('손상된 name (number) → null 반환', () => {
+      localStorage.setItem('user', JSON.stringify({
+        name: 42, interests: [], onboardedAt: '', streak: 0,
+        lastActiveDate: '', xp: 0, schemaVersion: 2,
+        earnedBadges: {}, gamificationMigrated: false,
+      }));
+      expect(loadUserData()).toBeNull();
+    });
+
+    it('손상된 데이터는 localStorage에서 삭제하지 않음 (raw 보존)', () => {
+      const corrupted = JSON.stringify({
+        name: 'x', interests: [], onboardedAt: '', streak: 0,
+        lastActiveDate: '', xp: 'abc', schemaVersion: 2,
+        earnedBadges: {}, gamificationMigrated: false,
+      });
+      localStorage.setItem('user', corrupted);
+      expect(loadUserData()).toBeNull();
+      expect(localStorage.getItem('user')).toBe(corrupted);
+    });
+  });
 });

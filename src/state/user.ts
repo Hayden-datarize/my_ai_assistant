@@ -26,14 +26,33 @@ export function getCachedUser(): User | null {
     const raw = localStorage.getItem(KEY);
     if (!raw) return null;
     const parsed = JSON.parse(raw);
-    if (parsed && parsed.schemaVersion === 2) return parsed as User;
-    // lazy migrate v1 → v2 (or partial shape)
-    const migrated = migrateUserToV2(parsed);
-    localStorage.setItem(KEY, JSON.stringify(migrated));
-    return migrated;
+    const candidate = (parsed && parsed.schemaVersion === 2)
+      ? (parsed as User)
+      : migrateUserToV2(parsed);
+    if (!isValidUserShape(candidate)) return null;
+    if (parsed?.schemaVersion !== 2) {
+      // lazy migrate v1 → v2 (정상 데이터만 persist; 손상 데이터는 위에서 null)
+      localStorage.setItem(KEY, JSON.stringify(candidate));
+    }
+    return candidate;
   } catch {
     return null;
   }
+}
+
+/**
+ * v3.12.1 (P2-NEW-2): localStorage 외부 손상으로 인한 silent NaN 차단.
+ * 5개 핵심 필드 type-check만 — earnedBadges/gamificationMigrated/schemaVersion은
+ * migrateUserToV2가 nullish 가드로 채워주므로 검증 불필요.
+ */
+function isValidUserShape(u: unknown): u is User {
+  if (!u || typeof u !== 'object') return false;
+  const r = u as Record<string, unknown>;
+  return typeof r.name === 'string'
+    && Array.isArray(r.interests)
+    && typeof r.streak === 'number' && Number.isFinite(r.streak)
+    && typeof r.lastActiveDate === 'string'
+    && typeof r.xp === 'number' && Number.isFinite(r.xp);
 }
 
 export function loadUserData(): User | null {
