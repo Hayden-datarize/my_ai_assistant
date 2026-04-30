@@ -3,6 +3,7 @@ import { MSG } from '../ui/messages';
 import { migrateUserToV2, migrateUserToV3 } from './migration';
 import { takeSnapshot, runSweep } from './achievements';
 import type { MissionInstance } from './missionTypes';
+import { getActiveMissions, tickMissionProgress } from './missionEngine';
 
 export interface User {
   name: string;
@@ -92,6 +93,11 @@ export function recordDailyAnswer(xpDelta: number): void {
   const u = loadUserData();
   if (!u) return;
   const today = getDateStr();
+
+  // lazy regen (in-memory only — saveUser 는 caller 책임, 아래 단일 호출)
+  getActiveMissions(new Date(), u);
+
+  // prev snapshot은 lazy regen 이후 — 새 미션 instance가 포함돼야 mission-complete diff가 작동
   const prev = takeSnapshot();
 
   if (u.lastActiveDate !== today) {
@@ -104,7 +110,10 @@ export function recordDailyAnswer(xpDelta: number): void {
   u.xp += xpDelta;
   u.lastActiveDate = today;
 
-  saveUser(u);  // throws on Quota — sweep 안 함 (false-fire 방지)
+  // mission progress tick (xp 보너스 포함) — saveUser 이전에 in-memory 변경
+  tickMissionProgress(u, 'answer');
+
+  saveUser(u);  // single saveUser: xp/streak/missions 모두 커버. throws on Quota — sweep 안 함
 
   const curr = takeSnapshot();
   runSweep(prev, curr);

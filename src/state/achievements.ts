@@ -125,15 +125,16 @@ export function detectEvents(prev: Snapshot, curr: Snapshot): GameEvent[] {
     }
   }
 
-  // v3.13 T5: mission-complete — false → true 전환만 emit
+  // v3.13 T5/T9: mission-complete — false→true 전환 + 새 instance 즉시 완수 모두 emit.
+  // pm 없음(새 instance, T9 same-action regen+tick): cm.completed=true 시만 emit.
+  // pm 있음: 기존 instance가 false→true 전환 시 emit.
   for (const cm of (curr.missionsActive ?? [])) {
+    if (!cm.completed) continue;                        // 완수 아님 → 항상 skip
     const pm = (prev.missionsActive ?? []).find(p => p.defId === cm.defId);
-    if (!pm) continue;                                  // 새 instance → event 아님
-    if (!pm.completed && cm.completed) {
-      const def = getMissionDef(cm.defId);
-      if (!def) continue;
-      out.push({ kind: 'mission-complete', defId: cm.defId, period: cm.period, rewardXp: def.rewardXp, at });
-    }
+    if (pm?.completed) continue;                        // 이미 완수 → 이중 emit 방지
+    const def = getMissionDef(cm.defId);
+    if (!def) continue;
+    out.push({ kind: 'mission-complete', defId: cm.defId, period: cm.period, rewardXp: def.rewardXp, at });
   }
 
   return out;

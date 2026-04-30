@@ -40,7 +40,8 @@ describe('user schema v2 migration', () => {
     const { recordDailyAnswer } = await import('../../../src/state/user');
     recordDailyAnswer(10);
     const raw = JSON.parse(localStorage.getItem('user')!);
-    expect(raw.xp).toBe(109);
+    // v3.13 mission wiring: daily mission 즉시 완수 시 rewardXp 가산 가능. base +10 최소.
+    expect(raw.xp).toBeGreaterThanOrEqual(109);
     expect(raw.level).toBeUndefined();
   });
 

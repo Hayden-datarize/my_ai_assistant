@@ -28,9 +28,11 @@ import { openMemoModal } from '../modals/memo';
 import { createLangToggle, type LangToggleEl, type LangState } from '../components/cardLangToggle';
 import { checkAndIncrement, getCap, getTodayCount } from '../../state/usage';
 import { showCapToast, showTranslateError, showPartialTranslateFail } from '../translateToast';
-import { getCachedUser, getSaveErrorMessage, recordDailyAnswer } from '../../state/user';
+import { getCachedUser, getSaveErrorMessage, recordDailyAnswer, saveUser } from '../../state/user';
 import { loadActiveSeenUrls, recordSeen, purgeExpiredSeen } from '../../state/seen';
 import { MSG } from '../messages';
+import { getActiveMissions } from '../../state/missionEngine';
+import { renderMissionsSection } from '../missions-section';
 
 const API_KEY_STORAGE = 'dg_gemini_key';
 const THEME_STORAGE = 'theme';
@@ -305,9 +307,20 @@ export async function hydrateHome(container: HTMLElement): Promise<void> {
   void container; // accepted for API symmetry with handlers/stats.ts etc
   hydrateGreetingAndStreak();
   hydrateBriefings();
+  hydrateMissions();
   await hydrateQuestion();
   hydrateChatHistory();
   applyTheme();
+}
+
+function hydrateMissions(): void {
+  const u = getCachedUser();
+  if (!u) return;
+  const before = JSON.stringify(u.missions);
+  const active = getActiveMissions(new Date(), u);
+  if (JSON.stringify(u.missions) !== before) saveUser(u);  // lazy regen이 발생한 경우에만 저장
+  const root = document.getElementById('missionsContainer');
+  if (root) renderMissionsSection(root, active);
 }
 
 /** @internal — exported for integration tests; production callers are hydrateHome + submitAnswer 내부 */

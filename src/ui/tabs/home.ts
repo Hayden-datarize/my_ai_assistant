@@ -74,6 +74,9 @@ export function renderHome(container: HTMLElement): void {
         </div>
       </div>
 
+      <!-- Missions Section (v3.13 T9) -->
+      <div id="missionsContainer"></div>
+
       <!-- AI Chat -->
       <div class="chat-container" id="chatContainer">
         <div class="chat-header">

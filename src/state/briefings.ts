@@ -1,5 +1,8 @@
 import { isHttpsUrl } from '../utils/url';
 import { takeSnapshot, runSweep } from './achievements';
+import { getActiveMissions, tickMissionProgress } from './missionEngine';
+import type { MissionAction } from './missionTypes';
+import { getCachedUser, saveUser } from './user';
 
 export interface Briefing {
   id: string;
@@ -55,20 +58,29 @@ function mutate(index: number, fn: (b: Briefing) => void): void {
   saveBriefings(list);
 }
 
-function mutateWithSweep(index: number, fn: (b: Briefing) => void): void {
+function mutateWithSweep(index: number, fn: (b: Briefing) => void, action?: MissionAction): void {
+  const u = action ? getCachedUser() : null;
+  if (u) getActiveMissions(new Date(), u);  // lazy regen (in-memory, no saveUser)
+
   const list = loadBriefings();
   const target = list[index];
   if (!target) return;
   const prev = takeSnapshot();
   fn(target);
   saveBriefings(list);  // throws on Quota — sweep 안 함 (false-fire 방지)
+
+  if (u && action) {
+    tickMissionProgress(u, action);
+    saveUser(u);  // mission tick + lazy regen 상태를 단일 write로 커버
+  }
+
   const curr = takeSnapshot();
   runSweep(prev, curr);
 }
 
-export function toggleScrap(index: number): void { mutateWithSweep(index, b => { b.scrapped = !b.scrapped; }); }
+export function toggleScrap(index: number): void { mutateWithSweep(index, b => { b.scrapped = !b.scrapped; }, 'scrap'); }
 export function setRead(index: number): void { mutate(index, b => { b.read = true; }); }
-export function saveMemo(index: number, memo: string): void { mutateWithSweep(index, b => { b.memo = memo; }); }
+export function saveMemo(index: number, memo: string): void { mutateWithSweep(index, b => { b.memo = memo; }, 'memo'); }
 
 type TranslationPatch = Partial<Pick<Briefing, 'detectedLang' | 'titleKo' | 'summaryKo'>>;
 
