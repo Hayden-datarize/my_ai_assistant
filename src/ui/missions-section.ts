@@ -1,5 +1,6 @@
 import type { MissionInstance, MissionPeriod } from '../state/missionTypes';
 import { getMissionDef } from '../state/missionCatalog';
+import { escapeHtml } from '../utils/escapeHtml';
 
 const GROUP_TITLE: Record<MissionPeriod, string> = {
   daily: '오늘의 미션',
@@ -8,10 +9,6 @@ const GROUP_TITLE: Record<MissionPeriod, string> = {
 };
 
 const PERIODS: MissionPeriod[] = ['daily', 'weekly', 'monthly'];
-
-function escapeHtml(s: string): string {
-  return s.replace(/[&<>"']/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]!));
-}
 
 function renderCard(m: MissionInstance): string {
   const def = getMissionDef(m.defId);
@@ -49,8 +46,7 @@ function renderGroup(period: MissionPeriod, missions: MissionInstance[]): string
 }
 
 export function renderMissionsSection(root: HTMLElement, active: MissionInstance[]): void {
-  const html = `<section id="missionsSection" class="missions-section" aria-labelledby="missionsHeading">
-    <h2 id="missionsHeading" class="visually-hidden">미션</h2>
+  const html = `<section id="missionsSection" class="missions-section" aria-label="미션">
     ${PERIODS.map(p => renderGroup(p, active.filter(m => m.period === p))).join('')}
   </section>`;
   root.innerHTML = html;
