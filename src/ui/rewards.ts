@@ -4,7 +4,7 @@ import { TIERS } from '../state/leveling';
 import { escapeHtml } from '../utils/escapeHtml';
 
 const MAX_VISIBLE = 3;
-const TOAST_DURATIONS = { badge: 3000, levelup: 4000, streak: 3000 } as const;
+const TOAST_DURATIONS = { badge: 3000, levelup: 4000, streak: 3000, mission: 3500 } as const;
 
 let mounted = false;
 let activeCount = 0;
@@ -22,7 +22,7 @@ function ensureContainer(): HTMLElement {
   return el;
 }
 
-function spawnToast(html: string, modifier: 'badge' | 'levelup' | 'streak', durationMs: number): HTMLElement | null {
+function spawnToast(html: string, modifier: 'badge' | 'levelup' | 'streak' | 'mission', durationMs: number): HTMLElement | null {
   if (activeCount >= MAX_VISIBLE) return null;
   const container = ensureContainer();
   const el = document.createElement('div');
@@ -142,6 +142,15 @@ export function mountRewards(): void {
 
   disposers.push(on('dg:reward:xp-float', ({ amount }) => {
     spawnXpFloat(amount);
+  }));
+
+  disposers.push(on('dg:reward:mission-complete', ({ period, rewardXp }) => {
+    const isMonthly = period === 'monthly';
+    const html = isMonthly
+      ? `<span class="toast-text">🌟 이달의 도전 완수! +${rewardXp} XP</span><button type="button" class="toast-close" aria-label="닫기">×</button>`
+      : `<span class="toast-text">🎯 미션 완수! +${rewardXp} XP</span><button type="button" class="toast-close" aria-label="닫기">×</button>`;
+    const el = spawnToast(html, 'mission', TOAST_DURATIONS.mission);
+    if (el && isMonthly) el.classList.add('toast--monthly');
   }));
 }
 

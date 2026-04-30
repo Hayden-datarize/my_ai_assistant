@@ -179,6 +179,9 @@ export function emitEvents(events: GameEvent[]): void {
       case 'badge':
         dispatch('dg:reward:badge-unlock', { badgeId: e.badgeId, at: e.at });
         break;
+      case 'mission-complete':
+        dispatch('dg:reward:mission-complete', { defId: e.defId, period: e.period, rewardXp: e.rewardXp, at: e.at });
+        break;
     }
   }
 }

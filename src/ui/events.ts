@@ -39,6 +39,8 @@ export interface EventMap {
   'dg:reward:level-up': { tierId: number; at: number };
   'dg:reward:streak-milestone': { days: number; at: number };
   'dg:reward:badge-unlock': { badgeId: string; at: number };
+  // v3.13 T7 — mission-complete toast
+  'dg:reward:mission-complete': { defId: string; period: 'daily' | 'weekly' | 'monthly'; rewardXp: number; at: number };
 }
 
 type EventName = keyof EventMap;
@@ -68,6 +70,7 @@ export const EVENT_NAMES: readonly EventName[] = [
   'dg:reward:level-up',
   'dg:reward:streak-milestone',
   'dg:reward:badge-unlock',
+  'dg:reward:mission-complete',
 ] as const;
 
 /** Events deferred to v3.2 — handlers in v3.1 register a stub listener. */

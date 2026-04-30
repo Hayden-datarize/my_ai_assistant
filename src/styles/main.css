@@ -252,6 +252,13 @@
   .mission-card__check { color: var(--success); font-weight: 700; }
   .mission-card--completed { opacity: 0.6; }
 
+  /* v3.13 T7 — mission-complete toast */
+  .toast--mission { background: var(--success); color: white; }
+  .toast--mission.toast--monthly {
+    background: linear-gradient(135deg, var(--primary), var(--success));
+    font-weight: 700;
+  }
+
   @media (prefers-reduced-motion: reduce) {
     .mission-group__chevron { transition: none; }
   }
