@@ -18,3 +18,206 @@
 @import './pages/stats.css' layer(components);
 @import './pages/settings.css' layer(components);
 @import './utilities.css' layer(utilities);
+
+/* v3.12 — Reward UI (T7~T14) */
+@layer components {
+  /* v3.12 T7 — XP floating + badge pulse */
+  .xp-float {
+    position: fixed;
+    left: var(--start-x);
+    top: var(--start-y);
+    transform: translate(-50%, -50%);
+    font-weight: 700;
+    color: var(--success);
+    pointer-events: none;
+    z-index: var(--z-toast);
+    animation: xpFloat 1.2s ease-out forwards;
+  }
+  @keyframes xpFloat {
+    0%   { left: var(--start-x); top: var(--start-y); opacity: 1; }
+    83%  { left: var(--end-x);   top: var(--end-y);   opacity: 1; }
+    100% { left: var(--end-x);   top: var(--end-y);   opacity: 0; }
+  }
+  .badge-pulse {
+    animation: badgePulse 300ms ease-out;
+  }
+  @keyframes badgePulse {
+    0%   { transform: scale(1); }
+    50%  { transform: scale(1.15); }
+    100% { transform: scale(1); }
+  }
+
+  /* v3.12 T8 — Level-up toast + CSS-only confetti */
+  .toast--levelup {
+    background: linear-gradient(135deg, #facc15 0%, #f97316 100%);
+    color: #fff;
+    font-size: 1.05em;
+    padding: 14px 18px;
+  }
+  .confetti-burst {
+    position: fixed;
+    inset: 0;
+    pointer-events: none;
+    z-index: var(--z-toast);
+    overflow: hidden;
+  }
+  .confetti-particle {
+    position: absolute;
+    top: 50%;
+    left: 50%;
+    width: 10px;
+    height: 10px;
+    background: var(--color);
+    border-radius: 2px;
+    transform-origin: center;
+    animation: confettiFly 1s ease-out forwards;
+    animation-delay: var(--delay);
+  }
+  @keyframes confettiFly {
+    0%   { transform: translate(-50%, -50%) rotate(var(--angle)) translateX(0); opacity: 1; }
+    100% { transform: translate(-50%, -50%) rotate(calc(var(--angle) + 720deg)) translateX(220px); opacity: 0; }
+  }
+
+  /* v3.12 T9 — Streak milestone toast + fire pulse on #statStreak */
+  .toast--streak {
+    background: linear-gradient(135deg, #f97316 0%, #dc2626 100%);
+    color: #fff;
+    font-size: 1.05em;
+  }
+  .fire-pulse {
+    position: relative;
+  }
+  .fire-pulse::after {
+    content: '🔥';
+    position: absolute;
+    inset: 0;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    pointer-events: none;
+    animation: firePulse 0.5s ease-out 3;
+  }
+  @keyframes firePulse {
+    0%   { transform: scale(0.5); opacity: 0; }
+    50%  { transform: scale(1.5); opacity: 1; }
+    100% { transform: scale(0.5); opacity: 0; }
+  }
+
+  /* v3.12 T10 — Badge unlock toast + detail modal */
+  .toast--badge {
+    background: linear-gradient(135deg, #a855f7 0%, #6366f1 100%);
+    color: #fff;
+  }
+  .toast-detail {
+    background: rgba(255, 255, 255, 0.2);
+    border: 1px solid rgba(255, 255, 255, 0.4);
+    color: #fff;
+    padding: 4px 10px;
+    border-radius: 6px;
+    cursor: pointer;
+    font-size: 0.9em;
+    margin-left: 8px;
+  }
+  .toast-detail:hover { background: rgba(255, 255, 255, 0.3); }
+  .badge-modal {
+    text-align: center;
+    padding: 20px;
+  }
+  .badge-modal-icon {
+    font-size: 4rem;
+    margin-bottom: 12px;
+  }
+  .badge-modal-name {
+    font-size: 1.4rem;
+    font-weight: 700;
+    margin-bottom: 8px;
+  }
+  .badge-modal-desc {
+    color: var(--text-secondary, #6b7280);
+    margin-bottom: 16px;
+  }
+  .badge-modal-date {
+    font-size: 0.9em;
+    color: var(--text-secondary, #6b7280);
+  }
+
+  /* v3.12 T11 — Silhouette grid (5 categories) */
+  .badges-section h3 { margin: 12px 0; font-size: 1.1rem; }
+  .badges-category h4 { margin: 8px 0 6px; font-size: 0.95rem; color: var(--text-secondary, #6b7280); }
+  .badges-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(72px, 1fr));
+    gap: 8px;
+    margin-bottom: 10px;
+  }
+  .badge {
+    position: relative;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    padding: 10px 4px;
+    background: var(--bg-card, #fff);
+    border: 1px solid var(--border, #e5e7eb);
+    border-radius: 8px;
+    cursor: pointer;
+    font-size: 0.75rem;
+    text-align: center;
+    transition: transform 0.15s ease;
+  }
+  .badge:hover { transform: scale(1.04); }
+  .badge-icon { font-size: 1.5rem; line-height: 1; margin-bottom: 4px; }
+  .badge-name { font-size: 0.7rem; color: var(--text-primary, #111); }
+  .badge--locked .badge-icon { filter: grayscale(1); opacity: 0.4; }
+  .badge--locked .badge-name { color: var(--text-secondary, #6b7280); }
+  .badge-lock {
+    position: absolute;
+    top: 4px;
+    right: 4px;
+    font-size: 0.7rem;
+    opacity: 0.7;
+  }
+
+  /* v3.12 T12 — Locked badge tooltip */
+  .badge.show-tooltip::after {
+    content: attr(data-tooltip);
+    position: absolute;
+    bottom: calc(100% + 6px);
+    left: 50%;
+    transform: translateX(-50%);
+    padding: 6px 10px;
+    background: var(--text-primary, #1f2937);
+    color: var(--bg-card, #fff);
+    font-size: 0.75rem;
+    border-radius: 4px;
+    white-space: nowrap;
+    z-index: 10;
+    pointer-events: none;
+    animation: tooltipIn 0.15s ease-out;
+  }
+  @keyframes tooltipIn {
+    from { opacity: 0; transform: translateX(-50%) translateY(4px); }
+    to   { opacity: 1; transform: translateX(-50%) translateY(0); }
+  }
+
+  /* v3.12 T14 — prefers-reduced-motion */
+  @media (prefers-reduced-motion: reduce) {
+    .xp-float,
+    .fire-pulse::after,
+    .badge-pulse,
+    .toast,
+    .toast--levelup,
+    .toast--streak,
+    .toast--badge {
+      animation: none !important;
+      transition: none !important;
+      opacity: 1 !important;
+    }
+    .confetti-particle {
+      display: none !important;
+    }
+    .badge.show-tooltip::after {
+      animation: none !important;
+    }
+  }
+}

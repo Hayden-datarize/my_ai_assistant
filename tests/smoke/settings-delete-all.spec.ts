@@ -21,7 +21,7 @@ test('settings 전체 답변 초기화 + undo 복원', async ({ page }) => {
         streak: 0,
         lastActiveDate: '',
         xp: 0,
-        level: 1,
+        earnedBadges: {}, gamificationMigrated: true, schemaVersion: 2,
       })
     );
     // Suppress briefings auto-refresh (no fixture seeded).

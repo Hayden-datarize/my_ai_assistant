@@ -18,7 +18,7 @@ describe('home — applyAnswerActivity 에러 처리', () => {
   it('shows quota toast when localStorage rejects with QuotaExceededError', async () => {
     const user = {
       name: 'H', interests: ['ai_ml'], onboardedAt: '2026-04-19',
-      streak: 0, lastActiveDate: '', xp: 0, level: 1,
+      streak: 0, lastActiveDate: '', xp: 0, earnedBadges: {}, gamificationMigrated: false, schemaVersion: 2,
     };
     localStorage.setItem('user', JSON.stringify(user));
 
@@ -36,7 +36,7 @@ describe('home — applyAnswerActivity 에러 처리', () => {
   it('shows fallback toast for generic save error', async () => {
     const user = {
       name: 'H', interests: ['ai_ml'], onboardedAt: '2026-04-19',
-      streak: 0, lastActiveDate: '', xp: 0, level: 1,
+      streak: 0, lastActiveDate: '', xp: 0, earnedBadges: {}, gamificationMigrated: false, schemaVersion: 2,
     };
     localStorage.setItem('user', JSON.stringify(user));
 
@@ -54,7 +54,7 @@ describe('home — applyAnswerActivity 에러 처리', () => {
   it('does not throw when saveUser fails — caller flow continues', async () => {
     const user = {
       name: 'H', interests: ['ai_ml'], onboardedAt: '2026-04-19',
-      streak: 0, lastActiveDate: '', xp: 0, level: 1,
+      streak: 0, lastActiveDate: '', xp: 0, earnedBadges: {}, gamificationMigrated: false, schemaVersion: 2,
     };
     localStorage.setItem('user', JSON.stringify(user));
 
@@ -69,7 +69,7 @@ describe('home — applyAnswerActivity 에러 처리', () => {
   it('does not modify localStorage when saveUser fails (atomic single-write)', async () => {
     const user = {
       name: 'H', interests: ['ai_ml'], onboardedAt: '2026-04-19',
-      streak: 3, lastActiveDate: '2026-04-15', xp: 50, level: 1,
+      streak: 3, lastActiveDate: '2026-04-15', xp: 50, earnedBadges: {}, gamificationMigrated: false, schemaVersion: 2,
     };
     const original = JSON.stringify(user);
     localStorage.setItem('user', original);

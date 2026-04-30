@@ -14,6 +14,8 @@ import { showToast } from '../../utils/toast';
 import { toKoType } from '../../utils/typeLabel';
 import { getDateStr } from '../../utils/dates';
 import { getCachedUser } from '../../state/user';
+import { TIERS, getCurrentTier } from '../../state/leveling';
+import { BADGE_CATALOG } from '../../state/badgeCatalog';
 
 const WEEKDAY_KO = ['월', '화', '수', '목', '금', '토', '일'];
 
@@ -71,16 +73,8 @@ function hydrateLevelCard(): void {
   const fill = document.getElementById('xpProgressFill');
   if (!user) return;
 
-  const levels = [
-    { icon: '🌱', name: '새싹', thresh: 0 },
-    { icon: '🌿', name: '새잎', thresh: 100 },
-    { icon: '🌳', name: '나무', thresh: 300 },
-    { icon: '🌲', name: '숲', thresh: 600 },
-    { icon: '🏔️', name: '산', thresh: 1000 },
-    { icon: '🌌', name: '하늘', thresh: 2000 },
-  ];
-  const current = [...levels].reverse().find((l) => user.xp >= l.thresh) ?? levels[0]!;
-  const next = levels.find((l) => l.thresh > user.xp);
+  const current = getCurrentTier(user.xp);
+  const next = TIERS.find((l) => l.thresh > user.xp);
   if (icon) icon.textContent = current.icon;
   if (name) name.textContent = current.name;
   if (next) {
@@ -107,6 +101,17 @@ function hydrateStatGrid(): void {
   setText('statAnswers', answers.length);
   setText('statArticles', scrapCount);
   setText('statXp', user?.xp ?? 0);
+
+  // v3.12 T9 — streak milestone fire pulse (sessionStorage flag consume)
+  const pending = sessionStorage.getItem('dg:streakPulsePending');
+  if (pending) {
+    const stat = document.getElementById('statStreak');
+    if (stat) {
+      stat.classList.add('fire-pulse');
+      sessionStorage.removeItem('dg:streakPulsePending');
+      setTimeout(() => stat.classList.remove('fire-pulse'), 1500);
+    }
+  }
 }
 
 function hydrateHeatmap(): void {
@@ -240,32 +245,91 @@ function hydrateHeatmap(): void {
   }
 }
 
+const CATEGORY_LABELS: Record<string, string> = {
+  streak:      '🔥 Streak',
+  volume:      '📚 Volume',
+  tier:        '🌳 Tier',
+  diversity:   '🎨 Diversity',
+  engagement:  '✏️ Engagement',
+};
+const CATEGORY_ORDER = ['streak', 'volume', 'tier', 'diversity', 'engagement'] as const;
+
+function showTooltip(btn: HTMLButtonElement): void {
+  // close previously open tooltip(s)
+  document.querySelectorAll('.badge.show-tooltip').forEach(el => el.classList.remove('show-tooltip'));
+  btn.classList.add('show-tooltip');
+  setTimeout(() => btn.classList.remove('show-tooltip'), 3000);
+}
+
 function hydrateBadges(): void {
   const wrap = document.getElementById('badgesGrid');
   const user = getCachedUser();
-  const answers = loadAnswers();
   if (!wrap) return;
   wrap.replaceChildren();
-  const earned: Array<{ icon: string; label: string }> = [];
-  if (answers.length >= 1) earned.push({ icon: '🌱', label: '첫 답변' });
-  if (answers.length >= 10) earned.push({ icon: '📚', label: '열 걸음' });
-  if (answers.length >= 30) earned.push({ icon: '🎯', label: '한 달 완성' });
-  if (user && user.streak >= 7) earned.push({ icon: '🔥', label: '주간 스트릭' });
-  if (user && user.level >= 3) earned.push({ icon: '🌳', label: '나무' });
-  if (user && user.level >= 5) earned.push({ icon: '🏔️', label: '산' });
-  if (earned.length === 0) {
-    const hint = document.createElement('p');
-    hint.textContent = '첫 답변을 남기면 뱃지가 열려요.';
-    hint.className = 'badges-empty';
-    wrap.append(hint);
-    return;
+  if (!user) return;
+
+  const earned = new Set(Object.keys(user.earnedBadges ?? {}));
+  const total = BADGE_CATALOG.length;
+
+  // section heading
+  const section = document.createElement('div');
+  section.className = 'badges-section';
+  const heading = document.createElement('h3');
+  heading.textContent = `🏆 뱃지 (${earned.size} / ${total})`;
+  section.append(heading);
+
+  for (const cat of CATEGORY_ORDER) {
+    const list = BADGE_CATALOG.filter((b) => b.category === cat);
+    if (list.length === 0) continue;
+    const catWrap = document.createElement('div');
+    catWrap.className = 'badges-category';
+    const h4 = document.createElement('h4');
+    h4.textContent = CATEGORY_LABELS[cat] ?? cat;
+    const grid = document.createElement('div');
+    grid.className = 'badges-grid';
+    for (const def of list) {
+      const isEarned = earned.has(def.id);
+      const btn = document.createElement('button');
+      btn.type = 'button';
+      btn.className = `badge ${isEarned ? 'badge--earned' : 'badge--locked'}`;
+      btn.setAttribute('aria-label', isEarned
+        ? `${def.name} — ${def.description}`
+        : `${def.name} (잠김) — ${def.description}`);
+      if (!isEarned) btn.dataset['tooltip'] = `달성 조건: ${def.description}`;
+      btn.dataset['badgeId'] = def.id;
+      const iconEl = document.createElement('span');
+      iconEl.className = 'badge-icon';
+      iconEl.textContent = def.icon;
+      const nameEl = document.createElement('span');
+      nameEl.className = 'badge-name';
+      nameEl.textContent = def.name;
+      btn.append(iconEl, nameEl);
+      if (!isEarned) {
+        const lock = document.createElement('span');
+        lock.className = 'badge-lock';
+        lock.textContent = '🔒';
+        btn.append(lock);
+      }
+      btn.addEventListener('click', async () => {
+        if (isEarned) {
+          const { openBadgeDetail } = await import('../modals/badge-detail');
+          openBadgeDetail(def.id);
+        } else {
+          showTooltip(btn);
+        }
+      });
+      btn.addEventListener('keydown', (e) => {
+        if (e.key === 'Enter' || e.key === ' ') {
+          e.preventDefault();
+          btn.click();
+        }
+      });
+      grid.append(btn);
+    }
+    catWrap.append(h4, grid);
+    section.append(catWrap);
   }
-  for (const b of earned) {
-    const span = document.createElement('span');
-    span.className = 'badge';
-    span.textContent = `${b.icon} ${b.label}`;
-    wrap.append(span);
-  }
+  wrap.append(section);
 }
 
 function hydrateCategoryBreakdown(): void {
@@ -307,7 +371,9 @@ function hydrateGrowthSummary(): void {
     return;
   }
   const recent = answers.slice(0, 7).length;
-  el.textContent = `최근 ${recent}개의 기록으로 레벨 ${user.level}까지 도달했어요. 오늘도 한 걸음 더 나아가 볼까요?`;
+  // v3.12 T2: level 필드 drop. tierName으로 표현. T11에서 동일 패턴 유지 (영구).
+  const tierName = getCurrentTier(user.xp).name;
+  el.textContent = `최근 ${recent}개의 기록으로 ${tierName} 단계까지 도달했어요. 오늘도 한 걸음 더 나아가 볼까요?`;
 }
 
 function showDayDetail(date: string, onClose?: () => void): void {

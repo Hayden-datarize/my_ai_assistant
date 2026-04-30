@@ -24,7 +24,7 @@ async function seedAndGoto(page: import('@playwright/test').Page): Promise<void>
       name: 'tester',
       interests: ['growth'],
       onboardedAt: '2026-04-01',
-      streak: 1, lastActiveDate: '', xp: 10, level: 1,
+      streak: 1, lastActiveDate: '', xp: 10, earnedBadges: {}, gamificationMigrated: true, schemaVersion: 2,
     }));
     const today = new Date().toISOString().slice(0, 10);
     localStorage.setItem('dg.answers', JSON.stringify([

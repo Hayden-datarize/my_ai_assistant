@@ -24,7 +24,7 @@ test('briefing refresh shows empty state when every rss2json call fails', async 
         streak: 0,
         lastActiveDate: '',
         xp: 0,
-        level: 1,
+        earnedBadges: {}, gamificationMigrated: true, schemaVersion: 2,
       }),
     );
     // Seed an empty briefings cache so refresh has to hit the network.
@@ -63,7 +63,7 @@ test('success response renders source chip from feed.title', async ({ page }) =>
         name: 'TestUser',
         interests: ['pm'],
         onboardedAt: '2026-04-01',
-        streak: 0, lastActiveDate: '', xp: 0, level: 1,
+        streak: 0, lastActiveDate: '', xp: 0, earnedBadges: {}, gamificationMigrated: true, schemaVersion: 2,
       }),
     );
     localStorage.removeItem('dg.briefings');

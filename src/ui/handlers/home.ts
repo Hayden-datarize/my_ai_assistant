@@ -289,7 +289,13 @@ export function mountHomeHandlers(): void {
 
   // Re-hydrate home whenever the user navigates back to it.
   on('dg:nav:tab-changed', ({ tab }) => {
-    if (tab === 'home') void hydrateHome(document.getElementById('homeTab') ?? document.body);
+    if (tab === 'home') {
+      void hydrateHome(document.getElementById('homeTab') ?? document.body);
+      // v3.12 T13: 첫 진입(answers>=1 && !gamificationMigrated) 시 backfill + 환영 모달.
+      void import('../modals/welcome-gamification').then(({ maybeShowWelcomeGamification }) => {
+        void maybeShowWelcomeGamification();
+      });
+    }
   });
 
   void V32_DEFERRED_EVENTS; // referenced for future use (per-domain stub audit)

@@ -184,7 +184,8 @@ function renderStep2(wrap: HTMLElement, state: OnboardingState, container: HTMLE
 }
 
 function renderStep3(wrap: HTMLElement, state: OnboardingState, container: HTMLElement): void {
-  // Persist user record in legacy v2.0 shape (so key `user` matches what the rest of the app expects).
+  // v3.12 T2 review P2-1: v2 shape 직접 사용 (lazy migrate intermediate write 회피).
+  // fresh user는 answers 0개 → T13 invariant `answers >= 1` 자연 통과 → gamificationMigrated=true 안전.
   const today = new Date().toISOString().slice(0, 10);
   const user = {
     name: state.name.trim() || 'Hayden',
@@ -193,7 +194,9 @@ function renderStep3(wrap: HTMLElement, state: OnboardingState, container: HTMLE
     streak: 0,
     lastActiveDate: '',
     xp: 0,
-    level: 1,
+    earnedBadges: {} as Record<string, number>,
+    gamificationMigrated: true,
+    schemaVersion: 2 as const,
   };
   try { localStorage.setItem(STORAGE_KEY_USER, JSON.stringify(user)); } catch { /* ignore */ }
 

@@ -8,7 +8,7 @@ async function seedUser(page: import('@playwright/test').Page, interests: string
     localStorage.setItem('user', JSON.stringify({
       name: '테', interests: ids,
       onboardedAt: new Date().toISOString(),
-      streak: 0, lastActiveDate: today, xp: 0, level: 1,
+      streak: 0, lastActiveDate: today, xp: 0, earnedBadges: {}, gamificationMigrated: true, schemaVersion: 2,
     }));
     // v3.3.4.3: suppress briefings auto-refresh (no briefings fixture seeded)
     sessionStorage.setItem('dg.briefings.auto-refresh-tried', '1');

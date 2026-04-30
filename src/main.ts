@@ -3,6 +3,7 @@ import { mountSidebar } from './ui/sidebar';
 import { mountHomeHandlers } from './ui/handlers/home';
 import { mountArchiveHandlers } from './ui/handlers/archive';
 import { mountStatsHandlers } from './ui/handlers/stats';
+import { mountRewards } from './ui/rewards';
 import { renderOnboarding } from './ui/onboarding';
 import { qs } from './utils/dom';
 
@@ -23,6 +24,7 @@ function bootMainApp(): void {
   mountStatsHandlers();
   mountNav();
   mountSidebar();
+  mountRewards();
   switchTab('home');
 }
 

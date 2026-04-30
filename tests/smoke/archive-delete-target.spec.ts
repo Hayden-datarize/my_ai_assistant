@@ -4,7 +4,7 @@ import { test, expect } from '@playwright/test';
 test('archive 카드 ✕로 답변 삭제 후 undo로 복원', async ({ page }) => {
   await page.addInitScript(() => {
     // 온보딩 완료 상태 + 사용자 세션
-    localStorage.setItem('user', JSON.stringify({ interests: ['tech'] }));
+    localStorage.setItem('user', JSON.stringify({ interests: ['tech'], gamificationMigrated: true }));
     // briefings 자동 새로고침 억제 (fixture 없음)
     sessionStorage.setItem('dg.briefings.auto-refresh-tried', '1');
     localStorage.setItem(

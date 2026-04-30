@@ -34,6 +34,11 @@ export interface EventMap {
   // nav (1) — dispatched by nav.ts after a tab is switched-to; consumed by
   // handlers/* to hydrate their own tab's dynamic content.
   'dg:nav:tab-changed': { tab: string };
+  // v3.12 reward events
+  'dg:reward:xp-float': { amount: number; at: number };
+  'dg:reward:level-up': { tierId: number; at: number };
+  'dg:reward:streak-milestone': { days: number; at: number };
+  'dg:reward:badge-unlock': { badgeId: string; at: number };
 }
 
 type EventName = keyof EventMap;
@@ -59,6 +64,10 @@ export const EVENT_NAMES: readonly EventName[] = [
   'dg:archive:search', 'dg:archive:period-change', 'dg:archive:filter',
   'dg:stats:weekly-report', 'dg:stats:growth-analysis',
   'dg:nav:tab-changed',
+  'dg:reward:xp-float',
+  'dg:reward:level-up',
+  'dg:reward:streak-milestone',
+  'dg:reward:badge-unlock',
 ] as const;
 
 /** Events deferred to v3.2 — handlers in v3.1 register a stub listener. */

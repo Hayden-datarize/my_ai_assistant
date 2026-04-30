@@ -32,7 +32,7 @@ test('cap 도달 시 토글 비활성 + aria-disabled', async ({ page }) => {
         streak: 1,
         lastActiveDate: args.today,
         xp: 0,
-        level: 1,
+        earnedBadges: {}, gamificationMigrated: true, schemaVersion: 2,
       }),
     );
     localStorage.setItem('dg_gemini_key', 'TEST_KEY');

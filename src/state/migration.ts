@@ -56,3 +56,20 @@ export function migrateUserSettings(raw: unknown): UserSettings {
 export function migrateUnknown<T extends Record<string, unknown>>(raw: T): T & { schemaVersion: typeof CURRENT_SCHEMA_VERSION } {
   return { ...raw, schemaVersion: CURRENT_SCHEMA_VERSION };
 }
+
+import type { User } from './user';
+
+/**
+ * v3.12: User v1 → v2 마이그레이션.
+ * - drop `level` (computed via getCurrentTier(xp).id)
+ * - add earnedBadges / gamificationMigrated / schemaVersion: 2
+ *
+ * backfill (이미 자격 있는 뱃지 unlock)은 T13 환영 모달에서 처리.
+ */
+export function migrateUserToV2(raw: any): User {
+  const v2: any = { ...raw, schemaVersion: 2 };
+  delete v2.level;
+  v2.earnedBadges = v2.earnedBadges ?? {};
+  v2.gamificationMigrated = v2.gamificationMigrated ?? false;
+  return v2 as User;
+}

@@ -24,7 +24,10 @@ test('legacy v2.0 `answers` key auto-migrates to dg.answers and renders on archi
   };
 
   await page.addInitScript((payload) => {
-    localStorage.setItem('user', JSON.stringify(payload.user));
+    // v3.12 T15: legacy v2.0 user shape (`level`)는 그대로 두되, T13 welcome modal
+    // invariant (`answers >= 1 && !gamificationMigrated`)를 회피하기 위해 flag만 1개
+    // 추가 — lazy migrate가 user를 v2로 변환할 때 이 flag 보존됨.
+    localStorage.setItem('user', JSON.stringify({ ...payload.user, gamificationMigrated: true }));
     localStorage.setItem('answers', JSON.stringify(payload.answers));
     // v3.3.4.3: suppress briefings auto-refresh (no briefings fixture seeded)
     sessionStorage.setItem('dg.briefings.auto-refresh-tried', '1');
@@ -63,7 +66,7 @@ test('theme toggle persists after reload', async ({ page }) => {
   await page.addInitScript(() => {
     localStorage.setItem('user', JSON.stringify({
       name: 'H', interests: ['ai_ml'], onboardedAt: '2026-04-01',
-      streak: 0, lastActiveDate: '', xp: 0, level: 1,
+      streak: 0, lastActiveDate: '', xp: 0, earnedBadges: {}, gamificationMigrated: true, schemaVersion: 2,
     }));
     // v3.3.4.3: suppress briefings auto-refresh (no briefings fixture seeded)
     sessionStorage.setItem('dg.briefings.auto-refresh-tried', '1');
@@ -96,7 +99,7 @@ test('archive filter by type narrows the list', async ({ page }) => {
   await page.addInitScript(() => {
     localStorage.setItem('user', JSON.stringify({
       name: 'H', interests: ['ai_ml'], onboardedAt: '2026-04-01',
-      streak: 0, lastActiveDate: '', xp: 0, level: 1,
+      streak: 0, lastActiveDate: '', xp: 0, earnedBadges: {}, gamificationMigrated: true, schemaVersion: 2,
     }));
     localStorage.setItem('dg.answers', JSON.stringify([
       { id: 'a1', questionId: 'q', text: '분석형 답변 하나', authorId: 'self', createdAt: '2026-04-18T00:00:00Z', type: '분석', date: '2026-04-18', schemaVersion: 1 },

@@ -14,7 +14,7 @@ async function seedAll(page: import('@playwright/test').Page): Promise<void> {
         name: 'TestUser',
         interests: ['growth'],
         onboardedAt: '2026-04-01',
-        streak: 0, lastActiveDate: '', xp: 0, level: 1,
+        streak: 0, lastActiveDate: '', xp: 0, earnedBadges: {}, gamificationMigrated: true, schemaVersion: 2,
       }),
     );
     localStorage.setItem(

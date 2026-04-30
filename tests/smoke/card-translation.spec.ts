@@ -4,7 +4,7 @@ import { test, expect } from '@playwright/test';
 test.use({ serviceWorkers: 'block' });
 
 const seedUser = `
-  localStorage.setItem('user', JSON.stringify({ name: 'T', interests: ['ai_ml'], onboardedAt: '2026-04-26', streak: 1, lastActiveDate: '2026-04-26', xp: 0, level: 1 }));
+  localStorage.setItem('user', JSON.stringify({ name: 'T', interests: ['ai_ml'], onboardedAt: '2026-04-26', streak: 1, lastActiveDate: '2026-04-26', xp: 0, earnedBadges: {}, gamificationMigrated: true, schemaVersion: 2 }));
 `;
 
 test('영문 카드 토글: 한글 ↔ 영문 swap', async ({ page }) => {
