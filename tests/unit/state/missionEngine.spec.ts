@@ -1,5 +1,5 @@
 import { describe, it, expect, beforeEach } from 'vitest';
-import { getKSTDateIso, getKSTWeekIso, getKSTMonthIso, getActiveMissions, pickDailyMissions } from '../../../src/state/missionEngine';
+import { getKSTDateIso, getKSTWeekIso, getKSTMonthIso, getActiveMissions, pickDailyMissions, tickMissionProgress } from '../../../src/state/missionEngine';
 import type { User } from '../../../src/state/user';
 
 function makeUser(): User {
@@ -93,5 +93,84 @@ describe('getActiveMissions (lazy regeneration)', () => {
     // saveUser 호출하면 localStorage가 변경됨. localStorage가 비어있는지 확인.
     getActiveMissions(now, u);
     expect(localStorage.getItem('user')).toBeNull();
+  });
+});
+
+describe('tickMissionProgress', () => {
+  it('answer action → daily-answer-1 progress 0→1, completed: true, xp +10, cumulative.dailyCount +1', () => {
+    const u = makeUser();
+    u.missions.active = [{ defId: 'daily-answer-1', period: 'daily', windowStart: 0, progress: 0, completed: false }];
+    tickMissionProgress(u, 'answer', new Date('2026-04-30T15:00:00Z'));
+    expect(u.missions.active[0]!.progress).toBe(1);
+    expect(u.missions.active[0]!.completed).toBe(true);
+    expect(u.xp).toBe(10);
+    expect(u.missions.cumulative.dailyCount).toBe(1);
+  });
+
+  it('이미 completed 미션은 tick 무시 (idempotent)', () => {
+    const u = makeUser();
+    u.missions.active = [{ defId: 'daily-answer-1', period: 'daily', windowStart: 0, progress: 1, completed: true }];
+    u.xp = 10;
+    tickMissionProgress(u, 'answer');
+    expect(u.xp).toBe(10);
+    expect(u.missions.cumulative.dailyCount).toBe(0);
+  });
+
+  it('answer 1회 → daily-answer-2 (target 2) progress 1, completed: false', () => {
+    const u = makeUser();
+    u.missions.active = [{ defId: 'daily-answer-2', period: 'daily', windowStart: 0, progress: 0, completed: false }];
+    tickMissionProgress(u, 'answer');
+    expect(u.missions.active[0]!.progress).toBe(1);
+    expect(u.missions.active[0]!.completed).toBe(false);
+    expect(u.xp).toBe(0);
+  });
+
+  it('answer 2회 → daily-answer-2 completed', () => {
+    const u = makeUser();
+    u.missions.active = [{ defId: 'daily-answer-2', period: 'daily', windowStart: 0, progress: 0, completed: false }];
+    tickMissionProgress(u, 'answer');
+    tickMissionProgress(u, 'answer');
+    expect(u.missions.active[0]!.progress).toBe(2);
+    expect(u.missions.active[0]!.completed).toBe(true);
+    expect(u.xp).toBe(10);
+  });
+
+  it('weekly-active-5days: 같은 날 여러 액션 → progressDates idempotent (1 push)', () => {
+    const u = makeUser();
+    const now = new Date('2026-04-30T15:00:00Z');
+    u.missions.active = [{ defId: 'weekly-active-5days', period: 'weekly', windowStart: 0, progress: 0, completed: false, progressDates: [] }];
+    tickMissionProgress(u, 'answer', now);
+    tickMissionProgress(u, 'scrap', now);
+    tickMissionProgress(u, 'memo', now);
+    expect(u.missions.active[0]!.progressDates).toEqual(['2026-05-01']);
+    expect(u.missions.active[0]!.progress).toBe(1);
+  });
+
+  it('weekly-active-5days: 5일 다른 날 → completed', () => {
+    const u = makeUser();
+    u.missions.active = [{ defId: 'weekly-active-5days', period: 'weekly', windowStart: 0, progress: 0, completed: false, progressDates: [] }];
+    for (const day of ['2026-05-01', '2026-05-02', '2026-05-03', '2026-05-04', '2026-05-05']) {
+      tickMissionProgress(u, 'answer', new Date(`${day}T01:00:00Z`));
+    }
+    expect(u.missions.active[0]!.progress).toBe(5);
+    expect(u.missions.active[0]!.completed).toBe(true);
+    expect(u.xp).toBe(50);
+    expect(u.missions.cumulative.weeklyCount).toBe(1);
+  });
+
+  it('monthly-answers-20 completed → xp +200, cumulative.monthlyCount +1', () => {
+    const u = makeUser();
+    u.missions.active = [{ defId: 'monthly-answers-20', period: 'monthly', windowStart: 0, progress: 19, completed: false }];
+    tickMissionProgress(u, 'answer');
+    expect(u.missions.active[0]!.completed).toBe(true);
+    expect(u.xp).toBe(200);
+    expect(u.missions.cumulative.monthlyCount).toBe(1);
+  });
+
+  it('action 미매칭은 progress 변화 없음', () => {
+    const u = makeUser();
+    u.missions.active = [{ defId: 'daily-answer-1', period: 'daily', windowStart: 0, progress: 0, completed: false }];
+    tickMissionProgress(u, 'scrap');
+    expect(u.missions.active[0]!.progress).toBe(0);
   });
 });

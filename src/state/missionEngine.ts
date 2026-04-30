@@ -1,6 +1,6 @@
 import type { User } from './user';
-import type { MissionInstance, MissionPeriod } from './missionTypes';
-import { DAILY_POOL, WEEKLY_FIXED, MONTHLY_FIXED } from './missionCatalog';
+import type { MissionInstance, MissionPeriod, MissionAction } from './missionTypes';
+import { DAILY_POOL, WEEKLY_FIXED, MONTHLY_FIXED, getMissionDef } from './missionCatalog';
 
 // en-CA 로케일은 YYYY-MM-DD 형식을 보장 (ISO 8601 준수)
 const KST_FMT = new Intl.DateTimeFormat('en-CA', { timeZone: 'Asia/Seoul', year: 'numeric', month: '2-digit', day: '2-digit' });
@@ -125,4 +125,37 @@ export function getActiveMissions(now: Date, user: User): MissionInstance[] {
     user.missions.currentMonthIso = monthIso;
   }
   return user.missions.active;
+}
+
+/**
+ * progress++ → completed 전환 시 xp 보너스 + cumulative 카운트.
+ * **caller invariant**: tick 후 caller가 saveUser 호출 (race 회피, sweep은 read-only).
+ * active-day trigger는 progressDates 기반 idempotent (같은 날 중복 push 차단).
+ */
+export function tickMissionProgress(user: User, action: MissionAction, now: Date = new Date()): void {
+  const todayIso = getKSTDateIso(now);
+  for (const m of user.missions.active) {
+    if (m.completed) continue;
+    const def = getMissionDef(m.defId);
+    if (!def) continue;                              // catalog 변경 시 unknown defId 방어
+
+    if (def.triggerOn === 'active-day') {
+      if (action === 'active-day') continue;         // 'active-day' raw action은 호출되지 않음 (방어)
+      m.progressDates = m.progressDates ?? [];
+      if (m.progressDates.includes(todayIso)) continue;
+      m.progressDates.push(todayIso);
+      m.progress = m.progressDates.length;
+    } else if (def.triggerOn === action) {
+      m.progress++;
+    } else {
+      continue;
+    }
+
+    if (m.progress >= def.target && !m.completed) {
+      m.completed = true;
+      user.xp += def.rewardXp;
+      const key = `${m.period}Count` as 'dailyCount' | 'weeklyCount' | 'monthlyCount';
+      user.missions.cumulative[key]++;
+    }
+  }
 }
