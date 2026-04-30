@@ -67,4 +67,21 @@ describe('maybeShowWelcomeGamification', () => {
     expect(document.querySelector('.dg-modal')).not.toBeNull();
     spy.mockRestore();
   });
+
+  it('stats 버튼 click → switchTab + modal close + gamificationMigrated set', async () => {
+    // nav 모듈 stub — switchTab 가 jsdom 에서 #app/render*까지 끌어들이지 않도록.
+    const switchTabSpy = vi.fn();
+    vi.doMock('../../../src/ui/nav', () => ({ switchTab: switchTabSpy }));
+    saveUser({ name: 'x', interests: ['AI'], onboardedAt: '', streak: 5, lastActiveDate: '', xp: 100, earnedBadges: {}, gamificationMigrated: false, schemaVersion: 2 });
+    saveAnswers([{ id: '1', questionId: 'q', text: 'a', authorId: 'self', createdAt: '2026-04-01', schemaVersion: 1 }]);
+    await maybeShowWelcomeGamification();
+    expect(document.querySelector('.dg-modal')).not.toBeNull();
+    const btn = document.getElementById('goStatsBtn') as HTMLButtonElement;
+    btn?.click();
+    await new Promise(r => setTimeout(r, 50));  // lazy imports resolve (closeModal + nav)
+    expect(document.querySelector('.dg-modal')).toBeNull();
+    expect(loadUserData()!.gamificationMigrated).toBe(true);
+    expect(switchTabSpy).toHaveBeenCalledWith('stats');
+    vi.doUnmock('../../../src/ui/nav');
+  });
 });
