@@ -60,9 +60,16 @@ function mulberry32(seed: number): () => number {
   };
 }
 
+// T10 hotfix: 트리거 미연결 미션은 picker에서만 제외 — catalog/defId 조회는 유지 (기존 유저 데이터 보호)
+// 트리거 연결 완료 시 제거하면 충분, 스키마 마이그레이션 불필요
+const DEFERRED_DEFIDS = new Set([
+  'daily-briefing-5',       // briefing-view trigger: IntersectionObserver 1장당 sessionStorage dedup 미구현
+  'daily-cross-interest-1', // cross-interest-view trigger: 브리핑 interest-tag 매핑 미구현
+]);
+
 export function pickDailyMissions(dateIso: string, now: Date): MissionInstance[] {
   const rng = mulberry32(hashStr(dateIso));
-  const pool = [...DAILY_POOL];
+  const pool = DAILY_POOL.filter(d => !DEFERRED_DEFIDS.has(d.id)); // 5 active entries (7 - 2 deferred)
   const picked: MissionInstance[] = [];
   for (let i = 0; i < 3 && pool.length; i++) {
     const idx = Math.floor(rng() * pool.length);

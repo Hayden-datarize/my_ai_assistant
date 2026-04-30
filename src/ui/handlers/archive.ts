@@ -16,6 +16,7 @@ import { MSG } from '../messages';
 import { renderBriefingCard } from './home';
 import type { Answer } from '../../state/schema';
 import { fireArchiveRevisitTrigger } from './missions-triggers';
+import { getKSTDateIso } from '../../state/missionEngine';
 
 let currentFilter = 'all';
 let currentQuery = '';
@@ -188,11 +189,15 @@ function handleCardClick(e: Event): void {
     void import('../modals/answer-detail').then(({ openAnswerDetail }) => {
       openAnswerDetail(answer);
     });
-    // T10: archive-revisit mission trigger — 하루 1회 dedup
-    const todayKey = `archive-revisit-fired-${new Date().toISOString().slice(0, 10)}`;
+    // T10: archive-revisit mission trigger — 하루 1회 dedup (KST 기준)
+    const todayKey = `archive-revisit-fired-${getKSTDateIso(new Date())}`;
     if (!sessionStorage.getItem(todayKey)) {
-      sessionStorage.setItem(todayKey, '1');
-      fireArchiveRevisitTrigger();
+      try {
+        fireArchiveRevisitTrigger();           // saveUser 내부 호출 — 성공 후에만 flag 세팅
+        sessionStorage.setItem(todayKey, '1');
+      } catch (err) {
+        showToast(getSaveErrorMessage(err));   // Quota 등 저장 실패 시 토스트, 재시도 허용
+      }
     }
     return;
   }
