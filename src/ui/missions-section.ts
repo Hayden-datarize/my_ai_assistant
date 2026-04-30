@@ -13,6 +13,7 @@ const PERIODS: MissionPeriod[] = ['daily', 'weekly', 'monthly'];
 function renderCard(m: MissionInstance): string {
   const def = getMissionDef(m.defId);
   if (!def) return '';
+  const ariaLabel = m.completed ? `${def.text} 미션 완수` : def.text;
   const cls = m.completed ? 'mission-card mission-card--completed' : 'mission-card';
   const pbHtml = def.target >= 2
     ? `<span class="mission-card__progress" role="progressbar" aria-valuenow="${m.progress}" aria-valuemax="${def.target}" aria-label="${m.progress}/${def.target}">
@@ -21,7 +22,7 @@ function renderCard(m: MissionInstance): string {
        </span>`
     : '';
   const checkHtml = m.completed ? '<span class="mission-card__check" aria-label="완수">✓</span>' : '';
-  return `<li class="${cls}">
+  return `<li class="${cls}" aria-label="${escapeHtml(ariaLabel)}">
     <span class="mission-card__title">${escapeHtml(def.text)}</span>
     ${pbHtml}
     <span class="mission-card__reward">+${def.rewardXp} XP</span>

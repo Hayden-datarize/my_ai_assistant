@@ -81,4 +81,32 @@ describe('renderMissionsSection', () => {
     const header = root.querySelector('[data-period="daily"] .mission-group__progress')!;
     expect(header.textContent).toBe('1/3');
   });
+
+  it('a11y: completed 카드에 aria-label로 완수 안내', () => {
+    const active: MissionInstance[] = [
+      { defId: 'daily-answer-1', period: 'daily', windowStart: 0, progress: 1, completed: true },
+    ];
+    const root = mount(active);
+    const card = root.querySelector('.mission-card--completed')!;
+    expect(card.getAttribute('aria-label')).toMatch(/완수/);
+  });
+
+  it('a11y: incompleted 카드는 aria-label에 미션 텍스트만', () => {
+    const active: MissionInstance[] = [
+      { defId: 'daily-answer-1', period: 'daily', windowStart: 0, progress: 0, completed: false },
+    ];
+    const root = mount(active);
+    const card = root.querySelector('.mission-card')!;
+    expect(card.getAttribute('aria-label')).toBe('오늘 답변 1개 작성');
+  });
+
+  it('a11y: chevron group header button + aria-controls가 list id 가리킴', () => {
+    const active: MissionInstance[] = [
+      { defId: 'daily-answer-1', period: 'daily', windowStart: 0, progress: 0, completed: false },
+    ];
+    const root = mount(active);
+    const btn = root.querySelector('.mission-group__header')!;
+    const listId = btn.getAttribute('aria-controls')!;
+    expect(document.getElementById(listId)).not.toBeNull();
+  });
 });
