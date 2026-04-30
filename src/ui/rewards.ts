@@ -47,6 +47,39 @@ function escapeText(s: string): string {
   return s.replace(/[&<>"']/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]!));
 }
 
+function spawnXpFloat(amount: number): void {
+  const startEl = document.querySelector<HTMLElement>('.chat-bubble:last-of-type');
+  const xpBadge = document.getElementById('xpBadge');
+
+  // 시작점: chat bubble 우측 가장자리. 없으면 화면 중앙.
+  const startRect = startEl?.getBoundingClientRect();
+  const startX = startRect ? startRect.right : window.innerWidth / 2;
+  const startY = startRect ? startRect.top + startRect.height / 2 : window.innerHeight / 2;
+
+  // 끝점: xpBadge 중앙. 미존재 / 비가시(jsdom checkVisibility 없음 → width===0 체크) 시 우상단.
+  const endRect = (xpBadge && (xpBadge as HTMLElement).getBoundingClientRect());
+  const isVisible = endRect && endRect.width > 0 && endRect.height > 0;
+  const endX = isVisible ? endRect.left + endRect.width / 2 : window.innerWidth - 32;
+  const endY = isVisible ? endRect.top + endRect.height / 2 : 32;
+
+  const el = document.createElement('span');
+  el.className = 'xp-float';
+  el.textContent = `+${amount} XP`;
+  el.style.setProperty('--start-x', `${startX}px`);
+  el.style.setProperty('--start-y', `${startY}px`);
+  el.style.setProperty('--end-x', `${endX}px`);
+  el.style.setProperty('--end-y', `${endY}px`);
+  document.body.append(el);
+  setTimeout(() => el.remove(), 1300);
+
+  // 도착 시 xpBadge ping
+  setTimeout(() => {
+    if (!xpBadge) return;
+    xpBadge.classList.add('badge-pulse');
+    setTimeout(() => xpBadge.classList.remove('badge-pulse'), 300);
+  }, 1000);
+}
+
 export function mountRewards(): void {
   if (mounted) return;
   mounted = true;
@@ -92,8 +125,8 @@ export function mountRewards(): void {
     sessionStorage.setItem('dg:streakPulsePending', String(days));
   }));
 
-  disposers.push(on('dg:reward:xp-float', ({ amount: _amount }) => {
-    // T7에서 spawnXpFloat(amount) 호출 + xpBadge ping 추가
+  disposers.push(on('dg:reward:xp-float', ({ amount }) => {
+    spawnXpFloat(amount);
   }));
 }
 

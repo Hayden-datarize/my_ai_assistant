@@ -18,3 +18,29 @@
 @import './pages/stats.css' layer(components);
 @import './pages/settings.css' layer(components);
 @import './utilities.css' layer(utilities);
+
+/* v3.12 T7 — XP floating + badge pulse */
+.xp-float {
+  position: fixed;
+  left: var(--start-x);
+  top: var(--start-y);
+  transform: translate(-50%, -50%);
+  font-weight: 700;
+  color: var(--color-success, #16a34a);
+  pointer-events: none;
+  z-index: 1000;
+  animation: xpFloat 1.2s ease-out forwards;
+}
+@keyframes xpFloat {
+  0%   { left: var(--start-x); top: var(--start-y); opacity: 1; }
+  83%  { left: var(--end-x);   top: var(--end-y);   opacity: 1; }
+  100% { left: var(--end-x);   top: var(--end-y);   opacity: 0; }
+}
+.badge-pulse {
+  animation: badgePulse 300ms ease-out;
+}
+@keyframes badgePulse {
+  0%   { transform: scale(1); }
+  50%  { transform: scale(1.15); }
+  100% { transform: scale(1); }
+}
