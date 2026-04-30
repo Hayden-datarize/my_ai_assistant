@@ -49,6 +49,17 @@ describe('hydrateBadges (catalog 기반)', () => {
     ]);
   });
 
+  it('v3.12.2 회귀: 부모 #badgesGrid는 grid container 아님 — 카테고리별 nested .badges-grid가 가로 grid 담당', () => {
+    saveUser({ name: 'x', interests: [], onboardedAt: '', streak: 0, lastActiveDate: '', xp: 0, earnedBadges: {}, gamificationMigrated: true, schemaVersion: 2 });
+    hydrateStats();
+    const parent = document.getElementById('badgesGrid')!;
+    // 부모는 단순 placeholder — .badges-grid class 가지면 nested grid container 충돌 (badge들이 1열 stack됨)
+    expect(parent.classList.contains('badges-grid')).toBe(false);
+    // 카테고리 5개 각각 자체 .badges-grid 가짐
+    const nestedGrids = parent.querySelectorAll('.badges-category .badges-grid');
+    expect(nestedGrids).toHaveLength(5);
+  });
+
   it('locked 뱃지 — 🔒 overlay + data-tooltip 존재', () => {
     saveUser({ name: 'x', interests: [], onboardedAt: '', streak: 0, lastActiveDate: '', xp: 0, earnedBadges: {}, gamificationMigrated: true, schemaVersion: 2 });
     hydrateStats();

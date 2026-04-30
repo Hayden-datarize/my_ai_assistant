@@ -57,7 +57,7 @@ export function renderStats(container: HTMLElement): void {
       </div>
       <div class="badges-section" style="background:var(--bg-card);border-radius:var(--radius-lg);padding:16px;border:1px solid var(--border);margin-bottom:16px;">
         <h3 style="margin-bottom:12px;font-size:0.95rem;">🏆 뱃지</h3>
-        <div class="badges-grid" id="badgesGrid"></div>
+        <div id="badgesGrid"></div>
       </div>
       <div style="display:flex;gap:8px;margin-bottom:16px;">
         <button class="btn btn-primary" id="weeklyReportBtn" style="flex:1;">
