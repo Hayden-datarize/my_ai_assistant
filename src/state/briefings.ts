@@ -1,4 +1,5 @@
 import { isHttpsUrl } from '../utils/url';
+import { takeSnapshot, runSweep } from './achievements';
 
 export interface Briefing {
   id: string;
@@ -54,9 +55,20 @@ function mutate(index: number, fn: (b: Briefing) => void): void {
   saveBriefings(list);
 }
 
-export function toggleScrap(index: number): void { mutate(index, b => { b.scrapped = !b.scrapped; }); }
+function mutateWithSweep(index: number, fn: (b: Briefing) => void): void {
+  const list = loadBriefings();
+  const target = list[index];
+  if (!target) return;
+  const prev = takeSnapshot();
+  fn(target);
+  saveBriefings(list);  // throws on Quota — sweep 안 함 (false-fire 방지)
+  const curr = takeSnapshot();
+  runSweep(prev, curr);
+}
+
+export function toggleScrap(index: number): void { mutateWithSweep(index, b => { b.scrapped = !b.scrapped; }); }
 export function setRead(index: number): void { mutate(index, b => { b.read = true; }); }
-export function saveMemo(index: number, memo: string): void { mutate(index, b => { b.memo = memo; }); }
+export function saveMemo(index: number, memo: string): void { mutateWithSweep(index, b => { b.memo = memo; }); }
 
 type TranslationPatch = Partial<Pick<Briefing, 'detectedLang' | 'titleKo' | 'summaryKo'>>;
 

@@ -1,6 +1,7 @@
 import { getDateStr } from '../utils/dates';
 import { MSG } from '../ui/messages';
 import { migrateUserToV2 } from './migration';
+import { takeSnapshot, runSweep } from './achievements';
 
 export interface User {
   name: string;
@@ -53,7 +54,8 @@ export function saveUser(u: User): void {
  * - xp: xpDelta 누적. tier는 getCurrentTier(xp)로 derive (level 필드 X).
  * - lastActiveDate: 오늘로 갱신.
  *
- * 사용자 데이터가 없으면 silent return.
+ * v3.12: prev/curr Snapshot 사이 saveUser → runSweep으로 reward events emit.
+ * saveUser throw 시 in-memory 변경은 persist 안 됨 → sweep 안 함 (false-fire 방지).
  *
  * @throws {DOMException} 저장 공간 초과 시 (QuotaExceededError) — caller에서 처리
  */
@@ -61,6 +63,7 @@ export function recordDailyAnswer(xpDelta: number): void {
   const u = loadUserData();
   if (!u) return;
   const today = getDateStr();
+  const prev = takeSnapshot();
 
   if (u.lastActiveDate !== today) {
     const y = new Date(today);
@@ -70,11 +73,12 @@ export function recordDailyAnswer(xpDelta: number): void {
   }
 
   u.xp += xpDelta;
-  // ❌ removed: u.level = 1 + Math.floor(u.xp / 100);
   u.lastActiveDate = today;
 
-  saveUser(u);
-  // sweep call은 T4에서 추가
+  saveUser(u);  // throws on Quota — sweep 안 함 (false-fire 방지)
+
+  const curr = takeSnapshot();
+  runSweep(prev, curr);
 }
 
 export function updateGreeting(rootId = 'greeting'): void {
