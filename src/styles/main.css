@@ -102,4 +102,42 @@
     50%  { transform: scale(1.5); opacity: 1; }
     100% { transform: scale(0.5); opacity: 0; }
   }
+
+  /* v3.12 T10 — Badge unlock toast + detail modal */
+  .toast--badge {
+    background: linear-gradient(135deg, #a855f7 0%, #6366f1 100%);
+    color: #fff;
+  }
+  .toast-detail {
+    background: rgba(255, 255, 255, 0.2);
+    border: 1px solid rgba(255, 255, 255, 0.4);
+    color: #fff;
+    padding: 4px 10px;
+    border-radius: 6px;
+    cursor: pointer;
+    font-size: 0.9em;
+    margin-left: 8px;
+  }
+  .toast-detail:hover { background: rgba(255, 255, 255, 0.3); }
+  .badge-modal {
+    text-align: center;
+    padding: 20px;
+  }
+  .badge-modal-icon {
+    font-size: 4rem;
+    margin-bottom: 12px;
+  }
+  .badge-modal-name {
+    font-size: 1.4rem;
+    font-weight: 700;
+    margin-bottom: 8px;
+  }
+  .badge-modal-desc {
+    color: var(--text-secondary, #6b7280);
+    margin-bottom: 16px;
+  }
+  .badge-modal-date {
+    font-size: 0.9em;
+    color: var(--text-secondary, #6b7280);
+  }
 }
