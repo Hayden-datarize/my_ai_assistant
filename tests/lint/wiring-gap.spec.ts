@@ -45,15 +45,7 @@ describe('wiring-gap', () => {
       }
     }
 
-    // v3.12 reward events: dispatched by achievements.ts (T3) but listeners
-    // arrive in rewards.ts (T6). Allowlist for the staged-wiring window.
-    const DEFERRED_LISTEN = new Set<string>([
-      'dg:reward:xp-float',
-      'dg:reward:level-up',
-      'dg:reward:streak-milestone',
-      'dg:reward:badge-unlock',
-    ]);
-    const missingListener = [...dispatched].filter(n => !listened.has(n) && !DEFERRED_LISTEN.has(n));
+    const missingListener = [...dispatched].filter(n => !listened.has(n));
     const missingDispatcher = [...listened].filter(n => !dispatched.has(n));
     expect(missingListener, 'events dispatched without listener').toEqual([]);
     expect(missingDispatcher, 'listeners for events never dispatched').toEqual([]);
