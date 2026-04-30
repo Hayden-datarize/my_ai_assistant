@@ -140,4 +140,41 @@
     font-size: 0.9em;
     color: var(--text-secondary, #6b7280);
   }
+
+  /* v3.12 T11 — Silhouette grid (5 categories) */
+  .badges-section h3 { margin: 12px 0; font-size: 1.1rem; }
+  .badges-category h4 { margin: 8px 0 6px; font-size: 0.95rem; color: var(--text-secondary, #6b7280); }
+  .badges-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(72px, 1fr));
+    gap: 8px;
+    margin-bottom: 10px;
+  }
+  .badge {
+    position: relative;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    padding: 10px 4px;
+    background: var(--bg-card, #fff);
+    border: 1px solid var(--border, #e5e7eb);
+    border-radius: 8px;
+    cursor: pointer;
+    font-size: 0.75rem;
+    text-align: center;
+    transition: transform 0.15s ease;
+  }
+  .badge:hover { transform: scale(1.04); }
+  .badge-icon { font-size: 1.5rem; line-height: 1; margin-bottom: 4px; }
+  .badge-name { font-size: 0.7rem; color: var(--text-primary, #111); }
+  .badge--locked .badge-icon { filter: grayscale(1); opacity: 0.4; }
+  .badge--locked .badge-name { color: var(--text-secondary, #6b7280); }
+  .badge-lock {
+    position: absolute;
+    top: 4px;
+    right: 4px;
+    font-size: 0.7rem;
+    opacity: 0.7;
+  }
 }

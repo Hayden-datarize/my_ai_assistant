@@ -14,7 +14,8 @@ import { showToast } from '../../utils/toast';
 import { toKoType } from '../../utils/typeLabel';
 import { getDateStr } from '../../utils/dates';
 import { getCachedUser } from '../../state/user';
-import { getCurrentTier } from '../../state/leveling';
+import { TIERS, getCurrentTier } from '../../state/leveling';
+import { BADGE_CATALOG } from '../../state/badgeCatalog';
 
 const WEEKDAY_KO = ['월', '화', '수', '목', '금', '토', '일'];
 
@@ -72,16 +73,8 @@ function hydrateLevelCard(): void {
   const fill = document.getElementById('xpProgressFill');
   if (!user) return;
 
-  const levels = [
-    { icon: '🌱', name: '새싹', thresh: 0 },
-    { icon: '🌿', name: '새잎', thresh: 100 },
-    { icon: '🌳', name: '나무', thresh: 300 },
-    { icon: '🌲', name: '숲', thresh: 600 },
-    { icon: '🏔️', name: '산', thresh: 1000 },
-    { icon: '🌌', name: '하늘', thresh: 2000 },
-  ];
-  const current = [...levels].reverse().find((l) => user.xp >= l.thresh) ?? levels[0]!;
-  const next = levels.find((l) => l.thresh > user.xp);
+  const current = getCurrentTier(user.xp);
+  const next = TIERS.find((l) => l.thresh > user.xp);
   if (icon) icon.textContent = current.icon;
   if (name) name.textContent = current.name;
   if (next) {
@@ -252,33 +245,72 @@ function hydrateHeatmap(): void {
   }
 }
 
+const CATEGORY_LABELS: Record<string, string> = {
+  streak:      '🔥 Streak',
+  volume:      '📚 Volume',
+  tier:        '🌳 Tier',
+  diversity:   '🎨 Diversity',
+  engagement:  '✏️ Engagement',
+};
+const CATEGORY_ORDER = ['streak', 'volume', 'tier', 'diversity', 'engagement'] as const;
+
 function hydrateBadges(): void {
   const wrap = document.getElementById('badgesGrid');
   const user = getCachedUser();
-  const answers = loadAnswers();
   if (!wrap) return;
   wrap.replaceChildren();
-  const earned: Array<{ icon: string; label: string }> = [];
-  if (answers.length >= 1) earned.push({ icon: '🌱', label: '첫 답변' });
-  if (answers.length >= 10) earned.push({ icon: '📚', label: '열 걸음' });
-  if (answers.length >= 30) earned.push({ icon: '🎯', label: '한 달 완성' });
-  if (user && user.streak >= 7) earned.push({ icon: '🔥', label: '주간 스트릭' });
-  // v3.12 T2 임시 — level 필드 drop. T11에서 hydrateBadges 자체가 catalog 기반으로 rewrite되며 자연 사라짐.
-  if (user && user.xp >= 300) earned.push({ icon: '🌳', label: '나무' });
-  if (user && user.xp >= 1000) earned.push({ icon: '🏔️', label: '산' });
-  if (earned.length === 0) {
-    const hint = document.createElement('p');
-    hint.textContent = '첫 답변을 남기면 뱃지가 열려요.';
-    hint.className = 'badges-empty';
-    wrap.append(hint);
-    return;
+  if (!user) return;
+
+  const earned = new Set(Object.keys(user.earnedBadges ?? {}));
+  const total = BADGE_CATALOG.length;
+
+  // section heading
+  const section = document.createElement('div');
+  section.className = 'badges-section';
+  const heading = document.createElement('h3');
+  heading.textContent = `🏆 뱃지 (${earned.size} / ${total})`;
+  section.append(heading);
+
+  for (const cat of CATEGORY_ORDER) {
+    const list = BADGE_CATALOG.filter((b) => b.category === cat);
+    if (list.length === 0) continue;
+    const catWrap = document.createElement('div');
+    catWrap.className = 'badges-category';
+    const h4 = document.createElement('h4');
+    h4.textContent = CATEGORY_LABELS[cat] ?? cat;
+    const grid = document.createElement('div');
+    grid.className = 'badges-grid';
+    for (const def of list) {
+      const isEarned = earned.has(def.id);
+      const btn = document.createElement('button');
+      btn.type = 'button';
+      btn.className = `badge ${isEarned ? 'badge--earned' : 'badge--locked'}`;
+      btn.setAttribute('aria-label', isEarned ? `${def.name} — ${def.description}` : '잠긴 뱃지');
+      if (!isEarned) btn.dataset['tooltip'] = `달성 조건: ${def.description}`;
+      btn.dataset['badgeId'] = def.id;
+      const iconEl = document.createElement('span');
+      iconEl.className = 'badge-icon';
+      iconEl.textContent = def.icon;
+      const nameEl = document.createElement('span');
+      nameEl.className = 'badge-name';
+      nameEl.textContent = def.name;
+      btn.append(iconEl, nameEl);
+      if (!isEarned) {
+        const lock = document.createElement('span');
+        lock.className = 'badge-lock';
+        lock.textContent = '🔒';
+        btn.append(lock);
+      }
+      btn.addEventListener('click', async () => {
+        const { openBadgeDetail } = await import('../modals/badge-detail');
+        openBadgeDetail(def.id);
+      });
+      grid.append(btn);
+    }
+    catWrap.append(h4, grid);
+    section.append(catWrap);
   }
-  for (const b of earned) {
-    const span = document.createElement('span');
-    span.className = 'badge';
-    span.textContent = `${b.icon} ${b.label}`;
-    wrap.append(span);
-  }
+  wrap.append(section);
 }
 
 function hydrateCategoryBreakdown(): void {

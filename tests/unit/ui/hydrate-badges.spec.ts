@@ -1,0 +1,92 @@
+import { describe, it, expect, beforeEach } from 'vitest';
+import { hydrateStats } from '../../../src/ui/handlers/stats';
+import { saveUser } from '../../../src/state/user';
+import { saveBriefings } from '../../../src/state/briefings';
+
+const STATS_DOM = `
+  <span id="statStreak"></span><span id="statAnswers"></span>
+  <span id="statArticles"></span><span id="statXp"></span>
+  <span id="levelIcon"></span><span id="levelName"></span>
+  <span id="levelXpText"></span><span id="xpProgressFill"></span>
+  <div id="heatmapGrid"></div>
+  <div id="badgesGrid"></div>
+  <div id="categoryBreakdown"></div>
+  <div id="growthSummary"></div>
+`;
+
+beforeEach(() => {
+  localStorage.clear();
+  document.body.innerHTML = STATS_DOM;
+});
+
+describe('hydrateBadges (catalog 기반)', () => {
+  it('빈 user (xp=0, no badges) → 18 grid + 0 earned', () => {
+    saveUser({ name: 'x', interests: [], onboardedAt: '', streak: 0, lastActiveDate: '', xp: 0, earnedBadges: {}, gamificationMigrated: true, schemaVersion: 2 });
+    hydrateStats();
+    const grid = document.getElementById('badgesGrid')!;
+    expect(grid.querySelectorAll('.badge')).toHaveLength(18);
+    expect(grid.querySelectorAll('.badge--earned')).toHaveLength(0);
+    expect(grid.querySelectorAll('.badge--locked')).toHaveLength(18);
+  });
+
+  it('count 헤더 — earned/총 18', () => {
+    saveUser({ name: 'x', interests: [], onboardedAt: '', streak: 0, lastActiveDate: '', xp: 0, earnedBadges: { 'streak-3': 1700000000000, 'answers-1': 1700000000000 }, gamificationMigrated: true, schemaVersion: 2 });
+    hydrateStats();
+    const heading = document.querySelector('.badges-section h3');
+    expect(heading?.textContent).toMatch(/2\s*\/\s*18/);
+  });
+
+  it('5 카테고리 grouping (Streak → Volume → Tier → Diversity → Engagement)', () => {
+    saveUser({ name: 'x', interests: [], onboardedAt: '', streak: 0, lastActiveDate: '', xp: 0, earnedBadges: {}, gamificationMigrated: true, schemaVersion: 2 });
+    hydrateStats();
+    const headings = Array.from(document.querySelectorAll('.badges-category h4')).map(h => h.textContent);
+    expect(headings).toEqual([
+      expect.stringContaining('Streak'),
+      expect.stringContaining('Volume'),
+      expect.stringContaining('Tier'),
+      expect.stringContaining('Diversity'),
+      expect.stringContaining('Engagement'),
+    ]);
+  });
+
+  it('locked 뱃지 — 🔒 overlay + data-tooltip 존재', () => {
+    saveUser({ name: 'x', interests: [], onboardedAt: '', streak: 0, lastActiveDate: '', xp: 0, earnedBadges: {}, gamificationMigrated: true, schemaVersion: 2 });
+    hydrateStats();
+    const locked = document.querySelector<HTMLElement>('.badge--locked');
+    expect(locked?.querySelector('.badge-lock')?.textContent).toBe('🔒');
+    expect(locked?.dataset['tooltip']).toMatch(/달성 조건/);
+  });
+
+  it('earned 뱃지 — locked overlay 없음 + aria-label에 이름 포함', () => {
+    saveUser({ name: 'x', interests: [], onboardedAt: '', streak: 5, lastActiveDate: '', xp: 0, earnedBadges: { 'streak-3': 1700000000000 }, gamificationMigrated: true, schemaVersion: 2 });
+    hydrateStats();
+    const earned = document.querySelector<HTMLElement>('.badge--earned');
+    expect(earned).not.toBeNull();
+    expect(earned?.querySelector('.badge-lock')).toBeNull();
+    expect(earned?.getAttribute('aria-label')).toMatch(/첫 불씨/);
+  });
+
+  it('hydrateLevelCard: TIERS import — user.xp=200 → 새잎', () => {
+    saveUser({ name: 'x', interests: [], onboardedAt: '', streak: 0, lastActiveDate: '', xp: 200, earnedBadges: {}, gamificationMigrated: true, schemaVersion: 2 });
+    hydrateStats();
+    expect(document.getElementById('levelName')!.textContent).toBe('새잎');
+  });
+
+  it('hydrateGrowthSummary: tierName 포함 (level 숫자 X)', () => {
+    saveUser({ name: 'x', interests: [], onboardedAt: '', streak: 0, lastActiveDate: '', xp: 350, earnedBadges: {}, gamificationMigrated: true, schemaVersion: 2 });
+    saveBriefings([]);
+    hydrateStats();
+    const summary = document.getElementById('growthSummary')!.textContent ?? '';
+    expect(summary).toMatch(/나무|성장 요약/);
+  });
+
+  it('earned 뱃지 click → openModal (badge-detail)', async () => {
+    saveUser({ name: 'x', interests: [], onboardedAt: '', streak: 5, lastActiveDate: '', xp: 0, earnedBadges: { 'streak-3': 1700000000000 }, gamificationMigrated: true, schemaVersion: 2 });
+    document.body.insertAdjacentHTML('beforeend', '<div id="modalRoot"></div>');
+    hydrateStats();
+    const earned = document.querySelector<HTMLButtonElement>('.badge--earned');
+    earned?.click();
+    await new Promise(r => setTimeout(r, 50));  // lazy import
+    expect(document.querySelector('.badge-modal')).not.toBeNull();
+  });
+});
