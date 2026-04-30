@@ -285,7 +285,9 @@ function hydrateBadges(): void {
       const btn = document.createElement('button');
       btn.type = 'button';
       btn.className = `badge ${isEarned ? 'badge--earned' : 'badge--locked'}`;
-      btn.setAttribute('aria-label', isEarned ? `${def.name} — ${def.description}` : '잠긴 뱃지');
+      btn.setAttribute('aria-label', isEarned
+        ? `${def.name} — ${def.description}`
+        : `${def.name} (잠김) — ${def.description}`);
       if (!isEarned) btn.dataset['tooltip'] = `달성 조건: ${def.description}`;
       btn.dataset['badgeId'] = def.id;
       const iconEl = document.createElement('span');
