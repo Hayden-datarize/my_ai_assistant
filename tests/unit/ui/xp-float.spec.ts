@@ -47,4 +47,20 @@ describe('xp-float', () => {
     document.querySelector('.chat-bubble')?.remove();
     expect(() => dispatch('dg:reward:xp-float', { amount: 10, at: Date.now() })).not.toThrow();
   });
+
+  it('multi chat-bubble: :last-of-type rect 사용 (마지막 bubble 기준)', () => {
+    document.body.innerHTML = `
+      <div id="modalRoot"></div>
+      <div class="chat-bubble" id="b1">first</div>
+      <div class="chat-bubble" id="b2">second</div>
+      <span id="xpBadge">XP 0</span>
+    `;
+    __resetForTest();
+    mountRewards();
+    dispatch('dg:reward:xp-float', { amount: 5, at: Date.now() });
+    // jsdom이 모든 rect를 0/0/0/0으로 반환하지만 selector 매칭 자체는 정확.
+    // 검증: spawnXpFloat가 throw 안 함 + DOM 1개 추가
+    expect(document.querySelectorAll('.xp-float')).toHaveLength(1);
+    expect(document.querySelector('.xp-float')!.textContent).toBe('+5 XP');
+  });
 });
