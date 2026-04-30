@@ -3,15 +3,41 @@ import { didLevelUp } from './leveling';
 import type { Snapshot, GameEvent } from './gameTypes';
 import { STREAK_MILESTONES } from './gameTypes';
 import { loadUserData, saveUser } from './user';
-import { loadBriefings } from './briefings';
+import { loadBriefings, type Briefing } from './briefings';
 import { loadAnswers } from './persistence';
+import { BADGE_CATALOG } from './badgeCatalog';
+
+// 답변에 카테고리 매핑은 없음 — 스크랩 카테고리만 사용 (spec §7.1).
+// briefing의 sourceTitle을 카테고리 proxy로 사용 (없으면 url hostname try/catch graceful)
+function categorizeScrapsByInterest(briefings: Briefing[], interests: string[]): {
+  engaged: Set<string>;
+  uniqueCount: number;
+} {
+  const engaged = new Set<string>();
+  const cats = new Set<string>();
+  for (const b of briefings) {
+    if (!b.scrapped) continue;
+    // P1-2 fix: invalid url일 때 new URL throw → takeSnapshot 전체 실패 → sweep 차단 위험.
+    // sourceTitle 우선, 없으면 hostname try/catch graceful (최종 fallback은 빈 문자열 → cats에 추가 안 함).
+    let cat = (b.sourceTitle ?? '').trim();
+    if (!cat) {
+      try { cat = new URL(b.url).hostname; } catch { cat = ''; }
+    }
+    if (cat) cats.add(cat);
+    for (const i of interests) {
+      // 관심분야 텍스트가 sourceTitle/title/summary에 포함되는지 (case-insensitive)
+      const hay = `${b.sourceTitle ?? ''} ${b.title} ${b.summary}`.toLowerCase();
+      if (hay.includes(i.toLowerCase())) engaged.add(i);
+    }
+  }
+  return { engaged, uniqueCount: cats.size };
+}
 
 /**
  * Read-only — 현재 user/answers/briefings 상태로부터 Snapshot 생성.
  * 본 sweep 전후로 두 번 찍어 detectEvents에 넘긴다.
  *
- * T3에서는 xp/streak/counts만 채움. uniqueAnsweredTypes / engagedInterests /
- * uniqueScrapCategories는 T5에서 채움 (badge arm 활성화 시).
+ * v3.12 T5: uniqueAnsweredTypes / engagedInterests / uniqueScrapCategories 모두 채움.
  */
 export function takeSnapshot(): Snapshot {
   const u = loadUserData();
@@ -19,16 +45,26 @@ export function takeSnapshot(): Snapshot {
   const briefings = loadBriefings();
   const scraps = briefings.filter(b => b.scrapped);
   const memos = briefings.filter(b => b.memo && b.memo.trim().length > 0);
+  const interests = u?.interests ?? [];
+  const { engaged, uniqueCount } = categorizeScrapsByInterest(briefings, interests);
+
+  // P0 fix: 실제 코드는 한국어 라벨 5종 (home.ts:657-661 + schema.ts:17 주석).
+  const KNOWN_TYPES = new Set(['분석', '전환', '실무', '성장', '트렌드']);
+  const answeredTypes = new Set<string>();
+  for (const a of answers) {
+    if (a.type && KNOWN_TYPES.has(a.type)) answeredTypes.add(a.type);
+  }
+
   return {
     xp: u?.xp ?? 0,
     streak: u?.streak ?? 0,
     answersCount: answers.length,
     scrapsCount: scraps.length,
     memosCount: memos.length,
-    uniqueAnsweredTypes: new Set(),
-    selectedInterests: new Set(u?.interests ?? []),
-    engagedInterests: new Set(),
-    uniqueScrapCategories: 0,
+    uniqueAnsweredTypes: answeredTypes,
+    selectedInterests: new Set(interests),
+    engagedInterests: engaged,
+    uniqueScrapCategories: uniqueCount,
     earnedBadgeIds: new Set(Object.keys(u?.earnedBadges ?? {})),
   };
 }
@@ -50,7 +86,14 @@ export function detectEvents(prev: Snapshot, curr: Snapshot): GameEvent[] {
     }
   }
 
-  // badge arm은 T5에서 활성화
+  // ✅ T5 badge arm — !prev.earned && !curr.earned && predicate(curr)
+  for (const b of BADGE_CATALOG) {
+    if (prev.earnedBadgeIds.has(b.id)) continue;       // 이미 영구 unlock
+    if (curr.earnedBadgeIds.has(b.id)) continue;       // 이중 안전망
+    if (b.predicate(curr)) {
+      out.push({ kind: 'badge', badgeId: b.id, at });
+    }
+  }
   return out;
 }
 

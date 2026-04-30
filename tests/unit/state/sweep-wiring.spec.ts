@@ -39,19 +39,20 @@ describe('sweep wiring', () => {
     spy.mockRestore();
   });
 
-  it('toggleScrap: scraps 0→1 → sweep 호출 (xp-float은 X — xp 변화 없음)', () => {
+  it('toggleScrap: scraps 0→1 → sweep 호출 (T5 badge arm 활성화: scrap-1 unlock)', () => {
     saveBriefings([{ id: '1', date: '2026-04-30', url: 'https://x.com', title: 't', summary: 's', scrapped: false, read: false, memo: '' }]);
     const captured = captureRewardEvents();
     toggleScrap(0);
-    // xp 변화 없으므로 reward event 0개 (T5 badge arm 활성화 후엔 'scrap-1' badge unlock 발생)
-    expect(captured).toHaveLength(0);
+    // T5 badge arm 활성화: scrap-1 unlock 발생
+    expect(captured).toContain('dg:reward:badge-unlock');
   });
 
-  it('saveMemo: memo 작성 → sweep 호출 (T5 후 memo 5건째에 unlock)', () => {
+  it('saveMemo: 단일 memo → memo-5 (>=5) predicate 미충족, 0 events', () => {
     saveBriefings([{ id: '1', date: '2026-04-30', url: 'https://x.com', title: 't', summary: 's', scrapped: false, read: false, memo: '' }]);
     const captured = captureRewardEvents();
     saveMemo(0, '내 메모');
-    expect(captured).toHaveLength(0);  // T5 후 badge arm 활성화 시 갱신
+    // memo-5는 5건 이상 필요 → 1건 작성으로는 unlock 안 됨
+    expect(captured).toHaveLength(0);
   });
 
   it('toggleScrap: saveBriefings throw 시 sweep 안 함', () => {
@@ -63,5 +64,25 @@ describe('sweep wiring', () => {
     expect(() => toggleScrap(0)).toThrow();
     expect(captured).toHaveLength(0);
     spy.mockRestore();
+  });
+});
+
+describe('sweep wiring — badge arm (T5 활성화 후)', () => {
+  it('toggleScrap: scraps 0→1 → scrap-1 badge unlock', () => {
+    saveBriefings([{ id: '1', date: '2026-04-30', url: 'https://x.com', title: 't', summary: 's', scrapped: false, read: false, memo: '' }]);
+    const captured = captureRewardEvents();
+    toggleScrap(0);
+    expect(captured).toContain('dg:reward:badge-unlock');
+  });
+
+  it('saveMemo: 5번째 memo → memo-5 badge unlock', () => {
+    const briefings = Array.from({ length: 6 }, (_, i) => ({
+      id: `${i}`, date: '2026-04-30', url: `https://x${i}.com`, title: 't', summary: 's',
+      scrapped: false, read: false, memo: i < 4 ? `m${i}` : '',
+    }));
+    saveBriefings(briefings);
+    const captured = captureRewardEvents();
+    saveMemo(4, '다섯번째');  // 4 → 5 memos
+    expect(captured).toContain('dg:reward:badge-unlock');
   });
 });
