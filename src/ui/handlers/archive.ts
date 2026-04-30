@@ -15,6 +15,7 @@ import { getSaveErrorMessage } from '../../state/user';
 import { MSG } from '../messages';
 import { renderBriefingCard } from './home';
 import type { Answer } from '../../state/schema';
+import { fireArchiveRevisitTrigger } from './missions-triggers';
 
 let currentFilter = 'all';
 let currentQuery = '';
@@ -187,6 +188,12 @@ function handleCardClick(e: Event): void {
     void import('../modals/answer-detail').then(({ openAnswerDetail }) => {
       openAnswerDetail(answer);
     });
+    // T10: archive-revisit mission trigger — 하루 1회 dedup
+    const todayKey = `archive-revisit-fired-${new Date().toISOString().slice(0, 10)}`;
+    if (!sessionStorage.getItem(todayKey)) {
+      sessionStorage.setItem(todayKey, '1');
+      fireArchiveRevisitTrigger();
+    }
     return;
   }
 

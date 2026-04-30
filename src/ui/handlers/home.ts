@@ -441,6 +441,18 @@ export function renderBriefingCard(b: Briefing, idx: number): HTMLElement {
   main.addEventListener('click', () => {
     setRead(idx);
     card.dataset['read'] = 'true';
+    // TODO(T10-deferred): briefing-view mission trigger
+    //   fireBriefingViewTrigger() — 카드 링크 클릭 시 호출.
+    //   daily-briefing-5 (target=5) 미션: 하루 5번 호출되면 완수.
+    //   sessionStorage 'briefing-view-fired-${KSTDateIso}-${idx}' 로 같은 카드 중복 방지.
+    //   또는 IntersectionObserver 기반으로 viewport 진입 감지 → T10-B 후속 태스크에서 구현.
+    //
+    // TODO(T10-deferred): cross-interest-view mission trigger
+    //   fireCrossInterestTrigger() — 클릭한 카드의 sourceTitle/tag가
+    //   user.interests 에 포함되지 않는 경우에만 호출.
+    //   Briefing 데이터에 interest 태그가 없으므로 sourceTitle 키워드 매핑 필요.
+    //   sessionStorage 'cross-interest-fired-${KSTDateIso}' 로 하루 1회 dedup.
+    //   interestKeywords() 유틸(achievements.ts 내)을 extract하거나 재사용 — T10-B 후속 태스크.
   });
 
   card.append(main);
