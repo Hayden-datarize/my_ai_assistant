@@ -84,3 +84,46 @@ describe('achievements — detectEvents', () => {
     expect(spy).not.toHaveBeenCalledWith(expect.objectContaining({ type: expect.stringMatching(/^dg:reward:/) }));
   });
 });
+
+describe('takeSnapshot — engagedInterests integration (P1-A fix)', () => {
+  it('한국어 label keyword 매칭: 인사제도 텍스트 → hr_system engaged', () => {
+    saveUser({
+      name: 'x', interests: ['hr_system', 'ai_ml'], onboardedAt: '',
+      streak: 0, lastActiveDate: '', xp: 0,
+      earnedBadges: {}, gamificationMigrated: false, schemaVersion: 2,
+    });
+    // briefings 직접 seed (briefings.ts 우회)
+    localStorage.setItem('briefings', JSON.stringify([
+      { id: '1', date: '2026-04-30', url: 'https://x.com', title: '신규 인사제도 도입 사례', summary: '...', scrapped: true, read: false, memo: '', sourceTitle: '' },
+    ]));
+    const snap = takeSnapshot();
+    expect(snap.engagedInterests.has('hr_system')).toBe(true);
+    expect(snap.engagedInterests.has('ai_ml')).toBe(false);  // 매칭 안 됨
+  });
+
+  it('snake_case ID는 텍스트에 직접 안 나타나도 label split keyword가 매칭', () => {
+    saveUser({
+      name: 'x', interests: ['self_dev'], onboardedAt: '',
+      streak: 0, lastActiveDate: '', xp: 0,
+      earnedBadges: {}, gamificationMigrated: false, schemaVersion: 2,
+    });
+    localStorage.setItem('briefings', JSON.stringify([
+      { id: '1', date: '2026-04-30', url: 'https://x.com', title: '자기계발 루틴 5선', summary: '...', scrapped: true, read: false, memo: '', sourceTitle: '' },
+    ]));
+    const snap = takeSnapshot();
+    expect(snap.engagedInterests.has('self_dev')).toBe(true);
+  });
+
+  it('스크랩 안 된 briefing은 engagedInterests 매칭 안 됨', () => {
+    saveUser({
+      name: 'x', interests: ['hr_system'], onboardedAt: '',
+      streak: 0, lastActiveDate: '', xp: 0,
+      earnedBadges: {}, gamificationMigrated: false, schemaVersion: 2,
+    });
+    localStorage.setItem('briefings', JSON.stringify([
+      { id: '1', date: '2026-04-30', url: 'https://x.com', title: '인사제도 사례', summary: '...', scrapped: false, read: false, memo: '', sourceTitle: '' },
+    ]));
+    const snap = takeSnapshot();
+    expect(snap.engagedInterests.has('hr_system')).toBe(false);
+  });
+});

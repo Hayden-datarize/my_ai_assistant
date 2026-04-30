@@ -6,6 +6,25 @@ import { loadUserData, saveUser } from './user';
 import { loadBriefings, type Briefing } from './briefings';
 import { loadAnswers } from './persistence';
 import { BADGE_CATALOG } from './badgeCatalog';
+import { INTERESTS } from '../utils/categories';
+
+/**
+ * interest ID(snake_case)를 RSS 텍스트에 매칭 가능한 keyword 배열로 확장.
+ * - id 자체 (snake_case 영문)
+ * - INTERESTS catalog의 한국어 label에서 이모지/공백 제거 후 split
+ *
+ * 예: 'ai_ml' → ['ai_ml', 'ai', 'ml']
+ *     'hr_system' → ['hr_system', '인사제도']
+ *     'self_dev' → ['self_dev', '자기계발']
+ */
+function interestKeywords(id: string): string[] {
+  const meta = INTERESTS.find(c => c.id === id);
+  if (!meta) return [id.toLowerCase()];
+  // 이모지 prefix 제거 (Extended_Pictographic + trailing whitespace)
+  const label = meta.label.replace(/^\p{Extended_Pictographic}+\s*/u, '').toLowerCase();
+  // '/' 또는 whitespace로 split (예: 'AI/ML' → ['ai', 'ml'])
+  return [id.toLowerCase(), ...label.split(/[\s/]+/).filter(Boolean)];
+}
 
 // 답변에 카테고리 매핑은 없음 — 스크랩 카테고리만 사용 (spec §7.1).
 // briefing의 sourceTitle을 카테고리 proxy로 사용 (없으면 url hostname try/catch graceful)
@@ -24,10 +43,13 @@ function categorizeScrapsByInterest(briefings: Briefing[], interests: string[]):
       try { cat = new URL(b.url).hostname; } catch { cat = ''; }
     }
     if (cat) cats.add(cat);
+
+    // P2-B: haystack hoist — interests 길이만큼 반복 string concat 회피.
+    const hay = `${b.sourceTitle ?? ''} ${b.title} ${b.summary}`.toLowerCase();
+    // P1-A fix: interest ID는 snake_case라 RSS 텍스트와 직접 매칭 안 됨.
+    // INTERESTS catalog의 한국어 label에서 keyword 추출해 매칭.
     for (const i of interests) {
-      // 관심분야 텍스트가 sourceTitle/title/summary에 포함되는지 (case-insensitive)
-      const hay = `${b.sourceTitle ?? ''} ${b.title} ${b.summary}`.toLowerCase();
-      if (hay.includes(i.toLowerCase())) engaged.add(i);
+      if (interestKeywords(i).some(k => hay.includes(k))) engaged.add(i);
     }
   }
   return { engaged, uniqueCount: cats.size };
