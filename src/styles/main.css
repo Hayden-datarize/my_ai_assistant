@@ -77,4 +77,29 @@
     0%   { transform: translate(-50%, -50%) rotate(var(--angle)) translateX(0); opacity: 1; }
     100% { transform: translate(-50%, -50%) rotate(calc(var(--angle) + 720deg)) translateX(220px); opacity: 0; }
   }
+
+  /* v3.12 T9 — Streak milestone toast + fire pulse on #statStreak */
+  .toast--streak {
+    background: linear-gradient(135deg, #f97316 0%, #dc2626 100%);
+    color: #fff;
+    font-size: 1.05em;
+  }
+  .fire-pulse {
+    position: relative;
+  }
+  .fire-pulse::after {
+    content: '🔥';
+    position: absolute;
+    inset: 0;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    pointer-events: none;
+    animation: firePulse 0.5s ease-out 3;
+  }
+  @keyframes firePulse {
+    0%   { transform: scale(0.5); opacity: 0; }
+    50%  { transform: scale(1.5); opacity: 1; }
+    100% { transform: scale(0.5); opacity: 0; }
+  }
 }

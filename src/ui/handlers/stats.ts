@@ -108,6 +108,17 @@ function hydrateStatGrid(): void {
   setText('statAnswers', answers.length);
   setText('statArticles', scrapCount);
   setText('statXp', user?.xp ?? 0);
+
+  // v3.12 T9 — streak milestone fire pulse (sessionStorage flag consume)
+  const pending = sessionStorage.getItem('dg:streakPulsePending');
+  if (pending) {
+    const stat = document.getElementById('statStreak');
+    if (stat) {
+      stat.classList.add('fire-pulse');
+      sessionStorage.removeItem('dg:streakPulsePending');
+      setTimeout(() => stat.classList.remove('fire-pulse'), 1500);
+    }
+  }
 }
 
 function hydrateHeatmap(): void {
