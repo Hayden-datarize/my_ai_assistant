@@ -5,7 +5,7 @@ export interface BadgeDef {
   icon: string;
   name: string;
   description: string;
-  category: 'streak' | 'volume' | 'tier' | 'diversity' | 'engagement';
+  category: 'streak' | 'volume' | 'tier' | 'diversity' | 'engagement' | 'mission';
   predicate: (snap: Snapshot) => boolean;
 }
 
@@ -48,6 +48,12 @@ export const BADGE_CATALOG: readonly BadgeDef[] = [
   { id: 'scrap-1',  icon: '📌', name: '첫 스크랩', description: '누적 스크랩 1개',  category: 'engagement', predicate: s => s.scrapsCount >= 1 },
   { id: 'scrap-50', icon: '📰', name: '정보왕',    description: '누적 스크랩 50개', category: 'engagement', predicate: s => s.scrapsCount >= 50 },
   { id: 'memo-5',   icon: '✏️', name: '메모왕',    description: '누적 메모 5개',    category: 'engagement', predicate: s => s.memosCount >= 5 },
+
+  // Mission (4)
+  { id: 'mission-init',     icon: '🎯', name: '미션 입문',   description: '데일리 미션을 처음으로 완수했어요',  category: 'mission', predicate: s => s.missionsCumulative.daily >= 1 },
+  { id: 'mission-master',   icon: '🏆', name: '미션 마스터', description: '데일리 미션을 30번 완수했어요',      category: 'mission', predicate: s => s.missionsCumulative.daily >= 30 },
+  { id: 'weekly-champion',  icon: '🥇', name: '주간 챔피언', description: '위클리 미션을 8번 완수했어요',       category: 'mission', predicate: s => s.missionsCumulative.weekly >= 8 },
+  { id: 'monthly-hero',     icon: '🌙', name: '월간 영웅',   description: '먼슬리 도전을 처음으로 완수했어요',  category: 'mission', predicate: s => s.missionsCumulative.monthly >= 1 },
 ] as const;
 
 export function findBadge(id: string): BadgeDef | undefined {

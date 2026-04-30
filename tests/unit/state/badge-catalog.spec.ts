@@ -15,14 +15,14 @@ function snap(over: Partial<Snapshot> = {}): Snapshot {
 }
 
 describe('BADGE_CATALOG', () => {
-  it('총 18개', () => expect(BADGE_CATALOG).toHaveLength(18));
+  it('총 22개 (18 기존 + 4 mission)', () => expect(BADGE_CATALOG).toHaveLength(22));
   it('id 모두 unique', () => {
     const ids = BADGE_CATALOG.map(b => b.id);
-    expect(new Set(ids).size).toBe(18);
+    expect(new Set(ids).size).toBe(22);
   });
-  it('5 카테고리 분포 — Streak 5 / Volume 4 / Tier 3 / Diversity 3 / Engagement 3', () => {
+  it('6 카테고리 분포 — Streak 5 / Volume 4 / Tier 3 / Diversity 3 / Engagement 3 / Mission 4', () => {
     const byCat = BADGE_CATALOG.reduce((m, b) => ((m[b.category] = (m[b.category] ?? 0) + 1), m), {} as Record<string, number>);
-    expect(byCat).toEqual({ streak: 5, volume: 4, tier: 3, diversity: 3, engagement: 3 });
+    expect(byCat).toEqual({ streak: 5, volume: 4, tier: 3, diversity: 3, engagement: 3, mission: 4 });
   });
 });
 

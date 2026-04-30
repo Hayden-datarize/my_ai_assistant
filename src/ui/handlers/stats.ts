@@ -251,8 +251,9 @@ const CATEGORY_LABELS: Record<string, string> = {
   tier:        '🌳 Tier',
   diversity:   '🎨 Diversity',
   engagement:  '✏️ Engagement',
+  mission:     '🎯 Mission',
 };
-const CATEGORY_ORDER = ['streak', 'volume', 'tier', 'diversity', 'engagement'] as const;
+const CATEGORY_ORDER = ['streak', 'volume', 'tier', 'diversity', 'engagement', 'mission'] as const;
 
 function showTooltip(btn: HTMLButtonElement): void {
   // close previously open tooltip(s)

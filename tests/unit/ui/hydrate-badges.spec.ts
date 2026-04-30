@@ -21,23 +21,23 @@ beforeEach(() => {
 });
 
 describe('hydrateBadges (catalog 기반)', () => {
-  it('빈 user (xp=0, no badges) → 18 grid + 0 earned', () => {
+  it('빈 user (xp=0, no badges) → 22 grid + 0 earned', () => {
     saveUser(mkUser({ gamificationMigrated: true }));
     hydrateStats();
     const grid = document.getElementById('badgesGrid')!;
-    expect(grid.querySelectorAll('.badge')).toHaveLength(18);
+    expect(grid.querySelectorAll('.badge')).toHaveLength(22);
     expect(grid.querySelectorAll('.badge--earned')).toHaveLength(0);
-    expect(grid.querySelectorAll('.badge--locked')).toHaveLength(18);
+    expect(grid.querySelectorAll('.badge--locked')).toHaveLength(22);
   });
 
-  it('count 헤더 — earned/총 18', () => {
+  it('count 헤더 — earned/총 22', () => {
     saveUser(mkUser({ earnedBadges: { 'streak-3': 1700000000000, 'answers-1': 1700000000000 }, gamificationMigrated: true }));
     hydrateStats();
     const heading = document.querySelector('.badges-section h3');
-    expect(heading?.textContent).toMatch(/2\s*\/\s*18/);
+    expect(heading?.textContent).toMatch(/2\s*\/\s*22/);
   });
 
-  it('5 카테고리 grouping (Streak → Volume → Tier → Diversity → Engagement)', () => {
+  it('6 카테고리 grouping (Streak → Volume → Tier → Diversity → Engagement → Mission)', () => {
     saveUser(mkUser({ gamificationMigrated: true }));
     hydrateStats();
     const headings = Array.from(document.querySelectorAll('.badges-category h4')).map(h => h.textContent);
@@ -47,6 +47,7 @@ describe('hydrateBadges (catalog 기반)', () => {
       expect.stringContaining('Tier'),
       expect.stringContaining('Diversity'),
       expect.stringContaining('Engagement'),
+      expect.stringContaining('Mission'),
     ]);
   });
 
@@ -56,9 +57,9 @@ describe('hydrateBadges (catalog 기반)', () => {
     const parent = document.getElementById('badgesGrid')!;
     // 부모는 단순 placeholder — .badges-grid class 가지면 nested grid container 충돌 (badge들이 1열 stack됨)
     expect(parent.classList.contains('badges-grid')).toBe(false);
-    // 카테고리 5개 각각 자체 .badges-grid 가짐
+    // 카테고리 6개 각각 자체 .badges-grid 가짐
     const nestedGrids = parent.querySelectorAll('.badges-category .badges-grid');
-    expect(nestedGrids).toHaveLength(5);
+    expect(nestedGrids).toHaveLength(6);
   });
 
   it('locked 뱃지 — 🔒 overlay + data-tooltip 존재', () => {
