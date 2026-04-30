@@ -174,3 +174,51 @@ describe('tickMissionProgress', () => {
     expect(u.missions.active[0]!.progress).toBe(0);
   });
 });
+
+describe('edge cases', () => {
+  it('자정 직전/직후 race — 자정 직전 답변, 직후 다시 진입 → 새 daily 미션, 이전은 사라짐', () => {
+    const u = makeUser();
+    const beforeMidnight = new Date('2026-04-30T14:59:59Z');             // KST 23:59:59
+    getActiveMissions(beforeMidnight, u);
+    const beforeIso = u.missions.lastDailySeed;
+
+    const afterMidnight = new Date('2026-04-30T15:00:01Z');              // KST 5/1 00:00:01
+    getActiveMissions(afterMidnight, u);
+
+    expect(u.missions.lastDailySeed).toBe('2026-05-01');
+    expect(u.missions.lastDailySeed).not.toBe(beforeIso);
+  });
+
+  it('1주 비움 → daily/weekly/monthly 모두 새로 생성, cumulative 영구 유지', () => {
+    const u = makeUser();
+    u.missions.cumulative = { dailyCount: 3, weeklyCount: 1, monthlyCount: 0 };
+    const week1 = new Date('2026-04-23T15:00:00Z');                      // KST 4/24
+    getActiveMissions(week1, u);
+
+    const week3 = new Date('2026-05-07T15:00:00Z');                      // KST 5/8 (~2주 후)
+    getActiveMissions(week3, u);
+
+    expect(u.missions.lastDailySeed).toBe('2026-05-08');
+    // cumulative은 영구 보존
+    expect(u.missions.cumulative).toEqual({ dailyCount: 3, weeklyCount: 1, monthlyCount: 0 });
+  });
+
+  it('TZ 강제: UTC 시각이 같아도 KST 기준 날짜로 비교', () => {
+    const u = makeUser();
+    const a = new Date('2026-04-30T14:59:00Z');                          // KST 4/30 23:59
+    getActiveMissions(a, u);
+    expect(u.missions.lastDailySeed).toBe('2026-04-30');
+  });
+
+  it('getKSTWeekIso: 2025-12-29 KST (월요일) → "2026-W01"', () => {
+    expect(getKSTWeekIso(new Date('2025-12-28T15:00:00Z'))).toBe('2026-W01');
+  });
+
+  it('getKSTWeekIso: 2021-01-01 KST (금요일) → "2020-W53"', () => {
+    expect(getKSTWeekIso(new Date('2020-12-31T15:00:00Z'))).toBe('2020-W53');
+  });
+
+  it('getKSTWeekIso: 2023-01-01 KST (일요일) → "2022-W52"', () => {
+    expect(getKSTWeekIso(new Date('2022-12-31T15:00:00Z'))).toBe('2022-W52');
+  });
+});
