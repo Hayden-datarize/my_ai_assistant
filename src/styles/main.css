@@ -220,4 +220,39 @@
       animation: none !important;
     }
   }
+
+  /* v3.13 T6 — Missions section */
+  .missions-section { margin: var(--space-4) 0; }
+
+  .mission-group { margin-bottom: var(--space-3); }
+  .mission-group__header {
+    display: flex; align-items: center; gap: var(--space-2); width: 100%;
+    padding: var(--space-2) var(--space-3); background: var(--bg-card); border: 0; border-radius: var(--radius-sm);
+    cursor: pointer; font-size: var(--font-size-sm); font-weight: 600; text-align: left;
+  }
+  .mission-group__title { flex: 1; }
+  .mission-group__progress { color: var(--text-secondary); font-weight: 500; font-size: var(--font-size-xs); }
+  .mission-group__chevron { transition: transform var(--duration-fast) var(--ease-standard); }
+  .mission-group__header[aria-expanded="false"] .mission-group__chevron { transform: rotate(-90deg); }
+  .mission-group__list { list-style: none; margin: var(--space-2) 0 0; padding: 0; display: flex; flex-direction: column; gap: 4px; }
+
+  .mission-card {
+    display: flex; align-items: center; gap: var(--space-2);
+    padding: var(--space-2) var(--space-3); background: var(--bg-card); border: 1px solid var(--border); border-radius: var(--radius-sm);
+    font-size: var(--font-size-xs);
+  }
+  .mission-card__title { flex: 1; min-width: 0; }
+  .mission-card__progress {
+    display: inline-flex; align-items: center; gap: var(--space-1);
+    min-width: 72px; height: 6px; background: var(--border); border-radius: 3px; position: relative;
+  }
+  .mission-card__bar { display: block; height: 100%; background: var(--success); border-radius: 3px; }
+  .mission-card__count { font-size: var(--font-size-xs); color: var(--text-secondary); margin-left: var(--space-1); }
+  .mission-card__reward { font-size: var(--font-size-xs); color: var(--success); font-weight: 600; }
+  .mission-card__check { color: var(--success); font-weight: 700; }
+  .mission-card--completed { opacity: 0.6; }
+
+  @media (prefers-reduced-motion: reduce) {
+    .mission-group__chevron { transition: none; }
+  }
 }
