@@ -1,0 +1,81 @@
+import { test, expect } from '@playwright/test';
+
+// v3.12 game-feedback + badges end-to-end smoke. Two paths the unit tests
+// (jsdom) can't cover:
+//  1. Answer submit → applyAnswerActivity → recordDailyAnswer triggers the
+//     achievement sweep → dispatches dg:reward:xp-float + dg:reward:badge-unlock
+//     → rewards.ts spawns .xp-float and .toast--badge in the real DOM.
+//  2. Stats tab → hydrateBadges renders 5-category silhouette grid with
+//     all 18 BADGE_CATALOG entries; locked badges show the 🔒 overlay.
+//
+// Storage shape uses v2 (earnedBadges/gamificationMigrated/schemaVersion) so
+// the welcome-gamification modal does not pop up on home enter and intercept
+// the submit flow.
+
+test.describe('v3.12 Game Feedback + Badges', () => {
+  test.beforeEach(async ({ page }) => {
+    await page.addInitScript(() => {
+      const today = new Date().toISOString().slice(0, 10);
+      localStorage.setItem(
+        'user',
+        JSON.stringify({
+          name: 'Smoke',
+          interests: ['ai_ml'],
+          onboardedAt: new Date().toISOString(),
+          streak: 0,
+          lastActiveDate: '',
+          xp: 0,
+          earnedBadges: {},
+          gamificationMigrated: true,
+          schemaVersion: 2,
+        }),
+      );
+      // Seed today's question so hydrateQuestion does not need an API key.
+      localStorage.setItem(
+        `dg.todayQuestion.${today}`,
+        JSON.stringify({
+          type: '분석',
+          question: '오늘 가장 인상 깊었던 순간은?',
+          hint: '구체적인 상황을 떠올려 보세요.',
+        }),
+      );
+      // Suppress briefings auto-refresh so this spec doesn't hit live RSS.
+      sessionStorage.setItem('dg.briefings.auto-refresh-tried', '1');
+    });
+    await page.goto('/');
+  });
+
+  test('답변 제출 → toast--badge (첫 답변) + xp-float visible', async ({ page }) => {
+    const textarea = page.locator('#answerArea');
+    await expect(textarea).toBeVisible({ timeout: 10_000 });
+    await textarea.fill('오늘은 TypeScript 타입 가드를 공부했고, 생각보다 유용했다.');
+
+    await page.locator('#submitBtn').click();
+
+    // +XP floating animation
+    await expect(page.locator('.xp-float')).toBeVisible({ timeout: 2000 });
+
+    // answers-1 badge unlock toast
+    const toast = page.locator('.toast--badge');
+    await expect(toast).toBeVisible({ timeout: 2000 });
+    // 토스트 안에 "첫 답변" (badge name) 또는 "뱃지 획득" (suffix)
+    await expect(toast).toContainText(/첫 답변|뱃지 획득/);
+  });
+
+  test('stats 탭 → silhouette grid 5 카테고리 + locked 회색', async ({ page }) => {
+    await page.locator('#bottomNav button[data-tab-id="stats"]').click();
+    await expect(page.locator('#statsTab')).toBeVisible();
+
+    // 5 카테고리 heading (streak / volume / tier / diversity / engagement)
+    await expect(page.locator('.badges-category h4')).toHaveCount(5);
+
+    // 18 뱃지 모두 grid에
+    await expect(page.locator('#badgesGrid .badge')).toHaveCount(18);
+
+    // locked 18 (빈 user — earnedBadges = {})
+    await expect(page.locator('#badgesGrid .badge--locked')).toHaveCount(18);
+
+    // 첫 locked 뱃지에 🔒 overlay
+    await expect(page.locator('.badge--locked .badge-lock').first()).toContainText('🔒');
+  });
+});

@@ -26,7 +26,7 @@ async function seedNoApiKey(page: Page): Promise<void> {
         streak: 0,
         lastActiveDate: today,
         xp: 0,
-        level: 1,
+        earnedBadges: {}, gamificationMigrated: true, schemaVersion: 2,
       }),
     );
     // Ensure no API key so submit triggers the bubble+action path.

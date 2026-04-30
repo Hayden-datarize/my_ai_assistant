@@ -4,7 +4,7 @@ async function seedUserAndAnswer(page: Page): Promise<void> {
   await page.addInitScript(() => {
     localStorage.setItem('user', JSON.stringify({
       name: '테스트', interests: ['ai_ml'], onboardedAt: new Date().toISOString(),
-      streak: 0, lastActiveDate: new Date().toISOString(), xp: 0, level: 1,
+      streak: 0, lastActiveDate: new Date().toISOString(), xp: 0, earnedBadges: {}, gamificationMigrated: true, schemaVersion: 2,
     }));
     localStorage.setItem('dg.answers', JSON.stringify([{
       id: 'a1', questionId: 'q1', text: '테스트 답변 내용', authorId: 'self',
