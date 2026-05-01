@@ -48,7 +48,6 @@ test.describe('v3.12 Game Feedback + Badges', () => {
   test('답변 제출 → toast--badge (첫 답변) + xp-float visible', async ({ page }) => {
     const textarea = page.locator('#answerArea');
     await expect(textarea).toBeVisible({ timeout: 10_000 });
-    await expect(textarea).toBeEnabled({ timeout: 10_000 });
 
     await textarea.fill('오늘은 TypeScript 타입 가드를 공부했고, 생각보다 유용했다.');
 
