@@ -25,9 +25,17 @@ export function interestKeywords(id: string): string[] {
  *
  * v3.14.1 T1: home.ts에서 utils로 격상 — achievements.ts(state)에서도 재사용.
  */
+// v3.14.1 P2: keyword별 RegExp 캐시 — takeSnapshot이 ~1500 호출/사용자액션 환경에서 누적 perf 절감
+const SHORT_RE_CACHE = new Map<string, RegExp>();
+
 export function matchKeyword(hay: string, keyword: string): boolean {
   if (keyword.length <= 3 && /^[a-z0-9_]+$/.test(keyword)) {
-    return new RegExp(`\\b${keyword}\\b`).test(hay);
+    let re = SHORT_RE_CACHE.get(keyword);
+    if (!re) {
+      re = new RegExp(`\\b${keyword}\\b`);
+      SHORT_RE_CACHE.set(keyword, re);
+    }
+    return re.test(hay);
   }
   return hay.includes(keyword);
 }
