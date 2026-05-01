@@ -9,13 +9,17 @@ export function getKSTDateIso(now: Date): string {
   return KST_FMT.format(now);                                            // 'YYYY-MM-DD'
 }
 
+function parseKSTYMD(now: Date): [number, number, number] {
+  return getKSTDateIso(now).split('-').map(Number) as [number, number, number];
+}
+
 export function getKSTMonthIso(now: Date): string {
   return getKSTDateIso(now).slice(0, 7);                                 // 'YYYY-MM'
 }
 
 export function getKSTWeekIso(now: Date): string {
   // ISO 8601 week, KST 기준 (월요일 시작). Intl은 weekYear 미지원이라 자체 계산.
-  const [y, m, d] = getKSTDateIso(now).split('-').map(Number) as [number, number, number];
+  const [y, m, d] = parseKSTYMD(now);
   const utc = new Date(Date.UTC(y, m - 1, d));
   const day = utc.getUTCDay() || 7;                                      // Sun=0 → 7
   utc.setUTCDate(utc.getUTCDate() + 4 - day);                            // 같은 주 목요일
@@ -25,7 +29,7 @@ export function getKSTWeekIso(now: Date): string {
 }
 
 export function getKSTWindowStart(now: Date, period: MissionPeriod): number {
-  const [y, m, d] = getKSTDateIso(now).split('-').map(Number) as [number, number, number];
+  const [y, m, d] = parseKSTYMD(now);
   if (period === 'daily') {
     // KST 00:00 = UTC -9h
     return Date.UTC(y, m - 1, d) - 9 * 3600 * 1000;
