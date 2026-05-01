@@ -50,6 +50,9 @@ export function renderMissionsSection(root: HTMLElement, active: MissionInstance
   const html = `<section id="missionsSection" class="missions-section" aria-label="미션">
     ${PERIODS.map(p => renderGroup(p, active.filter(m => m.period === p))).join('')}
   </section>`;
+  // v3.14.1 T3: 모든 interpolation은 정적 catalog/리터럴 union 또는 escapeHtml 처리됨 (renderCard:25-26).
+  // catalog에 외부 입력이 도입되면 escapeHtml 추가 필수 — 그 전까지 의도적 허용.
+  // eslint-disable-next-line no-restricted-syntax
   root.innerHTML = html;
 
   // chevron toggle wiring
