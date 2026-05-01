@@ -389,6 +389,28 @@ function hydrateBriefings(): void {
   enqueueEnglishTitleTranslations(list);
 }
 
+/**
+ * v3.14 T13 (codex P1): cross-interest 매칭 헬퍼 — 짧은 ASCII 토큰(`ai`, `ml` 등)이
+ * 무관 영단어 부분 문자열(`daily`, `retail` 등)에 매칭되는 false-positive를 차단하기 위한
+ * word-boundary 매칭. 한국어/긴 토큰은 기존 substring includes 유지.
+ *
+ * 호출 측은 hay를 `.toLowerCase()`로 정규화한 상태로 넘긴다 (interestKeywords도 lowercase 출력).
+ *
+ * 예: `matchKeyword('daily training session', 'ai')` → false (false-positive 차단)
+ *     `matchKeyword('ai 동향 정리', 'ai')` → true (word-boundary 양쪽 모두 만족)
+ *     `matchKeyword('ai_ml etf 시장', 'ai_ml')` → true (length>3 → includes)
+ *     `matchKeyword('인사제도 개편', '인사제도')` → true (non-ASCII → includes)
+ *
+ * @internal — exported for unit test
+ */
+export function matchKeyword(hay: string, keyword: string): boolean {
+  // ASCII 단어 문자(영문/숫자/_)만으로 구성된 길이 ≤3 토큰만 word-boundary 적용.
+  if (keyword.length <= 3 && /^[a-z0-9_]+$/.test(keyword)) {
+    return new RegExp(`\\b${keyword}\\b`).test(hay);
+  }
+  return hay.includes(keyword);
+}
+
 export function renderBriefingCard(b: Briefing, idx: number): HTMLElement {
   const card = document.createElement('article');
   card.className = 'briefing-card';
@@ -479,7 +501,7 @@ export function renderBriefingCard(b: Briefing, idx: number): HTMLElement {
       const interests = u?.interests ?? [];
       if (interests.length > 0) {
         const hay = `${b.sourceTitle ?? ''} ${b.title} ${b.summary}`.toLowerCase();
-        const matched = interests.some((i) => interestKeywords(i).some((k) => hay.includes(k)));
+        const matched = interests.some((i) => interestKeywords(i).some((k) => matchKeyword(hay, k)));
         if (!matched) {
           try {
             fireCrossInterestTrigger(now);                                           // shared `now` (codex P1-7)

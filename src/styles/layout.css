@@ -69,7 +69,8 @@
 #archiveTab,
 #statsTab,
 #insightsTab,
-#settingsTab {
+#settingsTab,
+#missionsTab {
   padding-bottom: var(--content-bottom-pad);
 }
 
@@ -90,7 +91,8 @@
   #archiveTab,
   #statsTab,
   #insightsTab,
-  #settingsTab {
+  #settingsTab,
+  #missionsTab {
     padding-left: 80px;
   }
   /* Home tab's `.header` already has its own `padding-left: 20px`.
