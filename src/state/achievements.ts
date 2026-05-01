@@ -7,6 +7,7 @@ import { loadBriefings, type Briefing } from './briefings';
 import { loadAnswers } from './persistence';
 import { BADGE_CATALOG } from './badgeCatalog';
 import { INTERESTS } from '../utils/categories';
+import { assertNever } from '../utils/assertNever';
 import { getMissionDef } from './missionCatalog';
 
 /**
@@ -186,6 +187,8 @@ export function emitEvents(events: GameEvent[]): void {
       case 'mission-complete':
         dispatch('dg:reward:mission-complete', { defId: e.defId, period: e.period, rewardXp: e.rewardXp, at: e.at });
         break;
+      default:
+        assertNever(e);
     }
   }
 }
