@@ -31,8 +31,9 @@ import { showCapToast, showTranslateError, showPartialTranslateFail } from '../t
 import { getCachedUser, getSaveErrorMessage, recordDailyAnswer, saveUser } from '../../state/user';
 import { loadActiveSeenUrls, recordSeen, purgeExpiredSeen } from '../../state/seen';
 import { MSG } from '../messages';
-import { getActiveMissions } from '../../state/missionEngine';
+import { getActiveMissions, getKSTDateIso } from '../../state/missionEngine';
 import { renderMissionsSection } from '../missions-section';
+import { fireBriefingViewTrigger } from './missions-triggers';
 
 const API_KEY_STORAGE = 'dg_gemini_key';
 const THEME_STORAGE = 'theme';
@@ -451,18 +452,26 @@ export function renderBriefingCard(b: Briefing, idx: number): HTMLElement {
   main.addEventListener('click', () => {
     setRead(idx);
     card.dataset['read'] = 'true';
-    // TODO(T10-deferred): briefing-view mission trigger
-    //   fireBriefingViewTrigger() — 카드 링크 클릭 시 호출.
-    //   daily-briefing-5 (target=5) 미션: 하루 5번 호출되면 완수.
-    //   sessionStorage 'briefing-view-fired-${KSTDateIso}-${idx}' 로 같은 카드 중복 방지.
-    //   또는 IntersectionObserver 기반으로 viewport 진입 감지 → T10-B 후속 태스크에서 구현.
-    //
-    // TODO(T10-deferred): cross-interest-view mission trigger
-    //   fireCrossInterestTrigger() — 클릭한 카드의 sourceTitle/tag가
-    //   user.interests 에 포함되지 않는 경우에만 호출.
-    //   Briefing 데이터에 interest 태그가 없으므로 sourceTitle 키워드 매핑 필요.
-    //   sessionStorage 'cross-interest-fired-${KSTDateIso}' 로 하루 1회 dedup.
-    //   interestKeywords() 유틸(achievements.ts 내)을 extract하거나 재사용 — T10-B 후속 태스크.
+
+    // v3.14 T6/T7: 두 trigger가 같은 KST window를 공유하도록 single-now 캡처 (codex P1-7).
+    // archive 패턴 (archive.ts:194-201) — 성공 후에만 sessionStorage flag 세팅, 실패 시 retry 허용.
+    const now = new Date();
+    const todayIso = getKSTDateIso(now);
+
+    // briefing-view trigger (daily-briefing-5, target=5) — 카드별 1회/일 dedup
+    const viewKey = `briefing-view-fired-${todayIso}-${idx}`;
+    if (!sessionStorage.getItem(viewKey)) {
+      try {
+        fireBriefingViewTrigger(now);                                                // saveUser 내부 호출 — 성공 후에만 flag 세팅
+        sessionStorage.setItem(viewKey, '1');
+      } catch (err) {
+        showToast(getSaveErrorMessage(err));                                         // Quota 등 — flag 미세팅 → 다음 click 재시도
+      }
+    }
+
+    // TODO(v3.14 T7): cross-interest-view mission trigger — 같은 try/catch + `now` 공유.
+    //   fireCrossInterestTrigger(now) — 클릭한 카드의 sourceTitle/tag가 user.interests에
+    //   포함되지 않는 경우에만 호출. sessionStorage 'cross-interest-fired-${todayIso}' 로 하루 1회 dedup.
   });
 
   card.append(main);

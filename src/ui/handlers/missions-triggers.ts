@@ -7,11 +7,13 @@ import type { MissionAction } from '../../state/missionTypes';
 /**
  * 단일 진입점 — get/tick/save/sweep 패턴을 한 번에 실행.
  * recordDailyAnswer / mutateWithSweep와 같은 race-safe atomic single-write.
+ *
+ * @param now optional Date — caller가 두 trigger를 연속 호출할 때 동일 instance를 전달하면
+ *   같은 KST window를 공유하여 자정 경계 race 차단 (v3.13.1 T14 / codex P1-1 / v3.14 T6 codex P1-7).
  */
-function fireTrigger(action: MissionAction): void {
+function fireTrigger(action: MissionAction, now: Date = new Date()): void {
   const u = getCachedUser();
   if (!u) return;
-  const now = new Date();                                                         // single now capture (v3.13.1 T14 / codex P1-1)
   getActiveMissions(now, u);
   const prev = takeSnapshot();
   tickMissionProgress(u, action, now);
@@ -20,6 +22,6 @@ function fireTrigger(action: MissionAction): void {
   runSweep(prev, curr);
 }
 
-export function fireBriefingViewTrigger(): void { fireTrigger('briefing-view'); }
-export function fireArchiveRevisitTrigger(): void { fireTrigger('archive-revisit'); }
-export function fireCrossInterestTrigger(): void { fireTrigger('cross-interest-view'); }
+export function fireBriefingViewTrigger(now?: Date): void { fireTrigger('briefing-view', now); }
+export function fireArchiveRevisitTrigger(now?: Date): void { fireTrigger('archive-revisit', now); }
+export function fireCrossInterestTrigger(now?: Date): void { fireTrigger('cross-interest-view', now); }
