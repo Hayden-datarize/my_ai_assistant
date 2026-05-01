@@ -11,9 +11,10 @@ import type { MissionAction } from '../../state/missionTypes';
 function fireTrigger(action: MissionAction): void {
   const u = getCachedUser();
   if (!u) return;
-  getActiveMissions(new Date(), u);
+  const now = new Date();                                                         // single now capture (v3.13.1 T14 / codex P1-1)
+  getActiveMissions(now, u);
   const prev = takeSnapshot();
-  tickMissionProgress(u, action);
+  tickMissionProgress(u, action, now);
   saveUser(u);
   const curr = takeSnapshot();
   runSweep(prev, curr);

@@ -60,7 +60,8 @@ function mutate(index: number, fn: (b: Briefing) => void): void {
 
 function mutateWithSweep(index: number, fn: (b: Briefing) => void, action?: MissionAction): void {
   const u = action ? getCachedUser() : null;
-  if (u) getActiveMissions(new Date(), u);  // lazy regen (in-memory, no saveUser)
+  const now = new Date();                                                         // single now capture (v3.13.1 T14 / codex P1-1)
+  if (u) getActiveMissions(now, u);  // lazy regen (in-memory, no saveUser)
 
   const list = loadBriefings();
   const target = list[index];
@@ -70,7 +71,7 @@ function mutateWithSweep(index: number, fn: (b: Briefing) => void, action?: Miss
   saveBriefings(list);  // throws on Quota — sweep 안 함 (false-fire 방지)
 
   if (u && action) {
-    tickMissionProgress(u, action);
+    tickMissionProgress(u, action, now);
     // mission tick + lazy regen 상태를 단일 write로 커버.
     // throw 시 briefing은 이미 persist됨 — XP 손실은 next sweep에서 회복 가능
     // (mission instance 자체는 saveUser fail로 미persist, 다음 진입 시 lazy regen).

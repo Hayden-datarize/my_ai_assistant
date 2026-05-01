@@ -2,7 +2,8 @@ import { dispatch } from '../ui/events';
 import { didLevelUp } from './leveling';
 import type { Snapshot, GameEvent } from './gameTypes';
 import { STREAK_MILESTONES } from './gameTypes';
-import { loadUserData, saveUser } from './user';
+import { loadUserData, saveUser, getSaveErrorMessage } from './user';
+import { showToast } from '../utils/toast';
 import { loadBriefings, type Briefing } from './briefings';
 import { loadAnswers } from './persistence';
 import { BADGE_CATALOG } from './badgeCatalog';
@@ -161,10 +162,10 @@ export function persistUnlocks(events: GameEvent[]): void {
   if (dirty) {
     try {
       saveUser(u);
-    } catch {
-      // Quota 등 — 영구 저장 실패. 토스트는 이미 dispatch됐을 수 있으나
-      // 다음 진입 시 detectEvents가 prev=earnedBadges에 빠진 채 재실행 → 재시도됨.
-      // 본 사이클 단순화: silent ignore (사용자 UX 영향 적음).
+    } catch (err) {
+      // Quota 등 — 영구 저장 실패. 다음 진입 시 detectEvents가 prev=earnedBadges에 빠진 채 재실행 → 재시도됨.
+      // v3.13.1 T14 (codex P1-2): silent ignore → toast로 노출 (v3.7 silent-fail 정책 준수).
+      showToast(getSaveErrorMessage(err));
     }
   }
 }

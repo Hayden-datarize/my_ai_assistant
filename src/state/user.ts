@@ -93,10 +93,11 @@ export function saveUser(u: User): void {
 export function recordDailyAnswer(xpDelta: number): void {
   const u = loadUserData();
   if (!u) return;
+  const now = new Date();                                                         // single now capture (v3.13.1 T14 / codex P1-1)
   const today = getDateStr();
 
   // lazy regen (in-memory only — saveUser 는 caller 책임, 아래 단일 호출)
-  getActiveMissions(new Date(), u);
+  getActiveMissions(now, u);
 
   // prev snapshot은 localStorage 기준 — lazy regen 결과는 saveUser 이후에야 persist됨.
   // detectEvents (T5/T9 guard) 가 새 instance + 즉시 완수 케이스를 정확히 처리한다.
@@ -113,7 +114,7 @@ export function recordDailyAnswer(xpDelta: number): void {
   u.lastActiveDate = today;
 
   // mission progress tick (xp 보너스 포함) — saveUser 이전에 in-memory 변경
-  tickMissionProgress(u, 'answer');
+  tickMissionProgress(u, 'answer', now);
 
   saveUser(u);  // single saveUser: xp/streak/missions 모두 커버. throws on Quota — sweep 안 함
 
