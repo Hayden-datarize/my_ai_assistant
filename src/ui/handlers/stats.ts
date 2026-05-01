@@ -15,7 +15,7 @@ import { toKoType } from '../../utils/typeLabel';
 import { getDateStr } from '../../utils/dates';
 import { getCachedUser } from '../../state/user';
 import { TIERS, getCurrentTier } from '../../state/leveling';
-import { BADGE_CATALOG } from '../../state/badgeCatalog';
+import { BADGE_CATALOG, type BadgeDef } from '../../state/badgeCatalog';
 
 const WEEKDAY_KO = ['월', '화', '수', '목', '금', '토', '일'];
 
@@ -245,7 +245,8 @@ function hydrateHeatmap(): void {
   }
 }
 
-const CATEGORY_LABELS: Record<string, string> = {
+export const CATEGORY_ORDER: ReadonlyArray<BadgeDef['category']> = ['streak', 'volume', 'tier', 'diversity', 'engagement', 'mission'] as const;
+export const CATEGORY_LABELS: Record<BadgeDef['category'], string> = {
   streak:      '🔥 Streak',
   volume:      '📚 Volume',
   tier:        '🌳 Tier',
@@ -253,7 +254,6 @@ const CATEGORY_LABELS: Record<string, string> = {
   engagement:  '✏️ Engagement',
   mission:     '🎯 Mission',
 };
-const CATEGORY_ORDER = ['streak', 'volume', 'tier', 'diversity', 'engagement', 'mission'] as const;
 
 function showTooltip(btn: HTMLButtonElement): void {
   // close previously open tooltip(s)
@@ -285,7 +285,7 @@ function hydrateBadges(): void {
     const catWrap = document.createElement('div');
     catWrap.className = 'badges-category';
     const h4 = document.createElement('h4');
-    h4.textContent = CATEGORY_LABELS[cat] ?? cat;
+    h4.textContent = CATEGORY_LABELS[cat];
     const grid = document.createElement('div');
     grid.className = 'badges-grid';
     for (const def of list) {
