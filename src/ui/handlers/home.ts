@@ -316,9 +316,8 @@ export async function hydrateHome(container: HTMLElement): Promise<void> {
 function hydrateMissions(): void {
   const u = getCachedUser();
   if (!u) return;
-  const before = JSON.stringify(u.missions);
-  const active = getActiveMissions(new Date(), u);
-  if (JSON.stringify(u.missions) !== before) saveUser(u);  // lazy regen이 발생한 경우에만 저장
+  const { active, dirty } = getActiveMissions(new Date(), u);
+  if (dirty) saveUser(u);  // lazy regen이 발생한 경우에만 저장
   const root = document.getElementById('missionsContainer');
   if (root) renderMissionsSection(root, active);
 }

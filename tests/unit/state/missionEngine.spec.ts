@@ -56,7 +56,7 @@ describe('getActiveMissions (lazy regeneration)', () => {
   it('빈 user → 6 missions (3 daily + 2 weekly + 1 monthly), seed/iso 업데이트', () => {
     const u = makeUser();
     const now = new Date('2026-04-30T15:00:00Z');                       // KST 2026-05-01 00:00
-    const active = getActiveMissions(now, u);
+    const { active } = getActiveMissions(now, u);
     expect(active).toHaveLength(6);
     expect(active.filter(m => m.period === 'daily')).toHaveLength(3);
     expect(active.filter(m => m.period === 'weekly')).toHaveLength(2);
@@ -68,9 +68,9 @@ describe('getActiveMissions (lazy regeneration)', () => {
   it('같은 날 재호출 → active 그대로 (no regeneration)', () => {
     const u = makeUser();
     const now = new Date('2026-04-30T15:00:00Z');
-    const a = getActiveMissions(now, u);
+    const { active: a } = getActiveMissions(now, u);
     const before = a.map(m => m.defId);
-    const b = getActiveMissions(now, u);
+    const { active: b } = getActiveMissions(now, u);
     expect(b.map(m => m.defId)).toEqual(before);
     expect(b).toHaveLength(6);
   });
@@ -93,6 +93,24 @@ describe('getActiveMissions (lazy regeneration)', () => {
     // saveUser 호출하면 localStorage가 변경됨. localStorage가 비어있는지 확인.
     getActiveMissions(now, u);
     expect(localStorage.getItem('user')).toBeNull();
+  });
+
+  it('getActiveMissions: lastDailySeed 갱신 시 dirty=true', () => {
+    const u = makeUser();
+    u.missions.lastDailySeed = '';
+    const result = getActiveMissions(new Date('2026-05-01T03:00:00Z'), u);
+    expect(result.dirty).toBe(true);
+    expect(result.active.length).toBeGreaterThan(0);
+  });
+
+  it('getActiveMissions: 모든 ISO 일치 시 dirty=false (lazy regen 없음)', () => {
+    const now = new Date('2026-05-01T03:00:00Z');
+    const u = makeUser();
+    // 1차 호출로 모든 ISO 채움
+    getActiveMissions(now, u);
+    // 2차 호출은 dirty=false
+    const result = getActiveMissions(now, u);
+    expect(result.dirty).toBe(false);
   });
 });
 

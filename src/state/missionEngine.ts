@@ -114,28 +114,38 @@ function makeFixed(
  *
  * **caller invariant**: saveUser는 caller 책임 (이중 saveUser race 회피 — spec C6).
  * 이 함수는 localStorage를 절대 건드리지 않는다.
+ *
+ * @returns `{ active, dirty }` — `dirty=true` 일 때만 caller가 saveUser 호출.
+ *          v3.13.1 T2: JSON.stringify 비교 제거를 위해 도입.
  */
-export function getActiveMissions(now: Date, user: User): MissionInstance[] {
+export function getActiveMissions(
+  now: Date,
+  user: User,
+): { active: MissionInstance[]; dirty: boolean } {
   const todayIso = getKSTDateIso(now);
   const weekIso = getKSTWeekIso(now);
   const monthIso = getKSTMonthIso(now);
+  let dirty = false;
 
   if (user.missions.lastDailySeed !== todayIso) {
     const newDaily = pickDailyMissions(todayIso, now);
     user.missions.active = user.missions.active.filter(m => m.period !== 'daily').concat(newDaily);
     user.missions.lastDailySeed = todayIso;
+    dirty = true;
   }
   if (user.missions.currentWeekIso !== weekIso) {
     const newWeekly = makeFixed(WEEKLY_FIXED, 'weekly', now);
     user.missions.active = user.missions.active.filter(m => m.period !== 'weekly').concat(newWeekly);
     user.missions.currentWeekIso = weekIso;
+    dirty = true;
   }
   if (user.missions.currentMonthIso !== monthIso) {
     const newMonthly = makeFixed(MONTHLY_FIXED, 'monthly', now);
     user.missions.active = user.missions.active.filter(m => m.period !== 'monthly').concat(newMonthly);
     user.missions.currentMonthIso = monthIso;
+    dirty = true;
   }
-  return user.missions.active;
+  return { active: user.missions.active, dirty };
 }
 
 /**
