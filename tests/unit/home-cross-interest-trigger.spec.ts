@@ -175,27 +175,27 @@ describe('cross-interest-view trigger wiring (v3.14 T7)', () => {
 
 describe('matchKeyword helper (v3.14 T13 / codex P1 final review)', () => {
   it('short ASCII keyword (≤3) uses word-boundary — does NOT match substring inside another word', async () => {
-    const { matchKeyword } = await import('../../src/ui/handlers/home');
+    const { matchKeyword } = await import('../../src/utils/interestKeywords');
     expect(matchKeyword('daily training session', 'ai')).toBe(false);
     expect(matchKeyword('retail digest', 'ai')).toBe(false);
     expect(matchKeyword('xml html document', 'ml')).toBe(false);
   });
 
   it('short ASCII keyword (≤3) matches when on word boundary', async () => {
-    const { matchKeyword } = await import('../../src/ui/handlers/home');
+    const { matchKeyword } = await import('../../src/utils/interestKeywords');
     expect(matchKeyword('ai 동향', 'ai')).toBe(true);
     expect(matchKeyword('ai-driven future', 'ai')).toBe(true);
     expect(matchKeyword('a study on ml engineering', 'ml')).toBe(true);
   });
 
   it('longer ASCII keyword (>3) uses substring includes — matches anywhere', async () => {
-    const { matchKeyword } = await import('../../src/ui/handlers/home');
+    const { matchKeyword } = await import('../../src/utils/interestKeywords');
     expect(matchKeyword('ai_ml etf 시장 동향', 'ai_ml')).toBe(true);
     expect(matchKeyword('hr_system 개편', 'hr_system')).toBe(true);
   });
 
   it('non-ASCII (Korean) keyword uses substring includes regardless of length', async () => {
-    const { matchKeyword } = await import('../../src/ui/handlers/home');
+    const { matchKeyword } = await import('../../src/utils/interestKeywords');
     expect(matchKeyword('인사제도 개편 동향', '인사제도')).toBe(true);
     expect(matchKeyword('자기계발 도서 추천', '자기')).toBe(true);  // 2자 한국어도 includes
   });
