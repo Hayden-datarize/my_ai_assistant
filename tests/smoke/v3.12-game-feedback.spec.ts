@@ -55,25 +55,25 @@ test.describe('v3.12 Game Feedback + Badges', () => {
     // +XP floating animation
     await expect(page.locator('.xp-float')).toBeVisible({ timeout: 2000 });
 
-    // answers-1 badge unlock toast
-    const toast = page.locator('.toast--badge');
+    // answers-1 badge unlock toast (v3.13 미션 입문 뱃지와 공존 — 첫 답변 toast로 명시 필터)
+    const toast = page.locator('.toast--badge').filter({ hasText: '첫 답변' });
     await expect(toast).toBeVisible({ timeout: 2000 });
     // 토스트 안에 "첫 답변" (badge name) 또는 "뱃지 획득" (suffix)
     await expect(toast).toContainText(/첫 답변|뱃지 획득/);
   });
 
-  test('stats 탭 → silhouette grid 5 카테고리 + locked 회색', async ({ page }) => {
+  test('stats 탭 → silhouette grid 6 카테고리 + locked 회색', async ({ page }) => {
     await page.locator('#bottomNav button[data-tab-id="stats"]').click();
     await expect(page.locator('#statsTab')).toBeVisible();
 
-    // 5 카테고리 heading (streak / volume / tier / diversity / engagement)
-    await expect(page.locator('.badges-category h4')).toHaveCount(5);
+    // 6 카테고리 heading (streak / volume / tier / diversity / engagement / mission)
+    await expect(page.locator('.badges-category h4')).toHaveCount(6);
 
-    // 18 뱃지 모두 grid에
-    await expect(page.locator('#badgesGrid .badge')).toHaveCount(18);
+    // 22 뱃지 모두 grid에 (v3.12 18 + v3.13 mission 4)
+    await expect(page.locator('#badgesGrid .badge')).toHaveCount(22);
 
-    // locked 18 (빈 user — earnedBadges = {})
-    await expect(page.locator('#badgesGrid .badge--locked')).toHaveCount(18);
+    // locked 22 (빈 user — earnedBadges = {}, v3.12 18 + v3.13 mission 4)
+    await expect(page.locator('#badgesGrid .badge--locked')).toHaveCount(22);
 
     // 첫 locked 뱃지에 🔒 overlay
     await expect(page.locator('.badge--locked .badge-lock').first()).toContainText('🔒');
