@@ -1,5 +1,5 @@
 import { describe, it, expect, beforeEach } from 'vitest';
-import { mountNav, switchTab } from '../../src/ui/nav';
+import { mountNav, switchTab, TABS } from '../../src/ui/nav';
 
 beforeEach(() => {
   document.body.replaceChildren();
@@ -11,9 +11,9 @@ beforeEach(() => {
 });
 
 describe('nav', () => {
-  it('mounts 5 tab buttons', () => {
+  it('mounts 6 tab buttons', () => {
     mountNav();
-    expect(document.querySelectorAll('#bottomNav button').length).toBe(5);
+    expect(document.querySelectorAll('#bottomNav button').length).toBe(6);
   });
   it('switchTab("home") renders Home into #app', () => {
     mountNav();
@@ -24,5 +24,17 @@ describe('nav', () => {
     mountNav();
     switchTab('archive');
     expect(document.querySelector('#archiveTab')).not.toBeNull();
+  });
+});
+
+describe('nav TABS catalog', () => {
+  it('includes 6 tabs in fixed order', () => {
+    expect(TABS.map((t) => t.id)).toEqual(['home', 'archive', 'stats', 'insights', 'settings', 'missions']);
+  });
+
+  it('missions tab carries 미션 label and 🎯 icon', () => {
+    const m = TABS.find((t) => t.id === 'missions');
+    expect(m?.label).toBe('미션');
+    expect(m?.icon).toBe('🎯');
   });
 });

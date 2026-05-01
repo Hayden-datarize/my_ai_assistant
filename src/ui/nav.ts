@@ -4,8 +4,9 @@ import { renderArchive } from './tabs/archive';
 import { renderStats } from './tabs/stats';
 import { renderInsights } from './tabs/insights';
 import { renderSettings } from './tabs/settings';
+import { renderMissions } from './tabs/missions';
 
-export type TabId = 'home' | 'archive' | 'stats' | 'insights' | 'settings';
+export type TabId = 'home' | 'archive' | 'stats' | 'insights' | 'settings' | 'missions';
 
 export const TABS: Array<{ id: TabId; label: string; icon: string; render: (c: HTMLElement) => void }> = [
   { id: 'home', label: '홈', icon: '🏠', render: renderHome },
@@ -13,6 +14,7 @@ export const TABS: Array<{ id: TabId; label: string; icon: string; render: (c: H
   { id: 'stats', label: '통계', icon: '📊', render: renderStats },
   { id: 'insights', label: '인사이트', icon: '💡', render: renderInsights },
   { id: 'settings', label: '설정', icon: '⚙️', render: renderSettings },
+  { id: 'missions', label: '미션', icon: '🎯', render: renderMissions },
 ];
 
 export function mountNav(): void {
