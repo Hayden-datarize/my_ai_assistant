@@ -122,6 +122,8 @@ describe('user schema v2 migration', () => {
     // immutable 패턴: result는 raw와 다른 missions / cumulative 객체
     expect(result.missions).not.toBe(raw.missions);
     expect(result.missions.cumulative).not.toBe(raw.missions.cumulative);
+    // active 배열은 의도적으로 reference 공유 (C6 invariant — tickMissionProgress mutate 호환)
+    expect(result.missions.active).toBe(raw.missions.active);
     // 값은 보존
     expect(result.missions.cumulative.dailyCount).toBe(1);
     expect(result.missions.cumulative.weeklyCount).toBe(2);

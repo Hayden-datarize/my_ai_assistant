@@ -86,7 +86,7 @@ export function migrateUserToV2(raw: unknown): User {
  *
  * v3.13.1 T3: idempotent path를 in-place mutation → immutable spread로 전환
  * (carry-forward T1, v3.12 #3 closeout). caller가 raw.missions 참조를 보유해도
- * 보강 작업이 그 객체로 leak 되지 않음 (atomic guarantee).
+ * 보강 작업이 그 객체로 leak 되지 않음 (missions 서브트리 atomic guarantee — 다른 사용자 필드는 spread shallow-share).
  *
  * NOTE: `active` 배열은 의도적으로 reference 공유한다.
  * tickMissionProgress가 user.missions.active 항목을 in-place mutate 하므로
