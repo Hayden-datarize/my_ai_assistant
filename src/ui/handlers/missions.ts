@@ -12,7 +12,7 @@
 import { on } from '../events';
 import { hydrateMissions } from './home';
 
-export function registerMissionsHandlers(): void {
+export function mountMissionsHandlers(): void {
   on('dg:nav:tab-changed', ({ tab }) => {
     if (tab === 'missions') {
       hydrateMissions();

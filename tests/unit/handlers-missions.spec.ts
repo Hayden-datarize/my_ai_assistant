@@ -29,8 +29,8 @@ describe('handlers/missions tab-changed wiring', () => {
     // fixture: cached user 가 있어야 hydrateMissions 가 early-return 하지 않음.
     saveUser(mkUser({ name: 'T', interests: ['ai_ml'] }));
 
-    const { registerMissionsHandlers } = await import('../../src/ui/handlers/missions');
-    registerMissionsHandlers();
+    const { mountMissionsHandlers } = await import('../../src/ui/handlers/missions');
+    mountMissionsHandlers();
 
     document.dispatchEvent(
       new CustomEvent('dg:nav:tab-changed', { detail: { tab: 'missions' } }),
@@ -47,8 +47,8 @@ describe('handlers/missions tab-changed wiring', () => {
 
     saveUser(mkUser({ name: 'T', interests: ['ai_ml'] }));
 
-    const { registerMissionsHandlers } = await import('../../src/ui/handlers/missions');
-    registerMissionsHandlers();
+    const { mountMissionsHandlers } = await import('../../src/ui/handlers/missions');
+    mountMissionsHandlers();
 
     document.dispatchEvent(
       new CustomEvent('dg:nav:tab-changed', { detail: { tab: 'home' } }),
