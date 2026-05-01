@@ -89,8 +89,11 @@ export function takeSnapshot(): Snapshot {
     engagedInterests: engaged,
     uniqueScrapCategories: uniqueCount,
     earnedBadgeIds: new Set(Object.keys(u?.earnedBadges ?? {})),
-    // v3.13 T5: 미션 필드 — shallow clone (원본 변형 방지)
-    missionsActive: (u?.missions?.active ?? []).map(m => ({ ...m })),
+    // v3.13.1 T4: progressDates deep clone (P2-4 defense-in-depth)
+    missionsActive: (u?.missions?.active ?? []).map(m => ({
+      ...m,
+      progressDates: m.progressDates ? [...m.progressDates] : undefined,
+    })),
     missionsCumulative: {
       daily: u?.missions?.cumulative?.dailyCount ?? 0,
       weekly: u?.missions?.cumulative?.weeklyCount ?? 0,

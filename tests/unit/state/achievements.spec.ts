@@ -2,7 +2,7 @@ import { describe, it, expect, beforeEach, vi } from 'vitest';
 import { takeSnapshot, detectEvents, runSweep, persistUnlocks } from '../../../src/state/achievements';
 import type { Snapshot, GameEvent } from '../../../src/state/gameTypes';
 import { saveUser, loadUserData } from '../../../src/state/user';
-import { mkUser } from './userFixture';
+import { mkUser, DEFAULT_MISSIONS } from './userFixture';
 
 beforeEach(() => localStorage.clear());
 
@@ -116,5 +116,41 @@ describe('takeSnapshot — engagedInterests integration (P1-A fix)', () => {
     ]));
     const snap = takeSnapshot();
     expect(snap.engagedInterests.has('hr_system')).toBe(false);
+  });
+});
+
+describe('takeSnapshot — progressDates deep clone (v3.13.1 T4 / P2-4)', () => {
+  it('progressDates는 user 원본 array와 다른 reference — 원본 mutation 격리', async () => {
+    // vi.doMock으로 loadUserData가 동일 user reference를 반환하도록 만듦.
+    // 그래야 takeSnapshot 내부의 shallow `{...m}` clone이 progressDates ref를
+    // 공유하는지(=RED) deep-clone하는지(=GREEN) 검증 가능.
+    vi.resetModules();
+    const sharedUser = mkUser({
+      missions: {
+        ...DEFAULT_MISSIONS,
+        active: [{
+          defId: 'weekly-active-5days', period: 'weekly',
+          windowStart: 0, progress: 1, completed: false,
+          progressDates: ['2026-05-01'],
+        }],
+      },
+    });
+    vi.doMock('../../../src/state/user', async (importOriginal) => {
+      const orig = await importOriginal<typeof import('../../../src/state/user')>();
+      return { ...orig, loadUserData: () => sharedUser };
+    });
+
+    const { takeSnapshot: takeSnapshotMocked } = await import('../../../src/state/achievements');
+    const snap = takeSnapshotMocked();
+
+    // 핵심 invariant: snapshot의 progressDates는 원본 array와 다른 reference여야 함
+    expect(snap.missionsActive[0]!.progressDates)
+      .not.toBe(sharedUser.missions.active[0]!.progressDates);
+
+    // 원본을 mutate해도 snapshot은 영향 없음
+    sharedUser.missions.active[0]!.progressDates!.push('2026-05-02');
+    expect(snap.missionsActive[0]!.progressDates).toEqual(['2026-05-01']);
+
+    vi.doUnmock('../../../src/state/user');
   });
 });
