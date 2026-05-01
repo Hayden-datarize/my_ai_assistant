@@ -33,7 +33,8 @@ import { loadActiveSeenUrls, recordSeen, purgeExpiredSeen } from '../../state/se
 import { MSG } from '../messages';
 import { getActiveMissions, getKSTDateIso } from '../../state/missionEngine';
 import { renderMissionsSection } from '../missions-section';
-import { fireBriefingViewTrigger } from './missions-triggers';
+import { fireBriefingViewTrigger, fireCrossInterestTrigger } from './missions-triggers';
+import { interestKeywords } from '../../utils/interestKeywords';
 
 const API_KEY_STORAGE = 'dg_gemini_key';
 const THEME_STORAGE = 'theme';
@@ -469,9 +470,26 @@ export function renderBriefingCard(b: Briefing, idx: number): HTMLElement {
       }
     }
 
-    // TODO(v3.14 T7): cross-interest-view mission trigger — 같은 try/catch + `now` 공유.
-    //   fireCrossInterestTrigger(now) — 클릭한 카드의 sourceTitle/tag가 user.interests에
-    //   포함되지 않는 경우에만 호출. sessionStorage 'cross-interest-fired-${todayIso}' 로 하루 1회 dedup.
+    // v3.14 T7: cross-interest-view trigger — 일별 1회 dedup.
+    // 카드 텍스트(sourceTitle/title/summary)가 user.interests 어느 것과도 매칭 안 되면 cross-interest 판정.
+    // interests.length === 0 인 신규 사용자는 항상 mismatch가 되므로 guard로 차단.
+    const crossKey = `cross-interest-fired-${todayIso}`;
+    if (!sessionStorage.getItem(crossKey)) {
+      const u = getCachedUser();
+      const interests = u?.interests ?? [];
+      if (interests.length > 0) {
+        const hay = `${b.sourceTitle ?? ''} ${b.title} ${b.summary}`.toLowerCase();
+        const matched = interests.some((i) => interestKeywords(i).some((k) => hay.includes(k)));
+        if (!matched) {
+          try {
+            fireCrossInterestTrigger(now);                                           // shared `now` (codex P1-7)
+            sessionStorage.setItem(crossKey, '1');
+          } catch (err) {
+            showToast(getSaveErrorMessage(err));                                     // Quota 등 — flag 미세팅 → 다음 click 재시도
+          }
+        }
+      }
+    }
   });
 
   card.append(main);
