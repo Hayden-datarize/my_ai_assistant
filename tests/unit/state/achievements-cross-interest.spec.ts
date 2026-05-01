@@ -48,4 +48,14 @@ describe('categorizeScrapsByInterest — short-token false-positive 차단 (v3.1
     const snap = takeSnapshot();
     expect(snap.engagedInterests.has('hr_system')).toBe(true);
   });
+
+  it('ai_ml interest는 임베디드 브랜드 용어("OpenAI", "GenAI") 텍스트에 매칭된다 (codex P1 false-negative 차단)', () => {
+    saveUser(mkUser({ interests: ['ai_ml'], gamificationMigrated: true }));
+    saveBriefings([
+      mkBriefing({ id: 'b4', title: 'OpenAI 신규 발표', summary: '' }),
+      mkBriefing({ id: 'b5', title: 'GenAI 시장 동향', summary: '' }),
+    ]);
+    const snap = takeSnapshot();
+    expect(snap.engagedInterests.has('ai_ml')).toBe(true);
+  });
 });

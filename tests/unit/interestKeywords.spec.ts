@@ -18,4 +18,12 @@ describe('interestKeywords', () => {
     const k = interestKeywords('hr_system');
     expect(k.every(s => !/\p{Extended_Pictographic}/u.test(s))).toBe(true);
   });
+
+  it('ai_ml은 BRAND_ALIASES(openai/genai/aiops/aiml)를 포함한다 (codex P1 false-negative 차단)', () => {
+    const k = interestKeywords('ai_ml');
+    expect(k).toContain('openai');
+    expect(k).toContain('genai');
+    expect(k).toContain('aiops');
+    expect(k).toContain('aiml');
+  });
 });

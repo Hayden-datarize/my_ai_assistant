@@ -1,6 +1,18 @@
 import { INTERESTS } from './categories';
 
 /**
+ * v3.14.1 P2 (codex final P1): short-token word-boundary가 임베디드 브랜드 용어를
+ * false-negative로 차단하는 문제 해소를 위한 명시적 alias.
+ * 예: matchKeyword는 'openai'에서 \bai\b로 false → 'openai' alias로 includes 매칭 복구.
+ *
+ * 모든 alias는 length > 3이므로 matchKeyword에서 자동으로 includes 경로(정규식 우회).
+ * 향후 다른 interest의 brand alias 추가는 여기에:
+ */
+const BRAND_ALIASES: Record<string, readonly string[]> = {
+  ai_ml: ['openai', 'genai', 'aiops', 'aiml'],
+};
+
+/**
  * interest ID(snake_case)를 RSS 텍스트에 매칭 가능한 keyword 배열로 확장.
  * v3.14 T2: achievements.ts 내부에서 추출 — home·achievements 양쪽 재사용.
  */
@@ -8,7 +20,9 @@ export function interestKeywords(id: string): string[] {
   const meta = INTERESTS.find(c => c.id === id);
   if (!meta) return [id.toLowerCase()];
   const label = meta.label.replace(/^\p{Extended_Pictographic}+\s*/u, '').toLowerCase();
-  return [id.toLowerCase(), ...label.split(/[\s/]+/).filter(Boolean)];
+  const tokens = [id.toLowerCase(), ...label.split(/[\s/]+/).filter(Boolean)];
+  const aliases = BRAND_ALIASES[id] ?? [];
+  return [...tokens, ...aliases];
 }
 
 /**
