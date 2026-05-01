@@ -313,11 +313,23 @@ export async function hydrateHome(container: HTMLElement): Promise<void> {
   applyTheme();
 }
 
-function hydrateMissions(): void {
+/**
+ * @internal — exported for unit test (v3.13.1 T9 / P2-1 Quota guard).
+ * production caller는 hydrateHome 내부 + submitAnswer.
+ */
+export function hydrateMissions(): void {
   const u = getCachedUser();
   if (!u) return;
   const { active, dirty } = getActiveMissions(new Date(), u);
-  if (dirty) saveUser(u);  // lazy regen이 발생한 경우에만 저장
+  if (dirty) {
+    try {
+      saveUser(u);  // lazy regen이 발생한 경우에만 저장
+    } catch (err) {
+      // saveUser 실패해도 active는 in-memory mutate된 상태 → 렌더는 진행
+      // (다음 진입 시 재시도). v3.7 패턴 (archive.ts / settings.ts / interests.ts).
+      showToast(getSaveErrorMessage(err));
+    }
+  }
   const root = document.getElementById('missionsContainer');
   if (root) renderMissionsSection(root, active);
 }
