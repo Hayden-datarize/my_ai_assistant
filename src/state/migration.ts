@@ -83,19 +83,43 @@ export function migrateUserToV2(raw: unknown): User {
  * - active 빈 배열, cumulative 0, ISO 필드 빈 문자열.
  * - shape guard: missions 필드 NaN/잘못된 타입 차단 (silent corruption 방지).
  * - idempotent: 이미 v3이고 missions.active가 배열이면 필드만 보강 후 반환.
+ *
+ * v3.13.1 T3: idempotent path를 in-place mutation → immutable spread로 전환
+ * (carry-forward T1, v3.12 #3 closeout). caller가 raw.missions 참조를 보유해도
+ * 보강 작업이 그 객체로 leak 되지 않음 (atomic guarantee).
+ *
+ * NOTE: `active` 배열은 의도적으로 reference 공유한다.
+ * tickMissionProgress가 user.missions.active 항목을 in-place mutate 하므로
+ * (v3.13 spec C6 invariant), idempotent path에서도 동일 reference를 유지해야
+ * caller가 보유한 user 객체와 정합성이 어긋나지 않는다.
+ *
+ * raw 입력 narrowing: `Partial<User> & {…}` 형태로 좁혀, `unknown` 단일 cast
+ * (`as User`)에서 발생하던 미정의 필드 접근 시 type-safety 약화를 보강.
  */
 export function migrateUserToV3(raw: unknown): User {
-  const v = (raw as User & { schemaVersion?: number });
+  const v = raw as Partial<User> & {
+    schemaVersion?: number;
+    missions?: Partial<User['missions']>;
+  };
   if (v?.schemaVersion === 3 && v.missions && Array.isArray(v.missions.active)) {
     const m = v.missions;
-    m.cumulative = m.cumulative ?? { dailyCount: 0, weeklyCount: 0, monthlyCount: 0 };
-    if (typeof m.cumulative.dailyCount !== 'number') m.cumulative.dailyCount = 0;
-    if (typeof m.cumulative.weeklyCount !== 'number') m.cumulative.weeklyCount = 0;
-    if (typeof m.cumulative.monthlyCount !== 'number') m.cumulative.monthlyCount = 0;
-    if (typeof m.lastDailySeed !== 'string') m.lastDailySeed = '';
-    if (typeof m.currentWeekIso !== 'string') m.currentWeekIso = '';
-    if (typeof m.currentMonthIso !== 'string') m.currentMonthIso = '';
-    return v as User;
+    const cumulative = {
+      dailyCount: typeof m.cumulative?.dailyCount === 'number' ? m.cumulative.dailyCount : 0,
+      weeklyCount: typeof m.cumulative?.weeklyCount === 'number' ? m.cumulative.weeklyCount : 0,
+      monthlyCount: typeof m.cumulative?.monthlyCount === 'number' ? m.cumulative.monthlyCount : 0,
+    };
+    return {
+      ...(v as User),
+      missions: {
+        // active 배열은 reference 유지 — tickMissionProgress가 user.missions.active를 mutate하므로
+        // caller가 동일 user 객체를 보유하면 같은 active를 가리킴 (v3.13 spec C6 invariant 유지)
+        active: m.active,
+        cumulative,
+        lastDailySeed: typeof m.lastDailySeed === 'string' ? m.lastDailySeed : '',
+        currentWeekIso: typeof m.currentWeekIso === 'string' ? m.currentWeekIso : '',
+        currentMonthIso: typeof m.currentMonthIso === 'string' ? m.currentMonthIso : '',
+      },
+    };
   }
   return {
     ...(v as User),

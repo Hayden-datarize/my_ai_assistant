@@ -1,6 +1,6 @@
 import { describe, it, expect, beforeEach } from 'vitest';
 import { loadUserData, saveUser } from '../../../src/state/user';
-import { migrateUserToV2 } from '../../../src/state/migration';
+import { migrateUserToV2, migrateUserToV3 } from '../../../src/state/migration';
 import { mkUser } from './userFixture';
 
 beforeEach(() => localStorage.clear());
@@ -104,5 +104,30 @@ describe('user schema v2 migration', () => {
       expect(loadUserData()).toBeNull();
       expect(localStorage.getItem('user')).toBe(corrupted);
     });
+  });
+
+  it('migrateUserToV3: idempotent path returns new missions reference (immutable, atomic)', () => {
+    const raw: any = {
+      name: 'A', interests: [], streak: 0, lastActiveDate: '', xp: 0,
+      earnedBadges: {}, gamificationMigrated: true, schemaVersion: 3,
+      missions: {
+        active: [],
+        cumulative: { dailyCount: 1, weeklyCount: 2, monthlyCount: 3 },
+        lastDailySeed: '2026-05-01',
+        currentWeekIso: '2026-W18',
+        currentMonthIso: '2026-05',
+      },
+    };
+    const result = migrateUserToV3(raw);
+    // immutable 패턴: result는 raw와 다른 missions / cumulative 객체
+    expect(result.missions).not.toBe(raw.missions);
+    expect(result.missions.cumulative).not.toBe(raw.missions.cumulative);
+    // 값은 보존
+    expect(result.missions.cumulative.dailyCount).toBe(1);
+    expect(result.missions.cumulative.weeklyCount).toBe(2);
+    expect(result.missions.cumulative.monthlyCount).toBe(3);
+    expect(result.missions.lastDailySeed).toBe('2026-05-01');
+    expect(result.missions.currentWeekIso).toBe('2026-W18');
+    expect(result.missions.currentMonthIso).toBe('2026-05');
   });
 });
