@@ -48,17 +48,21 @@ test.describe('v3.12 Game Feedback + Badges', () => {
   test('답변 제출 → toast--badge (첫 답변) + xp-float visible', async ({ page }) => {
     const textarea = page.locator('#answerArea');
     await expect(textarea).toBeVisible({ timeout: 10_000 });
+    await expect(textarea).toBeEnabled({ timeout: 10_000 });
+
     await textarea.fill('오늘은 TypeScript 타입 가드를 공부했고, 생각보다 유용했다.');
 
-    await page.locator('#submitBtn').click();
+    // v3.14.1 T6: submit 버튼이 활성화될 때까지 명시 대기 (hydration race 제거)
+    const submitBtn = page.locator('#submitBtn');
+    await expect(submitBtn).toBeEnabled({ timeout: 5000 });
+    await submitBtn.click();
 
-    // +XP floating animation
-    await expect(page.locator('.xp-float')).toBeVisible({ timeout: 2000 });
+    // +XP floating animation (cold-start 마진 5000ms)
+    await expect(page.locator('.xp-float')).toBeVisible({ timeout: 5000 });
 
     // answers-1 badge unlock toast (v3.13 미션 입문 뱃지와 공존 — 첫 답변 toast로 명시 필터)
     const toast = page.locator('.toast--badge').filter({ hasText: '첫 답변' });
-    await expect(toast).toBeVisible({ timeout: 2000 });
-    // 토스트 안에 "첫 답변" (badge name) 또는 "뱃지 획득" (suffix)
+    await expect(toast).toBeVisible({ timeout: 5000 });
     await expect(toast).toContainText(/첫 답변|뱃지 획득/);
   });
 
