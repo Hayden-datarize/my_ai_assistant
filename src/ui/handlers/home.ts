@@ -307,7 +307,6 @@ export async function hydrateHome(container: HTMLElement): Promise<void> {
   void container; // accepted for API symmetry with handlers/stats.ts etc
   hydrateGreetingAndStreak();
   hydrateBriefings();
-  hydrateMissions();
   await hydrateQuestion();
   hydrateChatHistory();
   applyTheme();
@@ -315,7 +314,7 @@ export async function hydrateHome(container: HTMLElement): Promise<void> {
 
 /**
  * @internal — exported for unit test (v3.13.1 T9 / P2-1 Quota guard).
- * production caller는 hydrateHome 내부 + submitAnswer.
+ * production caller는 missions 탭의 dg:nav:tab-changed 핸들러 + submitAnswer (v3.14 T5: home에서 제거).
  */
 export function hydrateMissions(): void {
   const u = getCachedUser();
@@ -803,7 +802,7 @@ async function submitAnswer(): Promise<void> {
   // record daily answer activity (streak + XP)
   applyAnswerActivity();
   hydrateGreetingAndStreak();
-  hydrateMissions();  // v3.13 T12: 답변 제출 후 미션 진행 상황 즉시 반영
+  hydrateMissions();  // v3.14: missions 탭이 mounted 안 된 경우 no-op (null guard). 데이터 sweep만 수행.
 
   area.value = '';
   const cc = document.getElementById('charCount');
