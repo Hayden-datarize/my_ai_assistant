@@ -1,4 +1,4 @@
-import { describe, it, expect, beforeEach } from 'vitest';
+import { describe, it, expect, beforeEach, vi } from 'vitest';
 import { hydrateStats } from '../../../src/ui/handlers/stats';
 import { saveUser } from '../../../src/state/user';
 import { saveBriefings } from '../../../src/state/briefings';
@@ -101,7 +101,9 @@ describe('hydrateBadges (catalog 기반)', () => {
     hydrateStats();
     const earned = document.querySelector<HTMLButtonElement>('.badge--earned');
     earned?.click();
-    await new Promise(r => setTimeout(r, 50));  // lazy import
-    expect(document.querySelector('.badge-modal')).not.toBeNull();
+    // v3.14.1 T5: dynamic import 완료를 polling — fixed 50ms cold-start flake 차단
+    await vi.waitFor(() => {
+      expect(document.querySelector('.badge-modal')).not.toBeNull();
+    }, { timeout: 2000, interval: 20 });
   });
 });
