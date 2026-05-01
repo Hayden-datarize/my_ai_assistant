@@ -7,7 +7,7 @@ import { showToast } from '../utils/toast';
 import { loadBriefings, type Briefing } from './briefings';
 import { loadAnswers } from './persistence';
 import { BADGE_CATALOG } from './badgeCatalog';
-import { interestKeywords } from '../utils/interestKeywords';
+import { interestKeywords, matchKeyword } from '../utils/interestKeywords';
 import { assertNever } from '../utils/assertNever';
 import { getMissionDef } from './missionCatalog';
 
@@ -34,7 +34,7 @@ function categorizeScrapsByInterest(briefings: Briefing[], interests: string[]):
     // P1-A fix: interest ID는 snake_case라 RSS 텍스트와 직접 매칭 안 됨.
     // INTERESTS catalog의 한국어 label에서 keyword 추출해 매칭.
     for (const i of interests) {
-      if (interestKeywords(i).some(k => hay.includes(k))) engaged.add(i);
+      if (interestKeywords(i).some(k => matchKeyword(hay, k))) engaged.add(i);
     }
   }
   return { engaged, uniqueCount: cats.size };
