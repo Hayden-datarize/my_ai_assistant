@@ -5,6 +5,7 @@ import { mkUser } from '../state/userFixture';
 
 beforeEach(() => {
   localStorage.clear();
+  // eslint-disable-next-line no-restricted-syntax
   document.body.innerHTML = '<div id="modalRoot"></div>';
 });
 
@@ -39,6 +40,7 @@ describe('openBadgeDetail', () => {
     // 데이터는 catalog 고정이라 XSS 직접 발생 불가능. 본 테스트는 escapeHtml 호출이
     // .badge-modal-name 안에 들어가는 것만 검증.
     openBadgeDetail('streak-3');
+    // eslint-disable-next-line no-restricted-syntax
     const html = document.querySelector('.badge-modal-name')!.innerHTML;
     expect(html).not.toContain('<script>');
   });

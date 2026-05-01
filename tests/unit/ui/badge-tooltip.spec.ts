@@ -15,6 +15,7 @@ const STATS_DOM = `
 
 beforeEach(() => {
   localStorage.clear();
+  // eslint-disable-next-line no-restricted-syntax
   document.body.innerHTML = STATS_DOM;
   saveUser(mkUser({ gamificationMigrated: true }));
 });

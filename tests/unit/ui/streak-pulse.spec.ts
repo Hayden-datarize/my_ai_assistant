@@ -6,6 +6,7 @@ import { saveUser } from '../../../src/state/user';
 import { mkUser } from '../state/userFixture';
 
 beforeEach(() => {
+  // eslint-disable-next-line no-restricted-syntax
   document.body.innerHTML = `
     <div id="modalRoot"></div>
     <span id="statStreak"></span>

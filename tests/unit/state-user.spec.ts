@@ -1,7 +1,7 @@
 import { describe, it, expect, beforeEach, vi } from 'vitest';
 import { loadUserData, saveUser, recordDailyAnswer, getSaveErrorMessage } from '../../src/state/user';
 import { MSG } from '../../src/ui/messages';
-import { mkUser, DEFAULT_MISSIONS } from './state/userFixture';
+import { mkUser } from './state/userFixture';
 
 describe('state/user', () => {
   beforeEach(() => localStorage.clear());
