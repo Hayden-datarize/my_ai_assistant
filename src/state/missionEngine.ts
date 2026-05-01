@@ -120,6 +120,11 @@ function makeFixed(
  * **caller invariant**: saveUser는 caller 책임 (이중 saveUser race 회피 — spec C6).
  * 이 함수는 localStorage를 절대 건드리지 않는다.
  *
+ * **midnight rollover invariant (v3.13.1 T8 / P2-3)**: caller는 prev/curr Snapshot 사이에 같은 `now` 값을 사용해야 한다.
+ * 자정을 가로질러 호출하면 `lastDailySeed`가 갱신되어 daily 미션이 regen되고
+ * prev/curr defId 매칭이 깨질 수 있다. recordDailyAnswer / fireTrigger / mutateWithSweep 등
+ * 모든 sweep 진입점은 단일 `now` 캡처 후 사용한다.
+ *
  * @returns `{ active, dirty }` — `dirty=true` 일 때만 caller가 saveUser 호출.
  *          v3.13.1 T2: JSON.stringify 비교 제거를 위해 도입.
  */

@@ -112,6 +112,23 @@ describe('getActiveMissions (lazy regeneration)', () => {
     const result = getActiveMissions(now, u);
     expect(result.dirty).toBe(false);
   });
+
+  it('자정 rollover invariant: 같은 사이클 내 prev/curr Snapshot은 동일 미션 active를 본다', () => {
+    // KST 23:59:59 (미션 동작 시각) — 같은 사이클이므로 caller는 단일 now 캡처
+    const beforeMidnight = new Date('2026-05-01T14:59:59Z');
+    const u = makeUser();
+    const r1 = getActiveMissions(beforeMidnight, u);
+    expect(r1.active.filter(m => m.period === 'daily')).toHaveLength(3);
+
+    // 같은 사이클: prev/curr는 동일 active를 본다 (caller invariant — recordDailyAnswer / fireTrigger 모두 단일 now 캡처)
+    const snap1Active = u.missions.active.length;
+    // 'answer' tick — same beforeMidnight 시각
+    tickMissionProgress(u, 'answer', beforeMidnight);
+    const snap2Active = u.missions.active.length;
+
+    expect(snap2Active).toBe(snap1Active);                                          // active 배열 길이 불변 (regen 없음)
+    expect(u.missions.lastDailySeed).toBe('2026-05-01');                            // seed도 KST 일자 유지
+  });
 });
 
 describe('tickMissionProgress', () => {
