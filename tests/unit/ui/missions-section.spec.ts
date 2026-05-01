@@ -2,7 +2,7 @@ import { describe, it, expect, beforeEach } from 'vitest';
 import { renderMissionsSection } from '../../../src/ui/missions-section';
 import type { MissionInstance } from '../../../src/state/missionTypes';
 
-// eslint-disable-next-line no-restricted-syntax
+// eslint-disable-next-line no-restricted-syntax -- jsdom DOM seed; static template, no user interpolation
 beforeEach(() => { document.body.innerHTML = '<div id="root"></div>'; });
 
 function mount(active: MissionInstance[]): HTMLElement {

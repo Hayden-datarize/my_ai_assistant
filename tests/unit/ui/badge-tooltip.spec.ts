@@ -15,7 +15,7 @@ const STATS_DOM = `
 
 beforeEach(() => {
   localStorage.clear();
-  // eslint-disable-next-line no-restricted-syntax
+  // eslint-disable-next-line no-restricted-syntax -- jsdom DOM seed; static template, no user interpolation
   document.body.innerHTML = STATS_DOM;
   saveUser(mkUser({ gamificationMigrated: true }));
 });

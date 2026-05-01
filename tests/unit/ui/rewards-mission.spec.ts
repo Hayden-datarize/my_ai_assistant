@@ -3,7 +3,7 @@ import { mountRewards, __resetForTest } from '../../../src/ui/rewards';
 import { dispatch } from '../../../src/ui/events';
 
 beforeEach(() => {
-  // eslint-disable-next-line no-restricted-syntax
+  // eslint-disable-next-line no-restricted-syntax -- jsdom DOM seed; static template, no user interpolation
   document.body.innerHTML = '<div id="modalRoot"></div>';
   __resetForTest();
   mountRewards();

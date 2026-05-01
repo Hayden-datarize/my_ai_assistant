@@ -6,7 +6,7 @@ import { mkUser } from '../state/userFixture';
 
 beforeEach(() => {
   localStorage.clear();
-  // eslint-disable-next-line no-restricted-syntax
+  // eslint-disable-next-line no-restricted-syntax -- jsdom DOM seed; static template, no user interpolation
   document.body.innerHTML = '<div id="modalRoot"></div>';
 });
 
@@ -56,7 +56,7 @@ describe('maybeShowWelcomeGamification', () => {
     await maybeShowWelcomeGamification();
     document.querySelector<HTMLButtonElement>('.dg-modal-close')?.click();
     await new Promise(r => setTimeout(r, 50));
-    // eslint-disable-next-line no-restricted-syntax
+    // eslint-disable-next-line no-restricted-syntax -- jsdom DOM seed; static template, no user interpolation
     document.body.innerHTML = '<div id="modalRoot"></div>';
     await maybeShowWelcomeGamification();  // 두 번째 호출
     expect(document.querySelector('.dg-modal')).toBeNull();

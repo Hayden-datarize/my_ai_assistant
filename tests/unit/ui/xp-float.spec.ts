@@ -3,7 +3,7 @@ import { mountRewards, __resetForTest } from '../../../src/ui/rewards';
 import { dispatch } from '../../../src/ui/events';
 
 beforeEach(() => {
-  // eslint-disable-next-line no-restricted-syntax
+  // eslint-disable-next-line no-restricted-syntax -- jsdom DOM seed; static template, no user interpolation
   document.body.innerHTML = `
     <div id="modalRoot"></div>
     <div class="chat-bubble" id="ut"></div>
@@ -50,7 +50,7 @@ describe('xp-float', () => {
   });
 
   it('multi chat-bubble: :last-of-type rect 사용 (마지막 bubble 기준)', () => {
-    // eslint-disable-next-line no-restricted-syntax
+    // eslint-disable-next-line no-restricted-syntax -- jsdom DOM seed; static template, no user interpolation
     document.body.innerHTML = `
       <div id="modalRoot"></div>
       <div class="chat-bubble" id="b1">first</div>

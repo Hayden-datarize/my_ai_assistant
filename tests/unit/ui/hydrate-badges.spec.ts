@@ -17,7 +17,7 @@ const STATS_DOM = `
 
 beforeEach(() => {
   localStorage.clear();
-  // eslint-disable-next-line no-restricted-syntax
+  // eslint-disable-next-line no-restricted-syntax -- jsdom DOM seed; static template, no user interpolation
   document.body.innerHTML = STATS_DOM;
 });
 
@@ -96,7 +96,7 @@ describe('hydrateBadges (catalog 기반)', () => {
 
   it('earned 뱃지 click → openModal (badge-detail)', async () => {
     saveUser(mkUser({ streak: 5, earnedBadges: { 'streak-3': 1700000000000 }, gamificationMigrated: true }));
-    // eslint-disable-next-line no-restricted-syntax
+    // eslint-disable-next-line no-restricted-syntax -- jsdom DOM seed; static template, no user interpolation
     document.body.insertAdjacentHTML('beforeend', '<div id="modalRoot"></div>');
     hydrateStats();
     const earned = document.querySelector<HTMLButtonElement>('.badge--earned');
