@@ -46,8 +46,9 @@ describe('maybeShowWelcomeGamification', () => {
     saveAnswers([{ id: '1', questionId: 'q', text: 'a', authorId: 'self', createdAt: '2026-04-01', schemaVersion: 1 }]);
     await maybeShowWelcomeGamification();
     document.querySelector<HTMLButtonElement>('.dg-modal-close')?.click();
-    await new Promise(r => setTimeout(r, 50));
-    expect(loadUserData()!.gamificationMigrated).toBe(true);
+    await vi.waitFor(() => {
+      expect(loadUserData()!.gamificationMigrated).toBe(true);
+    }, { timeout: 2000, interval: 20 });
   });
 
   it('두 번째 호출 (gamificationMigrated=true) → no-op', async () => {
@@ -55,7 +56,9 @@ describe('maybeShowWelcomeGamification', () => {
     saveAnswers([{ id: '1', questionId: 'q', text: 'a', authorId: 'self', createdAt: '2026-04-01', schemaVersion: 1 }]);
     await maybeShowWelcomeGamification();
     document.querySelector<HTMLButtonElement>('.dg-modal-close')?.click();
-    await new Promise(r => setTimeout(r, 50));
+    await vi.waitFor(() => {
+      expect(loadUserData()!.gamificationMigrated).toBe(true);
+    }, { timeout: 2000, interval: 20 });
     // eslint-disable-next-line no-restricted-syntax -- jsdom DOM seed; static template, no user interpolation
     document.body.innerHTML = '<div id="modalRoot"></div>';
     await maybeShowWelcomeGamification();  // 두 번째 호출
@@ -81,10 +84,12 @@ describe('maybeShowWelcomeGamification', () => {
     expect(document.querySelector('.dg-modal')).not.toBeNull();
     const btn = document.getElementById('goStatsBtn') as HTMLButtonElement;
     btn?.click();
-    await new Promise(r => setTimeout(r, 50));  // lazy imports resolve (closeModal + nav)
-    expect(document.querySelector('.dg-modal')).toBeNull();
+    // lazy imports resolve (closeModal + nav)
+    await vi.waitFor(() => {
+      expect(document.querySelector('.dg-modal')).toBeNull();
+      expect(switchTabSpy).toHaveBeenCalledWith('stats');
+    }, { timeout: 2000, interval: 20 });
     expect(loadUserData()!.gamificationMigrated).toBe(true);
-    expect(switchTabSpy).toHaveBeenCalledWith('stats');
     vi.doUnmock('../../../src/ui/nav');
   });
 
@@ -105,9 +110,9 @@ describe('maybeShowWelcomeGamification', () => {
     const modalBtn = document.querySelector<HTMLButtonElement>('.dg-modal #goStatsBtn');
     expect(modalBtn).not.toBeNull();
     modalBtn!.click();
-    await new Promise(r => setTimeout(r, 50));
-
-    expect(switchTabSpy).toHaveBeenCalledWith('stats');
+    await vi.waitFor(() => {
+      expect(switchTabSpy).toHaveBeenCalledWith('stats');
+    }, { timeout: 2000, interval: 20 });
 
     decoy.remove();
     vi.doUnmock('../../../src/ui/nav');

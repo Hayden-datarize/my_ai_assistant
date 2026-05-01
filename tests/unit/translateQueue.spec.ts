@@ -75,9 +75,11 @@ describe('TranslateQueue partial-failure summary', () => {
     queue.enqueue('ok1');
     queue.enqueue('fail');
     queue.enqueue('ok2');
-    await new Promise((r) => setTimeout(r, 50)); // allow drain
-    expect(onDrain).toHaveBeenCalledTimes(1);
-    expect(onDrain).toHaveBeenCalledWith({ failedCount: 1 });
+    // allow drain
+    await vi.waitFor(() => {
+      expect(onDrain).toHaveBeenCalledTimes(1);
+      expect(onDrain).toHaveBeenCalledWith({ failedCount: 1 });
+    }, { timeout: 2000, interval: 20 });
   });
 
   it('does not invoke onDrain when no failures (silent success)', async () => {
