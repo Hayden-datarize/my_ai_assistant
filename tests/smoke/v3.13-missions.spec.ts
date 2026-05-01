@@ -70,18 +70,21 @@ test.describe('v3.13 Mission System', () => {
 
     await page.goto('/');
 
-    // 미션 섹션 노출 확인
-    await expect(page.locator('#missionsSection')).toBeVisible({ timeout: 10_000 });
-
-    // seeded daily-answer-1 카드 1개 (weekly/monthly는 regen돼 추가될 수 있으므로 toBeVisible로만 확인)
-    const dailyCard = page.locator('[data-period="daily"] .mission-card');
-    await expect(dailyCard).toHaveCount(1);
-
-    // 답변 입력 후 제출 (v3.12 smoke 패턴과 동일한 selectors)
+    // T5 이후 미션은 홈에 렌더되지 않음 → 답변 제출 후 미션 탭에서 검증
+    // 답변 입력 후 제출 (홈 탭 그대로)
     const textarea = page.locator('#answerArea');
     await expect(textarea).toBeVisible({ timeout: 10_000 });
     await textarea.fill(ANSWER_TEXT);
     await page.locator('#submitBtn').click();
+    await page.waitForTimeout(300); // submit 후 sweep + state save 대기
+
+    // 미션 탭으로 이동 → hydrateMissions() 호출 + #missionsSection 가시
+    await page.locator('.bottom-nav .nav-item', { hasText: '미션' }).click();
+    await expect(page.locator('#missionsSection')).toBeVisible({ timeout: 10_000 });
+
+    // seeded daily-answer-1 카드는 제출 후 completed 상태
+    const dailyCard = page.locator('[data-period="daily"] .mission-card');
+    await expect(dailyCard).toHaveCount(1);
 
     // hydrateMissions() → 미션 카드가 즉시 completed로 전환됨
     await expect(page.locator('.mission-card--completed')).toHaveCount(1, { timeout: 3000 });
@@ -134,22 +137,21 @@ test.describe('v3.13 Mission System', () => {
 
     await page.goto('/');
 
-    // 미션 섹션 노출 확인
-    await expect(page.locator('#missionsSection')).toBeVisible({ timeout: 10_000 });
-
-    // monthly 그룹에 monthly-answers-20 카드 + progress bar 초기값 확인
-    const pb = page.locator('[data-period="monthly"] [role="progressbar"]');
-    await expect(pb).toBeVisible({ timeout: 5000 });
-    await expect(pb).toHaveAttribute('aria-valuenow', '0');
-    await expect(pb).toHaveAttribute('aria-valuemax', '20');
-
-    // 답변 제출
+    // T5 이후 미션은 홈에 렌더되지 않음 → 답변 제출 후 미션 탭에서 검증
+    // 답변 제출 (홈 탭 그대로)
     const textarea = page.locator('#answerArea');
     await expect(textarea).toBeVisible({ timeout: 10_000 });
     await textarea.fill(ANSWER_TEXT);
     await page.locator('#submitBtn').click();
+    await page.waitForTimeout(300); // submit 후 sweep + state save 대기
+
+    // 미션 탭으로 이동 → hydrateMissions() 호출 + #missionsSection 가시
+    await page.locator('.bottom-nav .nav-item', { hasText: '미션' }).click();
+    await expect(page.locator('#missionsSection')).toBeVisible({ timeout: 10_000 });
 
     // hydrateMissions() → progress 1/20 반영
+    const pb = page.locator('[data-period="monthly"] [role="progressbar"]');
+    await expect(pb).toBeVisible({ timeout: 5000 });
     await expect(pb).toHaveAttribute('aria-valuenow', '1', { timeout: 3000 });
     await expect(pb).toHaveAttribute('aria-valuemax', '20');
     await expect(page.locator('[data-period="monthly"] .mission-card__count')).toHaveText('1/20');
