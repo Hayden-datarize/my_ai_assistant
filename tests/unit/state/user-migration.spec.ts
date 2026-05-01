@@ -1,5 +1,5 @@
 import { describe, it, expect, beforeEach } from 'vitest';
-import { loadUserData, saveUser } from '../../../src/state/user';
+import { loadUserData, saveUser, getCachedUser } from '../../../src/state/user';
 import { migrateUserToV2, migrateUserToV3 } from '../../../src/state/migration';
 import { mkUser } from './userFixture';
 
@@ -103,6 +103,36 @@ describe('user schema v2 migration', () => {
       localStorage.setItem('user', corrupted);
       expect(loadUserData()).toBeNull();
       expect(localStorage.getItem('user')).toBe(corrupted);
+    });
+
+    it('isValidUserShape: interests 배열에 비-string 요소 있으면 null 반환 (v3.13.1 T11 / P2-NEW-3)', () => {
+      localStorage.setItem('user', JSON.stringify({
+        name: 'A',
+        interests: ['hr_system', 123, null],                                          // 비-string 섞임
+        streak: 0,
+        lastActiveDate: '',
+        xp: 0,
+        earnedBadges: {},
+        gamificationMigrated: true,
+        schemaVersion: 2,
+      }));
+      expect(getCachedUser()).toBeNull();
+    });
+
+    it('isValidUserShape: interests 배열의 모든 요소가 string이면 정상 반환 (v3.13.1 T11)', () => {
+      localStorage.setItem('user', JSON.stringify({
+        name: 'A',
+        interests: ['hr_system', 'self_dev'],
+        streak: 0,
+        lastActiveDate: '',
+        xp: 0,
+        earnedBadges: {},
+        gamificationMigrated: true,
+        schemaVersion: 2,
+      }));
+      const u = getCachedUser();
+      expect(u).not.toBeNull();
+      expect(u!.interests).toEqual(['hr_system', 'self_dev']);
     });
   });
 

@@ -61,6 +61,7 @@ function isValidUserShape(u: unknown): u is User {
   const r = u as Record<string, unknown>;
   return typeof r.name === 'string'
     && Array.isArray(r.interests)
+    && r.interests.every((i) => typeof i === 'string')                            // ✅ v3.13.1 T11 (P2-NEW-3 graduation)
     && typeof r.streak === 'number' && Number.isFinite(r.streak)
     && typeof r.lastActiveDate === 'string'
     && typeof r.xp === 'number' && Number.isFinite(r.xp);
