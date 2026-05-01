@@ -15,8 +15,8 @@ export interface Snapshot {
   engagedInterests: ReadonlySet<string>;
   uniqueScrapCategories: number;
   earnedBadgeIds: ReadonlySet<string>;
-  /** v3.13 T5: 현재 활성 미션 목록 (shallow clone) */
-  missionsActive: MissionInstance[];
+  /** v3.13 T5: 현재 활성 미션 목록 (shallow clone, read-only view) */
+  missionsActive: ReadonlyArray<Readonly<MissionInstance>>;
   /** v3.13 T5: 누적 완료 카운트 (daily/weekly/monthly) */
   missionsCumulative: { daily: number; weekly: number; monthly: number };
 }
