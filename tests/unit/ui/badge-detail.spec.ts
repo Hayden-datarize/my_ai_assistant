@@ -40,7 +40,7 @@ describe('openBadgeDetail', () => {
     // 데이터는 catalog 고정이라 XSS 직접 발생 불가능. 본 테스트는 escapeHtml 호출이
     // .badge-modal-name 안에 들어가는 것만 검증.
     openBadgeDetail('streak-3');
-    // eslint-disable-next-line no-restricted-syntax -- jsdom DOM seed; static template, no user interpolation
+    // eslint-disable-next-line no-restricted-syntax -- innerHTML read for escaped-output assertion; no DOM mutation
     const html = document.querySelector('.badge-modal-name')!.innerHTML;
     expect(html).not.toContain('<script>');
   });
