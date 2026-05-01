@@ -27,6 +27,7 @@ const fakeBriefing = (over: Partial<Briefing> = {}): Briefing => ({
 describe('cross-interest-view trigger wiring (v3.14 T7)', () => {
   beforeEach(() => {
     vi.resetModules();
+    // eslint-disable-next-line no-restricted-syntax -- trusted empty string, jsdom reset
     document.body.innerHTML = '';
     sessionStorage.clear();
     localStorage.clear();

@@ -25,6 +25,7 @@ const fakeBriefing = (over: Partial<Briefing> = {}): Briefing => ({
 describe('briefing-view trigger wiring (v3.14 T6)', () => {
   beforeEach(() => {
     vi.resetModules();
+    // eslint-disable-next-line no-restricted-syntax -- trusted empty string, jsdom reset
     document.body.innerHTML = '';
     sessionStorage.clear();
     localStorage.clear();

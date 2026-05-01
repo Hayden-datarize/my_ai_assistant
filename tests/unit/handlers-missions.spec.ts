@@ -12,6 +12,7 @@ import { mkUser } from './state/userFixture';
 describe('handlers/missions tab-changed wiring', () => {
   beforeEach(() => {
     vi.resetModules();
+    // eslint-disable-next-line no-restricted-syntax -- trusted static template, no interpolation
     document.body.innerHTML = '<div id="missionsContainer"></div>';
     localStorage.clear();
   });

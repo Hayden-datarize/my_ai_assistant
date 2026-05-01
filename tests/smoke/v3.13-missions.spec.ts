@@ -12,13 +12,7 @@ import { test, expect } from '@playwright/test';
 //
 // 미션 섹션은 hydrateHome + submitAnswer 후 hydrateMissions()로 즉시 갱신된다 (T12 wiring).
 
-/**
- * KST 기준 오늘 날짜 'YYYY-MM-DD' 를 브라우저에서 계산하는 스니펫.
- * addInitScript 내부에서 사용 (window 환경).
- */
-function kstTodayIso(): string {
-  return new Intl.DateTimeFormat('en-CA', { timeZone: 'Asia/Seoul' }).format(new Date());
-}
+// KST 오늘 날짜는 addInitScript 내부에서 직접 계산 (browser context — Node에서 호출 불가).
 
 // sw1 답변 제출에 필요한 최소 텍스트 (10자 이상)
 const ANSWER_TEXT = 'v3.13 미션 smoke test 답변입니다.';
