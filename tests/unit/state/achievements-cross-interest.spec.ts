@@ -40,7 +40,7 @@ describe('categorizeScrapsByInterest — short-token false-positive 차단 (v3.1
     expect(snap.engagedInterests.has('ai_ml')).toBe(true);
   });
 
-  it('한국어 interest(hr_system)는 길이>3로 includes 유지 — "인사제도 개편" 매칭', () => {
+  it('한국어 interest(hr_system)는 non-ASCII이므로 includes 유지 — "인사제도 개편" 매칭', () => {
     saveUser(mkUser({ interests: ['hr_system'], gamificationMigrated: true }));
     saveBriefings([
       mkBriefing({ id: 'b3', title: '인사제도 개편 동향', summary: '' }),

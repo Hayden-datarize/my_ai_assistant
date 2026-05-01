@@ -63,6 +63,7 @@ test.describe('v3.12 Game Feedback + Badges', () => {
     // answers-1 badge unlock toast (v3.13 미션 입문 뱃지와 공존 — 첫 답변 toast로 명시 필터)
     const toast = page.locator('.toast--badge').filter({ hasText: '첫 답변' });
     await expect(toast).toBeVisible({ timeout: 5000 });
+    // v3.13 미션 입문 뱃지와 공존 가능 — badge name "첫 답변" 또는 일반 suffix "뱃지 획득" 둘 다 허용
     await expect(toast).toContainText(/첫 답변|뱃지 획득/);
   });
 
