@@ -1,6 +1,7 @@
 import type { User } from './user';
 import type { MissionInstance, MissionPeriod, MissionAction } from './missionTypes';
 import { DAILY_POOL, WEEKLY_FIXED, MONTHLY_FIXED, getMissionDef } from './missionCatalog';
+import { assertNever } from '../utils/assertNever';
 
 // en-CA 로케일은 YYYY-MM-DD 형식을 보장 (ISO 8601 준수)
 const KST_FMT = new Intl.DateTimeFormat('en-CA', { timeZone: 'Asia/Seoul', year: 'numeric', month: '2-digit', day: '2-digit' });
@@ -30,18 +31,22 @@ export function getKSTWeekIso(now: Date): string {
 
 export function getKSTWindowStart(now: Date, period: MissionPeriod): number {
   const [y, m, d] = parseKSTYMD(now);
-  if (period === 'daily') {
-    // KST 00:00 = UTC -9h
-    return Date.UTC(y, m - 1, d) - 9 * 3600 * 1000;
+  switch (period) {
+    case 'daily':
+      // KST 00:00 = UTC -9h
+      return Date.UTC(y, m - 1, d) - 9 * 3600 * 1000;
+    case 'monthly':
+      return Date.UTC(y, m - 1, 1) - 9 * 3600 * 1000;
+    case 'weekly': {
+      // KST 월요일 00:00
+      const utc = new Date(Date.UTC(y, m - 1, d));
+      const day = utc.getUTCDay() || 7;
+      utc.setUTCDate(utc.getUTCDate() - (day - 1));                      // 그 주 월요일
+      return utc.getTime() - 9 * 3600 * 1000;
+    }
+    default:
+      return assertNever(period);
   }
-  if (period === 'monthly') {
-    return Date.UTC(y, m - 1, 1) - 9 * 3600 * 1000;
-  }
-  // weekly: KST 월요일 00:00
-  const utc = new Date(Date.UTC(y, m - 1, d));
-  const day = utc.getUTCDay() || 7;
-  utc.setUTCDate(utc.getUTCDate() - (day - 1));                          // 그 주 월요일
-  return utc.getTime() - 9 * 3600 * 1000;
 }
 
 function hashStr(s: string): number {
@@ -175,8 +180,12 @@ export function tickMissionProgress(user: User, action: MissionAction, now: Date
     if (m.progress >= def.target && !m.completed) {
       m.completed = true;
       user.xp += def.rewardXp;
-      const key = `${m.period}Count` as 'dailyCount' | 'weeklyCount' | 'monthlyCount';
-      user.missions.cumulative[key]++;
+      switch (m.period) {
+        case 'daily':   user.missions.cumulative.dailyCount++;   break;
+        case 'weekly':  user.missions.cumulative.weeklyCount++;  break;
+        case 'monthly': user.missions.cumulative.monthlyCount++; break;
+        default:        assertNever(m.period);
+      }
     }
   }
 }
