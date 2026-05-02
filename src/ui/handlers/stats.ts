@@ -341,7 +341,12 @@ function hydrateBadges(): void {
   wrap.replaceChildren();
   if (!user) return;
 
-  const earned = new Set(Object.keys(user.earnedBadges ?? {}));
+  // v3.14.3 T13 (P3-T10-drift): heading count vs DOM 정합 — catalog 외 legacy ID 제외.
+  // renderBadgeCategory가 BADGE_CATALOG만 iterate하므로, heading X도 catalog filter 적용.
+  const catalogIds = new Set(BADGE_CATALOG.map((b) => b.id));
+  const earned = new Set(
+    Object.keys(user.earnedBadges ?? {}).filter((id) => catalogIds.has(id)),
+  );
   const total = BADGE_CATALOG.length;
   const section = document.createElement('div');
   section.className = 'badges-section';
