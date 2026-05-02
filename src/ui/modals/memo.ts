@@ -24,7 +24,7 @@ export function openMemoModal(index: number): void {
   const existing = briefing.memo ?? '';
   const escaped = escapeHtml(existing);
 
-  openModal({
+  const wrap = openModal({
     title: '메모',
     bodyHtml: `
       <textarea id="memoInput" class="dg-modal-textarea" rows="6">${escaped}</textarea>
@@ -35,9 +35,10 @@ export function openMemoModal(index: number): void {
     `,
   });
 
-  const saveBtn = document.getElementById('saveMemoBtn');
-  const cancelBtn = document.getElementById('cancelMemoBtn');
-  const input = document.getElementById('memoInput') as HTMLTextAreaElement | null;
+  // v3.14.3 T7 (P2-2 / v3.14.2 P2-NEW-7): wrap-scoped queries — nested modal 안전.
+  const saveBtn = wrap.querySelector('#saveMemoBtn');
+  const cancelBtn = wrap.querySelector('#cancelMemoBtn');
+  const input = wrap.querySelector<HTMLTextAreaElement>('#memoInput');
 
   saveBtn?.addEventListener('click', () => {
     if (input) {

@@ -35,7 +35,7 @@ export function openInterestsModal(): void {
     `;
   }).join('');
 
-  openModal({
+  const wrap = openModal({
     title: '관심 분야 수정',
     bodyHtml: `
       <div class="dg-modal-grid-2col">
@@ -48,9 +48,10 @@ export function openInterestsModal(): void {
     `,
   });
 
-  const saveBtn = document.getElementById('saveInterestsBtn') as HTMLButtonElement | null;
-  const cancelBtn = document.getElementById('cancelInterestsBtn');
-  const boxes = document.querySelectorAll<HTMLInputElement>('input[type="checkbox"]');
+  // v3.14.3 T7 (P2-2 / v3.14.2 P2-NEW-7): wrap-scoped queries — nested modal 안전.
+  const saveBtn = wrap.querySelector<HTMLButtonElement>('#saveInterestsBtn');
+  const cancelBtn = wrap.querySelector('#cancelInterestsBtn');
+  const boxes = wrap.querySelectorAll<HTMLInputElement>('input[type="checkbox"]');
 
   const updateSaveState = (): void => {
     const anyChecked = Array.from(boxes).some((b) => b.checked);
