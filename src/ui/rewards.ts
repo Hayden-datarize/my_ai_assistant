@@ -37,6 +37,12 @@ function spawnToast(html: string, modifier: 'badge' | 'levelup' | 'streak' | 'mi
   return el;
 }
 
+/**
+ * Idempotent: safe to call after element detachment (parentElement check).
+ * Allows close-button click + auto-dismiss setTimeout to race without
+ * double-decrement of activeCount. v3.14.2 T9 (P2-12-7/8 closeout):
+ * 이 guard가 timer leak을 무해화하므로 별도 dedup 추적 불필요.
+ */
 function removeToast(el: HTMLElement): void {
   if (!el.parentElement) return;
   el.remove();
