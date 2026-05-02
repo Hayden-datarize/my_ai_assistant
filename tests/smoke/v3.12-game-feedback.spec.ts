@@ -11,6 +11,11 @@ import { test, expect } from '@playwright/test';
 // Storage shape uses v2 (earnedBadges/gamificationMigrated/schemaVersion) so
 // the welcome-gamification modal does not pop up on home enter and intercept
 // the submit flow.
+//
+// v3.14.3 T5 (P1-3): cold-start margin 정책 — rewards.ts mount이 가장 느린 cold path라
+// 본 spec만 timeout 10_000ms 사용. 다른 smoke spec(`tier-downgrade`, `desktop-layout` 등)은
+// 5000ms 유지. 다른 spec에서 cold-start flake 발생 시 동일 패턴(per-spec opt-in 10s)
+// 또는 centralize(`tests/smoke/_helpers.ts`)로 graduate 검토.
 
 test.describe('v3.12 Game Feedback + Badges', () => {
   test.beforeEach(async ({ page }) => {
@@ -66,8 +71,9 @@ test.describe('v3.12 Game Feedback + Badges', () => {
   });
 
   test('stats 탭 → silhouette grid 6 카테고리 + locked 회색', async ({ page }) => {
-    // v3.14.3 T5: DOM hydrate 신호로 readiness 보장 (#bottomNav 가시화).
-    await expect(page.locator('#bottomNav')).toBeVisible({ timeout: 10_000 });
+    // v3.14.3 T5 (C1 fix): mountNav children populate 신호 = stats button visible.
+    // (#bottomNav 자체는 index.html에 static이라 first paint부터 visible — readiness 신호 부적합)
+    await expect(page.locator('#bottomNav button[data-tab-id="stats"]')).toBeVisible({ timeout: 10_000 });
     await page.locator('#bottomNav button[data-tab-id="stats"]').click();
     await expect(page.locator('#statsTab')).toBeVisible({ timeout: 10_000 });
 
