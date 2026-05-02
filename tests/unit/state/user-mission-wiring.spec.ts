@@ -31,6 +31,7 @@ describe('recordDailyAnswer — mission integration', () => {
     expect(dailyAnswerMission!.progress).toBeGreaterThan(0);
 
     // KST 화요일 고정 → daily-answer-1 (target 1, 즉시 complete) 결정론.
+    // (catalog 변경 시 mulberry32(hashStr('2026-04-28')) seed로 다시 probe 필요 — M1 reviewer)
     expect(dailyAnswerMission!.completed).toBe(true);
     expect(u.xp).toBeGreaterThan(7);              // base + mission bonus
     expect(u.missions.cumulative.dailyCount).toBe(1);
