@@ -1,4 +1,4 @@
-import { describe, it, expect, beforeEach } from 'vitest';
+import { describe, it, expect, beforeEach, vi } from 'vitest';
 
 describe('getCachedUser — corrupt v2 toast (v3.12.1 P2-NEW-4)', () => {
   beforeEach(() => {
@@ -11,10 +11,11 @@ describe('getCachedUser — corrupt v2 toast (v3.12.1 P2-NEW-4)', () => {
     const { getCachedUser } = await import('../../../src/state/user');
     const u = getCachedUser();
     expect(u).toBeNull();
-    // toast 검증 — dynamic import는 microtask이므로 await 필요
-    await new Promise(r => setTimeout(r, 10));
-    const toast = document.querySelector('.toast');
-    expect(toast?.textContent ?? '').toMatch(/저장된 데이터|새로고침/);
+    // v3.14.3 T12 (P3-waitFor): vi.waitFor로 condition-based 대기 (이전 setTimeout 10ms 임의값).
+    await vi.waitFor(() => {
+      const t = document.querySelector('.toast');
+      expect(t?.textContent ?? '').toMatch(/저장된 데이터|새로고침/);
+    });
   });
 
   it('does NOT show toast for clean (no-data) state', async () => {
@@ -36,8 +37,10 @@ describe('getCachedUser — corrupt v2 toast (v3.12.1 P2-NEW-4)', () => {
     const { getCachedUser } = await import('../../../src/state/user');
     const u = getCachedUser();
     expect(u).toBeNull();
-    await new Promise(r => setTimeout(r, 10));
-    const toast = document.querySelector('.toast');
-    expect(toast?.textContent ?? '').toMatch(/저장된 데이터|새로고침/);
+    // v3.14.3 T12 (P3-waitFor): vi.waitFor.
+    await vi.waitFor(() => {
+      const t = document.querySelector('.toast');
+      expect(t?.textContent ?? '').toMatch(/저장된 데이터|새로고침/);
+    });
   });
 });
