@@ -33,6 +33,8 @@ const KEY = 'user';
 function notifyCorruption(): void {
   // v3.14.2 T12 P1 (P2-NEW-4): 손상 v2 data 노출 (v3.7 silent-fail 정책 준수).
   // v3.14.3 T6 (P2-1): HR/GA 친화 텍스트 + 행동 가이드. 4000ms 유지(메시지 길이 + 행동 시간).
+  // v3.14.3 T10 (P3-toast-const): 4000ms — default 2500ms보다 길게.
+  //   메시지(~25자) + 행동("새로고침") 시간 확보. levelup(TOAST_DURATIONS.levelup=4000)과 동일 톤.
   // dynamic import to avoid circular (toast → user는 없으나 안전).
   void import('../utils/toast').then(({ showToast }) => {
     showToast('저장된 데이터를 다시 불러오지 못했어요. 새로고침해 주세요.', 4000);

@@ -4,7 +4,10 @@ import { TIERS } from '../state/leveling';
 import { escapeHtml } from '../utils/escapeHtml';
 
 const MAX_VISIBLE = 3;
-const TOAST_DURATIONS = { badge: 3000, levelup: 4000, streak: 3000, mission: 3500 } as const;
+// v3.14.3 T10 (P3-toast-const): export — spec/외부 코드 canonical 참조.
+// 값 의미: badge unlock(3000) / level-up(4000, 가장 큼: confetti와 함께 시각 가중) /
+// streak milestone(3000) / mission complete(3500).
+export const TOAST_DURATIONS = { badge: 3000, levelup: 4000, streak: 3000, mission: 3500 } as const;
 
 let mounted = false;
 let activeCount = 0;
