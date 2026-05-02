@@ -19,7 +19,7 @@ const BRAND_ALIASES: Record<string, readonly string[]> = {
 export function interestKeywords(id: string): string[] {
   const meta = INTERESTS.find(c => c.id === id);
   if (!meta) return [id.toLowerCase()];
-  const label = meta.label.replace(/^\p{Extended_Pictographic}+\s*/u, '').toLowerCase();
+  const label = meta.label.replace(/^\p{Extended_Pictographic}+️?\s*/u, '').replace(/️/g, '').toLowerCase();
   const tokens = [id.toLowerCase(), ...label.split(/[\s/]+/).filter(Boolean)];
   const aliases = BRAND_ALIASES[id] ?? [];
   return [...tokens, ...aliases];
