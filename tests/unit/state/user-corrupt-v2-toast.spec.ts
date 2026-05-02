@@ -14,7 +14,7 @@ describe('getCachedUser — corrupt v2 toast (v3.12.1 P2-NEW-4)', () => {
     // toast 검증 — dynamic import는 microtask이므로 await 필요
     await new Promise(r => setTimeout(r, 10));
     const toast = document.querySelector('.toast');
-    expect(toast?.textContent ?? '').toMatch(/데이터|손상|복구/);
+    expect(toast?.textContent ?? '').toMatch(/저장된 데이터|새로고침/);
   });
 
   it('does NOT show toast for clean (no-data) state', async () => {
@@ -38,6 +38,6 @@ describe('getCachedUser — corrupt v2 toast (v3.12.1 P2-NEW-4)', () => {
     expect(u).toBeNull();
     await new Promise(r => setTimeout(r, 10));
     const toast = document.querySelector('.toast');
-    expect(toast?.textContent ?? '').toMatch(/데이터|손상|복구/);
+    expect(toast?.textContent ?? '').toMatch(/저장된 데이터|새로고침/);
   });
 });
