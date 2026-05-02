@@ -1,4 +1,4 @@
-import { describe, it, expect, beforeEach } from 'vitest';
+import { describe, it, expect, beforeEach, vi } from 'vitest';
 
 describe('notifyCorruption — friendly UX text (v3.14.3 T6 P2-1)', () => {
   beforeEach(() => {
@@ -12,20 +12,24 @@ describe('notifyCorruption — friendly UX text (v3.14.3 T6 P2-1)', () => {
     const { getCachedUser } = await import('../../../src/state/user');
     const u = getCachedUser();
     expect(u).toBeNull();
-    // dynamic import는 microtask이므로 await 필요
-    await new Promise(r => setTimeout(r, 10));
-    const toast = document.querySelector('.toast');
-    expect(toast?.textContent).toContain('저장된 데이터를');
-    expect(toast?.textContent).toContain('새로고침');
+    // v3.14.3 T12 review (M1): vi.waitFor — dynamic import microtask 폴링.
+    await vi.waitFor(() => {
+      const toast = document.querySelector('.toast');
+      expect(toast?.textContent).toContain('저장된 데이터를');
+      expect(toast?.textContent).toContain('새로고침');
+    });
   });
 
   it('does NOT contain "손상" or "복구 모드" 기술 용어', async () => {
     localStorage.setItem('user', '{not-valid-json');
     const { getCachedUser } = await import('../../../src/state/user');
     getCachedUser();
-    await new Promise(r => setTimeout(r, 10));
-    const toast = document.querySelector('.toast');
-    expect(toast?.textContent ?? '').not.toContain('손상');
-    expect(toast?.textContent ?? '').not.toContain('복구 모드');
+    // v3.14.3 T12 review (M1): vi.waitFor — toast 렌더 후 기술 용어 부재 검증.
+    await vi.waitFor(() => {
+      const toast = document.querySelector('.toast');
+      expect(toast).not.toBeNull(); // toast 렌더 완료까지 대기
+      expect(toast?.textContent ?? '').not.toContain('손상');
+      expect(toast?.textContent ?? '').not.toContain('복구 모드');
+    });
   });
 });
