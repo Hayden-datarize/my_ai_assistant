@@ -43,8 +43,17 @@ function spawnToast(html: string, modifier: 'badge' | 'levelup' | 'streak' | 'mi
 /**
  * Idempotent: safe to call after element detachment (parentElement check).
  * Allows close-button click + auto-dismiss setTimeout to race without
- * double-decrement of activeCount. v3.14.2 T9 (P2-12-7/8 closeout):
- * 이 guard가 timer leak을 무해화하므로 별도 dedup 추적 불필요.
+ * double-decrement of activeCount.
+ *
+ * v3.14.2 T9 (P2-12-7/8 closeout): 이 guard가 timer leak을 무해화하므로
+ * 별도 dedup 추적 불필요.
+ *
+ * v3.14.3 T11 (P3-T9-anchor): test invariant —
+ *   `vi.advanceTimersByTime(durationMs)` 호출 시:
+ *   1. setTimeout(removeToast, durationMs) fire.
+ *   2. removeToast가 detached element(이미 __resetForTest 또는 close-click) 받음.
+ *   3. el.parentElement === null → early return → DOM 변경 0 + activeCount 변경 0.
+ *   결과: zombie toast 없음 + state 손상 없음. spec(rewards-reset-clear-timers)에서 검증.
  */
 function removeToast(el: HTMLElement): void {
   if (!el.parentElement) return;
