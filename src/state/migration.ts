@@ -82,6 +82,20 @@ export function migrateUserToV2(raw: unknown): User {
 }
 
 /**
+ * v3.14.4 T2: MissionInstance numeric field 가드.
+ * windowStart/progress가 NaN/Infinity인 경우 0으로 normalize.
+ * hand-edited LS 또는 future migration JSON-bypass로 인한 silent corruption 차단.
+ * (seen.ts firstSeenAt / usage.ts와 동일 패턴.)
+ */
+function sanitizeMissionInstance(m: MissionInstance): MissionInstance {
+  return {
+    ...m,
+    windowStart: typeof m.windowStart === 'number' && Number.isFinite(m.windowStart) ? m.windowStart : 0,
+    progress: typeof m.progress === 'number' && Number.isFinite(m.progress) ? m.progress : 0,
+  };
+}
+
+/**
  * v3.13: schema v2 → v3 — missions 필드 추가.
  * - active 빈 배열, cumulative 0, ISO 필드 빈 문자열.
  * - shape guard: missions 필드 NaN/잘못된 타입 차단 (silent corruption 방지).
@@ -91,10 +105,11 @@ export function migrateUserToV2(raw: unknown): User {
  * (carry-forward T1, v3.12 #3 closeout). caller가 raw.missions 참조를 보유해도
  * 보강 작업이 그 객체로 leak 되지 않음 (missions 서브트리 atomic guarantee — 다른 사용자 필드는 spread shallow-share).
  *
- * NOTE: `active` 배열은 의도적으로 reference 공유한다.
- * tickMissionProgress가 user.missions.active 항목을 in-place mutate 하므로
- * (v3.13 spec C6 invariant), idempotent path에서도 동일 reference를 유지해야
- * caller가 보유한 user 객체와 정합성이 어긋나지 않는다.
+ * v3.14.4 T2: `active` 배열은 sanitizeMissionInstance로 새 배열·새 인스턴스 객체를 생성하여 반환한다.
+ * 이전(v3.13.1)에는 reference 유지가 invariant였으나, NaN/Infinity 차단을 위해 한 번만(one-shot)
+ * 마이그레이션 시점에 새 객체로 대체한다. migrateUserToV3는 진입점이므로 caller는 반환값을 사용하고
+ * 이후 tickMissionProgress의 in-place mutation은 새 인스턴스 위에서 정상 동작한다 (v3.13 spec C6
+ * invariant — migration 이후 시점에는 동일하게 유지).
  *
  * raw 입력 narrowing: `Partial<User> & {…}` 형태로 좁혀, `unknown` 단일 cast
  * (`as User`)에서 발생하던 미정의 필드 접근 시 type-safety 약화를 보강.
@@ -114,9 +129,11 @@ export function migrateUserToV3(raw: unknown): User {
     return {
       ...(v as User),
       missions: {
-        // active 배열은 reference 유지 — tickMissionProgress가 user.missions.active를 mutate하므로
-        // caller가 동일 user 객체를 보유하면 같은 active를 가리킴 (v3.13 spec C6 invariant 유지)
-        active: m.active,
+        // v3.14.4 T2: 각 MissionInstance의 windowStart/progress NaN/Infinity 차단.
+        // 새 outer 배열 + 새 inner 객체를 생성 (이전 v3.13.1의 reference passthrough invariant
+        // 의도적으로 완화 — sanitize는 마이그레이션 시점 one-shot, 이후 tickMissionProgress의
+        // in-place mutation은 새 인스턴스 위에서 정상 동작).
+        active: (m.active as MissionInstance[]).map(sanitizeMissionInstance),
         cumulative,
         lastDailySeed: typeof m.lastDailySeed === 'string' ? m.lastDailySeed : '',
         currentWeekIso: typeof m.currentWeekIso === 'string' ? m.currentWeekIso : '',

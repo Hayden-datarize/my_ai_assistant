@@ -152,8 +152,11 @@ describe('user schema v2 migration', () => {
     // immutable 패턴: result는 raw와 다른 missions / cumulative 객체
     expect(result.missions).not.toBe(raw.missions);
     expect(result.missions.cumulative).not.toBe(raw.missions.cumulative);
-    // active 배열은 의도적으로 reference 공유 (C6 invariant — tickMissionProgress mutate 호환)
-    expect(result.missions.active).toBe(raw.missions.active);
+    // v3.14.4 T2: active 배열도 sanitize 통과한 새 배열 (windowStart/progress NaN/Infinity 가드).
+    // sanitize는 마이그레이션 시점 one-shot이며, 이후 caller가 보유한 result.missions.active를
+    // 사용하므로 tickMissionProgress의 in-place mutation invariant(C6)는 마이그레이션 이후
+    // 시점부터 정상 유지된다.
+    expect(result.missions.active).not.toBe(raw.missions.active);
     // 값은 보존
     expect(result.missions.cumulative.dailyCount).toBe(1);
     expect(result.missions.cumulative.weeklyCount).toBe(2);
