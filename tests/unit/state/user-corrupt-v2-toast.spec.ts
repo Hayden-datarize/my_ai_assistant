@@ -3,6 +3,7 @@ import { describe, it, expect, beforeEach, vi } from 'vitest';
 describe('getCachedUser — corrupt v2 toast (v3.12.1 P2-NEW-4)', () => {
   beforeEach(() => {
     localStorage.clear();
+    // eslint-disable-next-line no-restricted-syntax -- jsdom fixture, no user interpolation
     document.body.innerHTML = '<div id="modalRoot"></div>';
   });
 
