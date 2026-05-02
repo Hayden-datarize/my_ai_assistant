@@ -19,7 +19,7 @@ let activeOnClose: (() => void) | null = null;
 let activeFocusTrap: FocusTrap | null = null;
 let lastFocusedBeforeOpen: HTMLElement | null = null;
 
-export function openModal(cfg: ModalConfig): void {
+export function openModal(cfg: ModalConfig): HTMLDivElement {
   // 1. Save pre-first-open focus (don't overwrite if already set — modal chain preserves original trigger)
   if (!lastFocusedBeforeOpen) {
     lastFocusedBeforeOpen = document.activeElement as HTMLElement | null;
@@ -69,6 +69,9 @@ export function openModal(cfg: ModalConfig): void {
   // 3. Activate focus trap (auto-focuses first focusable inside modal)
   activeFocusTrap = createFocusTrap(wrap);
   activeFocusTrap.activate();
+
+  // v3.14.2 T14 (P2-NEW-6): wrap return — caller가 자기 modal scope로 query 가능 (nested modal 방어).
+  return wrap;
 }
 
 /**

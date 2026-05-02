@@ -67,7 +67,7 @@ export async function maybeShowWelcomeGamification(): Promise<void> {
     </div>
   `;
 
-  openModal({
+  const wrap = openModal({
     title: '🎉 새 게임화 기능',
     bodyHtml,
     onClose: () => {
@@ -80,8 +80,8 @@ export async function maybeShowWelcomeGamification(): Promise<void> {
     },
   });
 
-  // "stats에서 보기" 버튼 — modal scope query (P2-NEW-1: document scope ID 충돌 방어)
-  document.querySelector<HTMLButtonElement>('.dg-modal #goStatsBtn')
+  // "stats에서 보기" 버튼 — wrap reference로 query (v3.14.2 T14 / P2-NEW-6: nested modal 도입 시도 invariant 유지).
+  wrap.querySelector<HTMLButtonElement>('#goStatsBtn')
     ?.addEventListener('click', async () => {
       const { closeModal } = await import('./shared');
       const { switchTab } = await import('../nav');
