@@ -1,14 +1,22 @@
-import { describe, it, expect, beforeEach } from 'vitest';
+import { describe, it, expect, beforeEach, afterEach, vi } from 'vitest';
 import { recordDailyAnswer, getCachedUser, saveUser } from '../../../src/state/user';
 import { migrateUserToV3 } from '../../../src/state/migration';
 
 beforeEach(() => {
+  // v3.14.3 T4 (P1-2): KST 화요일 자정 직후 고정 — daily-answer-1 시드 결정론.
+  // KST 화요일은 UTC 월요일 15:00 이후. 2026-04-28(KST 화요일) 00:00:00 = UTC 2026-04-27 15:00.
+  vi.useFakeTimers();
+  vi.setSystemTime(new Date('2026-04-27T15:00:00Z'));
   localStorage.clear();
   const v3 = migrateUserToV3({
     name: 'T', interests: [], onboardedAt: 0, streak: 0, lastActiveDate: '',
     xp: 0, earnedBadges: {}, gamificationMigrated: true, schemaVersion: 2,
   });
   saveUser(v3);
+});
+
+afterEach(() => {
+  vi.useRealTimers();
 });
 
 describe('recordDailyAnswer — mission integration', () => {
@@ -22,15 +30,11 @@ describe('recordDailyAnswer — mission integration', () => {
     expect(dailyAnswerMission).toBeDefined();
     expect(dailyAnswerMission!.progress).toBeGreaterThan(0);
 
-    // Either daily-answer-1 (target 1, immediate complete) or daily-answer-2 (target 2, partial)
-    if (dailyAnswerMission!.completed) {
-      expect(u.xp).toBeGreaterThan(7);              // base + mission bonus
-      expect(u.missions.cumulative.dailyCount).toBe(1);
-      expect(events.find(e => e.defId === dailyAnswerMission!.defId)).toBeDefined();
-    } else {
-      expect(u.xp).toBe(7);
-      expect(u.missions.cumulative.dailyCount).toBe(0);
-    }
+    // KST 화요일 고정 → daily-answer-1 (target 1, 즉시 complete) 결정론.
+    expect(dailyAnswerMission!.completed).toBe(true);
+    expect(u.xp).toBeGreaterThan(7);              // base + mission bonus
+    expect(u.missions.cumulative.dailyCount).toBe(1);
+    expect(events.find(e => e.defId === dailyAnswerMission!.defId)).toBeDefined();
   });
 
   it('recordDailyAnswer 본체에서 saveUser 1회만 호출 (mission tick + xp를 단일 write로 커버)', () => {
