@@ -32,6 +32,11 @@ function load(): Usage {
     if (!raw) return { date: today, count: 0 };
     const parsed = JSON.parse(raw) as Usage;
     if (parsed.date !== today) return { date: today, count: 0 };
+    // v3.14.4 T1: count가 NaN/Infinity/non-number이면 silent corruption — 오늘 카운트로 reset
+    // (hand-edited LS 또는 future migration JSON-bypass 대비, seen.ts firstSeenAt와 동일 패턴)
+    if (typeof parsed.count !== 'number' || !Number.isFinite(parsed.count)) {
+      return { date: today, count: 0 };
+    }
     return parsed;
   } catch {
     return { date: today, count: 0 };
