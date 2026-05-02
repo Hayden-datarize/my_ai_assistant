@@ -31,8 +31,9 @@ export type LegacyUser = User;
 const KEY = 'user';
 
 export function getCachedUser(): User | null {
+  let raw: string | null = null;
   try {
-    const raw = localStorage.getItem(KEY);
+    raw = localStorage.getItem(KEY);
     if (!raw) return null;
     const parsed = JSON.parse(raw);
     let user = (parsed?.schemaVersion === 2 || parsed?.schemaVersion === 3)
@@ -47,6 +48,13 @@ export function getCachedUser(): User | null {
     }
     return user as User;
   } catch {
+    // v3.14.2 T12 (P2-NEW-4): 손상 v2 데이터 silent → toast 노출 (v3.7 silent-fail 정책 준수).
+    if (raw !== null) {
+      // dynamic import to avoid circular (toast → user는 없으나 안전).
+      void import('../utils/toast').then(({ showToast }) => {
+        showToast('데이터 손상 감지 — 복구 모드', 4000);
+      }).catch(() => { /* toast import 자체 실패는 production 환경 외 발생 안 함 */ });
+    }
     return null;
   }
 }
