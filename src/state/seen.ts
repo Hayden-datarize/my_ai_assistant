@@ -16,7 +16,8 @@ function loadSeen(): SeenRecord[] {
         typeof r === 'object'
         && r !== null
         && typeof (r as SeenRecord).url === 'string'
-        && typeof (r as SeenRecord).firstSeenAt === 'number',
+        && typeof (r as SeenRecord).firstSeenAt === 'number'
+        && Number.isFinite((r as SeenRecord).firstSeenAt),  // v3.14.3 P1-1: NaN/Infinity 차단 (LRU sort invariant)
     );
   } catch {
     return [];
