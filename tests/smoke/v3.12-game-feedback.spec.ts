@@ -51,35 +51,29 @@ test.describe('v3.12 Game Feedback + Badges', () => {
 
     await textarea.fill('오늘은 TypeScript 타입 가드를 공부했고, 생각보다 유용했다.');
 
-    // v3.14.1 T6: submit 버튼이 활성화될 때까지 명시 대기 (hydration race 제거)
+    // v3.14.3 T5 (P1-3): rewards.ts mount 완료 신호 = #submitBtn enabled (DOM hydrate 후 활성).
     const submitBtn = page.locator('#submitBtn');
-    await expect(submitBtn).toBeEnabled({ timeout: 5000 });
+    await expect(submitBtn).toBeEnabled({ timeout: 10_000 });
     await submitBtn.click();
 
-    // +XP floating animation (cold-start 마진 5000ms)
-    await expect(page.locator('.xp-float')).toBeVisible({ timeout: 5000 });
+    // +XP floating animation (cold-start 마진 10000ms로 확장).
+    await expect(page.locator('.xp-float')).toBeVisible({ timeout: 10_000 });
 
-    // answers-1 badge unlock toast (v3.13 미션 입문 뱃지와 공존 — 첫 답변 toast로 명시 필터)
+    // answers-1 badge unlock toast (v3.13 미션 입문 뱃지와 공존 — 첫 답변 toast로 명시 필터).
     const toast = page.locator('.toast--badge').filter({ hasText: '첫 답변' });
-    await expect(toast).toBeVisible({ timeout: 5000 });
-    // v3.13 미션 입문 뱃지와 공존 가능 — badge name "첫 답변" 또는 일반 suffix "뱃지 획득" 둘 다 허용
+    await expect(toast).toBeVisible({ timeout: 10_000 });
     await expect(toast).toContainText(/첫 답변|뱃지 획득/);
   });
 
   test('stats 탭 → silhouette grid 6 카테고리 + locked 회색', async ({ page }) => {
+    // v3.14.3 T5: DOM hydrate 신호로 readiness 보장 (#bottomNav 가시화).
+    await expect(page.locator('#bottomNav')).toBeVisible({ timeout: 10_000 });
     await page.locator('#bottomNav button[data-tab-id="stats"]').click();
-    await expect(page.locator('#statsTab')).toBeVisible();
+    await expect(page.locator('#statsTab')).toBeVisible({ timeout: 10_000 });
 
-    // 6 카테고리 heading (streak / volume / tier / diversity / engagement / mission)
-    await expect(page.locator('.badges-category h4')).toHaveCount(6);
-
-    // 22 뱃지 모두 grid에 (v3.12 18 + v3.13 mission 4)
-    await expect(page.locator('#badgesGrid .badge')).toHaveCount(22);
-
-    // locked 22 (빈 user — earnedBadges = {}, v3.12 18 + v3.13 mission 4)
-    await expect(page.locator('#badgesGrid .badge--locked')).toHaveCount(22);
-
-    // 첫 locked 뱃지에 🔒 overlay
-    await expect(page.locator('.badge--locked .badge-lock').first()).toContainText('🔒');
+    await expect(page.locator('.badges-category h4')).toHaveCount(6, { timeout: 10_000 });
+    await expect(page.locator('#badgesGrid .badge')).toHaveCount(22, { timeout: 10_000 });
+    await expect(page.locator('#badgesGrid .badge--locked')).toHaveCount(22, { timeout: 10_000 });
+    await expect(page.locator('.badge--locked .badge-lock').first()).toContainText('🔒', { timeout: 10_000 });
   });
 });
