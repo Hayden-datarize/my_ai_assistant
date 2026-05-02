@@ -21,6 +21,11 @@ export async function maybeShowWelcomeGamification(): Promise<void> {
 
   // backfill — try/catch graceful (Risk 1)
   // P2-1: backfill 부분 실패 시 다음 진입에서 재시도되도록 succeeded flag로 onClose 분기.
+  //
+  // v3.14.2 T11 (P2-12-10 annotation): backfill 중 다른 writer가 user를 mutate하는 race는
+  // 이론적으로 가능하나, 현재 home tab 진입 직후 1회 호출 + maybeShowWelcomeGamification은
+  // gamificationMigrated guard로 idempotent. 동시 호출 sources 미존재.
+  // 향후 background sync writer 도입 시 inFlight Promise lock 패턴으로 가드.
   let backfilledIds: string[] = [];
   let backfillSucceeded = false;
   try {
