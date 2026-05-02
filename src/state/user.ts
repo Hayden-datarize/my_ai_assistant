@@ -30,6 +30,14 @@ export type LegacyUser = User;
 
 const KEY = 'user';
 
+function notifyCorruption(): void {
+  // v3.14.2 T12 P1 (P2-NEW-4): 손상 v2 data 노출 (v3.7 silent-fail 정책 준수).
+  // dynamic import to avoid circular (toast → user는 없으나 안전).
+  void import('../utils/toast').then(({ showToast }) => {
+    showToast('데이터 손상 감지 — 복구 모드', 4000);
+  }).catch(() => { /* toast import 자체 실패는 production 환경 외 발생 안 함 */ });
+}
+
 export function getCachedUser(): User | null {
   let raw: string | null = null;
   try {
@@ -40,7 +48,11 @@ export function getCachedUser(): User | null {
       ? parsed
       : migrateUserToV2(parsed);
     user = migrateUserToV3(user);
-    if (!isValidUserShape(user)) return null;
+    if (!isValidUserShape(user)) {
+      // v3.14.2 T12 P1: JSON parse OK이지만 shape invalid도 corruption — 같은 toast.
+      notifyCorruption();
+      return null;
+    }
     if (parsed?.schemaVersion !== 3) {
       // lazy migrate v1/v2 → v3 (정상 데이터만 persist; 손상 데이터는 위에서 null)
       // setItem 실패(Quota 등)는 무시 — in-memory 변환 결과는 그대로 반환
@@ -48,13 +60,7 @@ export function getCachedUser(): User | null {
     }
     return user as User;
   } catch {
-    // v3.14.2 T12 (P2-NEW-4): 손상 v2 데이터 silent → toast 노출 (v3.7 silent-fail 정책 준수).
-    if (raw !== null) {
-      // dynamic import to avoid circular (toast → user는 없으나 안전).
-      void import('../utils/toast').then(({ showToast }) => {
-        showToast('데이터 손상 감지 — 복구 모드', 4000);
-      }).catch(() => { /* toast import 자체 실패는 production 환경 외 발생 안 함 */ });
-    }
+    if (raw !== null) notifyCorruption();
     return null;
   }
 }
