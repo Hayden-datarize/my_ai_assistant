@@ -75,7 +75,10 @@ export function migrateUserToV2(raw: unknown): User {
   delete v2.level;
   v2.earnedBadges = v2.earnedBadges ?? {};
   v2.gamificationMigrated = v2.gamificationMigrated ?? false;
-  return v2 as unknown as User;
+  // v3.14.2 T13 (P2-NEW-5): caller(getCachedUser)에서 isValidUserShape 가드로 검증되므로
+  // 여기서는 partial → User 단일 cast로 narrow 의도 명시. 이중 cast(`as unknown as User`) 제거.
+  // zod 등 schema validation 도입 시 cast 자체 제거 예정.
+  return v2 as Partial<User> as User;
 }
 
 /**
