@@ -104,9 +104,9 @@ export function migrateUserToV3(raw: unknown): User {
   if (v?.schemaVersion === 3 && v.missions && Array.isArray(v.missions.active)) {
     const m = v.missions;
     const cumulative = {
-      dailyCount: typeof m.cumulative?.dailyCount === 'number' ? m.cumulative.dailyCount : 0,
-      weeklyCount: typeof m.cumulative?.weeklyCount === 'number' ? m.cumulative.weeklyCount : 0,
-      monthlyCount: typeof m.cumulative?.monthlyCount === 'number' ? m.cumulative.monthlyCount : 0,
+      dailyCount: Number.isFinite(m.cumulative?.dailyCount) ? (m.cumulative!.dailyCount as number) : 0,
+      weeklyCount: Number.isFinite(m.cumulative?.weeklyCount) ? (m.cumulative!.weeklyCount as number) : 0,
+      monthlyCount: Number.isFinite(m.cumulative?.monthlyCount) ? (m.cumulative!.monthlyCount as number) : 0,
     };
     return {
       ...(v as User),
