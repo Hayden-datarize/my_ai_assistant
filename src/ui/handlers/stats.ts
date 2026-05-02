@@ -262,6 +262,78 @@ function showTooltip(btn: HTMLButtonElement): void {
   setTimeout(() => btn.classList.remove('show-tooltip'), 3000);
 }
 
+/**
+ * Render a single badge button (earned or locked).
+ *
+ * v3.14.2 T10 (P2-12-9): extracted from `hydrateBadges` to keep the parent
+ * function ≤30 lines. Behavior unchanged — `isEarned` controls aria-label /
+ * tooltip / lock overlay / click target (openBadgeDetail vs showTooltip),
+ * and Enter/Space keydown re-dispatches click().
+ */
+function renderBadgeButton(def: BadgeDef, isEarned: boolean): HTMLButtonElement {
+  const btn = document.createElement('button');
+  btn.type = 'button';
+  btn.className = `badge ${isEarned ? 'badge--earned' : 'badge--locked'}`;
+  btn.setAttribute('aria-label', isEarned
+    ? `${def.name} — ${def.description}`
+    : `${def.name} (잠김) — ${def.description}`);
+  if (!isEarned) btn.dataset['tooltip'] = `달성 조건: ${def.description}`;
+  btn.dataset['badgeId'] = def.id;
+  const iconEl = document.createElement('span');
+  iconEl.className = 'badge-icon';
+  iconEl.textContent = def.icon;
+  const nameEl = document.createElement('span');
+  nameEl.className = 'badge-name';
+  nameEl.textContent = def.name;
+  btn.append(iconEl, nameEl);
+  if (!isEarned) {
+    const lock = document.createElement('span');
+    lock.className = 'badge-lock';
+    lock.textContent = '🔒';
+    btn.append(lock);
+  }
+  btn.addEventListener('click', async () => {
+    if (isEarned) {
+      const { openBadgeDetail } = await import('../modals/badge-detail');
+      openBadgeDetail(def.id);
+    } else {
+      showTooltip(btn);
+    }
+  });
+  btn.addEventListener('keydown', (e) => {
+    if (e.key === 'Enter' || e.key === ' ') {
+      e.preventDefault();
+      btn.click();
+    }
+  });
+  return btn;
+}
+
+/**
+ * Render one category (h4 label + nested .badges-grid of badge buttons).
+ *
+ * Returns null when the category has no badges in the catalog (skipped by
+ * caller). Earned status is resolved per badge via the `earned` Set.
+ */
+function renderBadgeCategory(
+  cat: BadgeDef['category'],
+  list: readonly BadgeDef[],
+  earned: ReadonlySet<string>,
+): HTMLElement | null {
+  if (list.length === 0) return null;
+  const catWrap = document.createElement('div');
+  catWrap.className = 'badges-category';
+  const h4 = document.createElement('h4');
+  h4.textContent = CATEGORY_LABELS[cat];
+  const grid = document.createElement('div');
+  grid.className = 'badges-grid';
+  for (const def of list) {
+    grid.append(renderBadgeButton(def, earned.has(def.id)));
+  }
+  catWrap.append(h4, grid);
+  return catWrap;
+}
+
 function hydrateBadges(): void {
   const wrap = document.getElementById('badgesGrid');
   const user = getCachedUser();
@@ -271,8 +343,6 @@ function hydrateBadges(): void {
 
   const earned = new Set(Object.keys(user.earnedBadges ?? {}));
   const total = BADGE_CATALOG.length;
-
-  // section heading
   const section = document.createElement('div');
   section.className = 'badges-section';
   const heading = document.createElement('h3');
@@ -281,54 +351,8 @@ function hydrateBadges(): void {
 
   for (const cat of CATEGORY_ORDER) {
     const list = BADGE_CATALOG.filter((b) => b.category === cat);
-    if (list.length === 0) continue;
-    const catWrap = document.createElement('div');
-    catWrap.className = 'badges-category';
-    const h4 = document.createElement('h4');
-    h4.textContent = CATEGORY_LABELS[cat];
-    const grid = document.createElement('div');
-    grid.className = 'badges-grid';
-    for (const def of list) {
-      const isEarned = earned.has(def.id);
-      const btn = document.createElement('button');
-      btn.type = 'button';
-      btn.className = `badge ${isEarned ? 'badge--earned' : 'badge--locked'}`;
-      btn.setAttribute('aria-label', isEarned
-        ? `${def.name} — ${def.description}`
-        : `${def.name} (잠김) — ${def.description}`);
-      if (!isEarned) btn.dataset['tooltip'] = `달성 조건: ${def.description}`;
-      btn.dataset['badgeId'] = def.id;
-      const iconEl = document.createElement('span');
-      iconEl.className = 'badge-icon';
-      iconEl.textContent = def.icon;
-      const nameEl = document.createElement('span');
-      nameEl.className = 'badge-name';
-      nameEl.textContent = def.name;
-      btn.append(iconEl, nameEl);
-      if (!isEarned) {
-        const lock = document.createElement('span');
-        lock.className = 'badge-lock';
-        lock.textContent = '🔒';
-        btn.append(lock);
-      }
-      btn.addEventListener('click', async () => {
-        if (isEarned) {
-          const { openBadgeDetail } = await import('../modals/badge-detail');
-          openBadgeDetail(def.id);
-        } else {
-          showTooltip(btn);
-        }
-      });
-      btn.addEventListener('keydown', (e) => {
-        if (e.key === 'Enter' || e.key === ' ') {
-          e.preventDefault();
-          btn.click();
-        }
-      });
-      grid.append(btn);
-    }
-    catWrap.append(h4, grid);
-    section.append(catWrap);
+    const catEl = renderBadgeCategory(cat, list, earned);
+    if (catEl) section.append(catEl);
   }
   wrap.append(section);
 }
