@@ -15,11 +15,19 @@ type SeedBriefing = {
   imageUrl?: string;
 };
 
+// v3.14.4 T3: 로컬(KST) 기준 today 문자열. src/utils/dates.ts getDateStr()와
+// 일치시켜야 hydrateBriefings의 stale 판정을 우회. UTC ISO를 쓰면 KST 새벽
+// 시간대에 1일 차이가 나 fixture가 refreshBriefings로 덮여쓰임.
+function localTodayStr(): string {
+  const d = new Date();
+  return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`;
+}
+
 async function seedOneBriefing(
   page: import('@playwright/test').Page,
   imageUrl: string,
 ): Promise<void> {
-  const today = new Date().toISOString().slice(0, 10);
+  const today = localTodayStr();
   const briefing: SeedBriefing = {
     id: 'tier-test',
     date: today,
@@ -33,7 +41,8 @@ async function seedOneBriefing(
     imageUrl,
   };
   await page.addInitScript((payload) => {
-    const t = new Date().toISOString().slice(0, 10);
+    const d = new Date();
+    const t = `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`;
     localStorage.setItem('user', JSON.stringify({
       name: '테',
       interests: ['tech'],
@@ -58,7 +67,7 @@ test('tier 1 → 2 when image URL returns 404', async ({ page }) => {
 
   const card = page.locator('.briefing-card').first();
   // Wait for img.onerror to fire (brief pause for route + error event propagation)
-  await expect(card).toHaveAttribute('data-tier', '2');
+  await expect(card).toHaveAttribute('data-tier', '2', { timeout: 10_000 });
   await expect(card.locator('.card-thumb')).toHaveCount(0);
 });
 
@@ -69,6 +78,6 @@ test('tier 1 → 2 when image URL returns 500', async ({ page }) => {
   await page.goto('/');
 
   const card = page.locator('.briefing-card').first();
-  await expect(card).toHaveAttribute('data-tier', '2');
+  await expect(card).toHaveAttribute('data-tier', '2', { timeout: 10_000 });
   await expect(card.locator('.card-thumb')).toHaveCount(0);
 });

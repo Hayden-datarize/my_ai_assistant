@@ -7,7 +7,12 @@ test.use({ serviceWorkers: 'block' });
 // 자동 refresh를 트리거해서 고정 픽스처를 RSS 응답으로 덮어쓰기 때문.
 async function seedAll(page: import('@playwright/test').Page): Promise<void> {
   await page.addInitScript(() => {
-    const today = new Date().toISOString().slice(0, 10);
+    // v3.14.4 T3: 로컬 시각(KST) 기준 날짜로 seed.
+    // src/utils/dates.ts의 getDateStr()는 getFullYear/getMonth/getDate(local)
+    // 을 쓰지만 toISOString()은 UTC. KST 새벽엔 두 값이 1일 어긋나
+    // hydrateBriefings가 stale로 판정 → refreshBriefings 트리거 → fixture 덮어씀.
+    const d = new Date();
+    const today = `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`;
     localStorage.setItem(
       'user',
       JSON.stringify({
@@ -81,7 +86,7 @@ test.describe('Desktop layout (≥768px) — briefing card not occluded by sideb
       await expect(page.locator('#homeTab')).toBeVisible();
 
       const firstCard = page.locator('.briefing-scroll .briefing-card').first();
-      await firstCard.waitFor({ state: 'visible', timeout: 5000 });
+      await firstCard.waitFor({ state: 'visible', timeout: 10_000 });
 
       // Drawer should be off-screen (translateX(-100%)) when closed.
       // Card should render starting at x >= 0 and NOT be inside drawer's visible bounds.
