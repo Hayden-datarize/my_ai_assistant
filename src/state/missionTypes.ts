@@ -25,5 +25,5 @@ export interface MissionInstance {
   windowStart: number;
   progress: number;
   completed: boolean;
-  progressDates?: string[];
+  progressDates?: readonly string[];
 }

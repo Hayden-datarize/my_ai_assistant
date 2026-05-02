@@ -169,9 +169,9 @@ export function tickMissionProgress(user: User, action: MissionAction, now: Date
 
     if (def.triggerOn === 'active-day') {
       if (action === 'active-day') continue;         // 'active-day' raw action은 호출되지 않음 (방어)
-      m.progressDates = m.progressDates ?? [];
-      if (m.progressDates.includes(todayIso)) continue;
-      m.progressDates.push(todayIso);
+      const dates = m.progressDates ?? [];
+      if (dates.includes(todayIso)) continue;
+      m.progressDates = [...dates, todayIso];
       m.progress = m.progressDates.length;
     } else if (def.triggerOn === action) {
       m.progress++;

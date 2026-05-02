@@ -147,8 +147,11 @@ describe('takeSnapshot — progressDates deep clone (v3.13.1 T4 / P2-4)', () => 
     expect(snap.missionsActive[0]!.progressDates)
       .not.toBe(sharedUser.missions.active[0]!.progressDates);
 
-    // 원본을 mutate해도 snapshot은 영향 없음
-    sharedUser.missions.active[0]!.progressDates!.push('2026-05-02');
+    // 원본을 mutate해도 snapshot은 영향 없음 (v3.14.2 T4: readonly → spread reassignment)
+    sharedUser.missions.active[0]!.progressDates = [
+      ...(sharedUser.missions.active[0]!.progressDates ?? []),
+      '2026-05-02',
+    ];
     expect(snap.missionsActive[0]!.progressDates).toEqual(['2026-05-01']);
 
     vi.doUnmock('../../../src/state/user');
