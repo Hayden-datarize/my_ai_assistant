@@ -1,5 +1,5 @@
 import { describe, it, expect } from 'vitest';
-import { tickPlantActivity, applyMissionBonus, ensurePlantsForInterests } from '../../../src/state/plantEngine';
+import { tickPlantActivity, applyMissionBonus, ensurePlantsForInterests, checkWilting } from '../../../src/state/plantEngine';
 import type { User } from '../../../src/state/user';
 
 function makeUser(): User {
@@ -144,5 +144,44 @@ describe('ensurePlantsForInterests (S10 / P1-4 fix)', () => {
     const last = new Date(u.plantStateByInterest['recruiting']!.lastEngagedAt!).getTime();
     expect(last).toBeGreaterThanOrEqual(before);
     expect(last).toBeLessThanOrEqual(after);
+  });
+});
+
+describe('checkWilting', () => {
+  const fixedNow = new Date('2026-05-15T00:00:00.000Z');
+
+  it('lastEngagedAt 7일 이상 이전 → true', () => {
+    const plant = { lastEngagedAt: '2026-05-08T00:00:00.000Z' };  // 7일 전
+    expect(checkWilting(plant, fixedNow)).toBe(true);
+  });
+
+  it('lastEngagedAt 6일 이전 → false (boundary)', () => {
+    const plant = { lastEngagedAt: '2026-05-09T00:00:00.000Z' };  // 6일 전
+    expect(checkWilting(plant, fixedNow)).toBe(false);
+  });
+
+  it('lastEngagedAt 8일 이전 → true', () => {
+    const plant = { lastEngagedAt: '2026-05-07T00:00:00.000Z' };
+    expect(checkWilting(plant, fixedNow)).toBe(true);
+  });
+
+  it('lastEngagedAt undefined → false (새 식물)', () => {
+    expect(checkWilting({}, fixedNow)).toBe(false);
+  });
+
+  it('lastEngagedAt 손상 ISO → false (defensive)', () => {
+    expect(checkWilting({ lastEngagedAt: 'not-a-date' }, fixedNow)).toBe(false);
+  });
+
+  it('default now (테스트에서 fixed clock 미주입) — wilting 판단 가능', () => {
+    const futureLast = new Date(Date.now() + 1000).toISOString();
+    expect(checkWilting({ lastEngagedAt: futureLast })).toBe(false);  // 미래
+  });
+
+  it('Read-only — plant 객체 변경 안 됨', () => {
+    const plant = { lastEngagedAt: '2026-05-08T00:00:00.000Z', stage: 3 as const };
+    const before = JSON.stringify(plant);
+    checkWilting(plant, fixedNow);
+    expect(JSON.stringify(plant)).toBe(before);
   });
 });

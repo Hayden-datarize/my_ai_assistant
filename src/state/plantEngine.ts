@@ -70,3 +70,23 @@ export function ensurePlantsForInterests(user: User): void {
     }
   }
 }
+
+const WILTING_DAYS_THRESHOLD = 7;  // spec §3.3 / §7-3 placeholder
+
+/**
+ * 식물이 시들었는지 (visual cue) 판단 — read-only, User mutation X.
+ *
+ * lastEngagedAt 7일+ 이전이면 true. 활동 1회 시 lastEngagedAt 갱신되어 즉시 vivid 복귀.
+ * stage는 절대 변하지 않음 (Q7-B 합의).
+ *
+ * @param plant - PlantState
+ * @param now - 현재 시각 (테스트 시 fixed clock 주입 가능, default new Date())
+ */
+export function checkWilting(plant: { lastEngagedAt?: string }, now: Date = new Date()): boolean {
+  if (!plant.lastEngagedAt) return false;  // 새로 생긴 식물은 wilting 아님
+  const last = new Date(plant.lastEngagedAt).getTime();
+  if (!Number.isFinite(last)) return false;  // 손상 ISO → 안전 false
+  const diffMs = now.getTime() - last;
+  const diffDays = diffMs / (24 * 60 * 60 * 1000);
+  return diffDays >= WILTING_DAYS_THRESHOLD;
+}
