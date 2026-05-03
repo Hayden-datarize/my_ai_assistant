@@ -34,4 +34,22 @@ export const MSG = {
   SCRAP_BULK_CONFIRM: (n: number) =>
     `선택한 스크랩 ${n}개를 해제할까요?\n5초 안에 되돌릴 수 있어요.`,
   SCRAP_BULK_UNDO_TOAST: (n: number) => `${n}개 스크랩을 해제했어요.`,
+
+  // Garden (v3.15) — 정원 소개 모달 / 카피
+  GARDEN_INTRODUCE_TITLE: '🌱 정원이 새로 생겼어요',
+  GARDEN_INTRODUCE_BODY:
+    '당신의 활동이 분야별로 식물을 키워요.\n스크랩과 메모가 그 분야 식물에 양분이 되고,\n미션을 완수하면 정원 전체에 비가 와요.',
+  GARDEN_HIGHLIGHT_BACKFILL: (interest: string, stageLabel: string, emoji: string): string =>
+    `기존 활동을 반영했어요 ─ ${interest} 식물이 ${stageLabel}까지 자랐어요 ${emoji}`,
+  GARDEN_NEWCOMER: '씨앗부터 시작해요.',
+  GARDEN_CTA_VIEW: '정원 보러 가기',
+  GARDEN_CTA_CLOSE: '닫기',
+  GARDEN_BLOOM: (interest: string): string => `${interest} 정원이 만개했어요 🌸`,
+  GARDEN_SECTION_TITLE: '내 정원',
+  GARDEN_STAGE_LABEL_SEED: '씨앗',
+  GARDEN_STAGE_LABEL_SPROUT: '새싹',
+  GARDEN_STAGE_LABEL_STEM: '줄기',
+  GARDEN_STAGE_LABEL_BUD: '봉오리',
+  GARDEN_STAGE_LABEL_BLOOM: '만개',
+  GARDEN_TROPHY_LABEL: '만개 ✨',
 } as const;
