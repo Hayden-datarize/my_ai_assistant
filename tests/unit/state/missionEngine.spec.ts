@@ -5,9 +5,12 @@ import type { User } from '../../../src/state/user';
 function makeUser(): User {
   return {
     name: 'T', interests: [], onboardedAt: '', streak: 0, lastActiveDate: '',
-    xp: 0, earnedBadges: {}, gamificationMigrated: true, schemaVersion: 3,
+    xp: 0, earnedBadges: {}, gamificationMigrated: true, schemaVersion: 4,
     missions: { active: [], cumulative: { dailyCount: 0, weeklyCount: 0, monthlyCount: 0 },
                 lastDailySeed: '', currentWeekIso: '', currentMonthIso: '' },
+    plantStateByInterest: {},
+    gardenIntroduced: false,
+    gardenBackfilled: false,
   };
 }
 

@@ -59,6 +59,7 @@ export function migrateUnknown<T extends Record<string, unknown>>(raw: T): T & {
 
 import type { User } from './user';
 import type { MissionInstance } from './missionTypes';
+import type { PlantState } from './plantTypes';
 
 /**
  * v3.12: User v1 → v2 마이그레이션.
@@ -136,6 +137,11 @@ export function migrateUserToV3(raw: unknown): User {
     schemaVersion?: number;
     missions?: Partial<User['missions']>;
   };
+  // S5 fix (Codex P0-1): v4 user는 v3 migrate 통과 — schemaVersion=3 덮어쓰고 missions reset 방지.
+  // v4가 v3의 superset (plantStateByInterest + gardenIntroduced + gardenBackfilled 추가)이므로
+  // 모든 v3 필드 보존되어 안전.
+  if (v?.schemaVersion === 4) return v as User;
+
   if (v?.schemaVersion === 3 && v.missions && Array.isArray(v.missions.active)) {
     const m = v.missions;
     const cumulative = {
@@ -162,7 +168,7 @@ export function migrateUserToV3(raw: unknown): User {
   }
   return {
     ...(v as User),
-    schemaVersion: 3,
+    schemaVersion: 3 as unknown as 4,   // intermediate v3 shape — migrateUserToV4가 곧바로 v4로 올림
     missions: {
       active: [] as MissionInstance[],
       cumulative: { dailyCount: 0, weeklyCount: 0, monthlyCount: 0 },
@@ -170,5 +176,37 @@ export function migrateUserToV3(raw: unknown): User {
       currentWeekIso: '',
       currentMonthIso: '',
     },
+  } as unknown as User;
+}
+
+/**
+ * v3.15: schema v3 → v4 — 분야별 식물 정원(plantStateByInterest) 추가.
+ * - plantStateByInterest: 빈 정원으로 초기화 (backfill은 별도 task에서).
+ * - gardenIntroduced: 환영 모달 1회 flag.
+ * - gardenBackfilled: backfill idempotent flag.
+ * - idempotent: 이미 v4면 그대로 반환 (early return, same reference).
+ */
+export function migrateUserToV4(u: unknown): User {
+  // 입력은 v2 또는 v3 사용자 (migrateUserToV3 통과 직후 호출 가정)
+  const r = u as Record<string, unknown> & {
+    schemaVersion?: number;
+    plantStateByInterest?: unknown;
+    gardenIntroduced?: unknown;
+    gardenBackfilled?: unknown;
   };
+
+  if (r.schemaVersion === 4) return r as unknown as User;
+
+  // v3 → v4 lazy: 빈 정원 + flag 0
+  const migrated = {
+    ...r,
+    schemaVersion: 4 as const,
+    plantStateByInterest:
+      typeof r.plantStateByInterest === 'object' && r.plantStateByInterest !== null
+        ? (r.plantStateByInterest as Record<string, PlantState>)
+        : {},
+    gardenIntroduced: typeof r.gardenIntroduced === 'boolean' ? r.gardenIntroduced : false,
+    gardenBackfilled: typeof r.gardenBackfilled === 'boolean' ? r.gardenBackfilled : false,
+  };
+  return migrated as unknown as User;
 }
