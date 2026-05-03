@@ -1,4 +1,5 @@
 import { test, expect } from '@playwright/test';
+import { getDateStr } from '../../src/utils/dates';
 
 // Block service worker so stats-tab navigation / seeded answers are not
 // cached or intercepted by sw.js (follows convention from layout.spec.ts
@@ -19,23 +20,25 @@ test.use({ serviceWorkers: 'block' });
  *   width at runtime and uses the correct path.
  */
 async function seedAndGoto(page: import('@playwright/test').Page): Promise<void> {
-  await page.addInitScript(() => {
+  // v3.14.5 T1 (Codex IR-1): KST today를 Node-side에서 계산해 args로 전달.
+  // browser-context의 toISOString()은 UTC라 KST 새벽엔 1일 어긋나 .is-today cell 0개로 false-green.
+  const today = getDateStr();
+  await page.addInitScript((args: { today: string }) => {
     localStorage.setItem('user', JSON.stringify({
       name: 'tester',
       interests: ['growth'],
       onboardedAt: '2026-04-01',
       streak: 1, lastActiveDate: '', xp: 10, earnedBadges: {}, gamificationMigrated: true, schemaVersion: 2,
     }));
-    const today = new Date().toISOString().slice(0, 10);
     localStorage.setItem('dg.answers', JSON.stringify([
-      { date: today, text: 'today', type: '감정' },
+      { date: args.today, text: 'today', type: '감정' },
     ]));
     // Reset the first-visit entrance gate so reduce-motion test can
     // deterministically see the animation rule applied / suppressed.
     sessionStorage.removeItem('dg-heatmap-animated');
     // Avoid sidebar-open leak from prior tests persisting into desktop runs.
     localStorage.removeItem('dg-sidebar-last-state');
-  });
+  }, { today });
   await page.goto('/');
   await expect(page.locator('#homeTab')).toBeVisible();
 
@@ -84,7 +87,11 @@ test.describe('heatmap visual + interaction', () => {
 
   test('today cell has .is-today class', async ({ page }) => {
     await seedAndGoto(page);
-    await expect(page.locator('.heatmap-cell.is-today')).toHaveCount(1);
+    const todayCell = page.locator('.heatmap-cell.is-today');
+    await expect(todayCell).toHaveCount(1);
+    // v3.14.5 T1 (Codex IR-1): cell의 [data-date]가 Node-side getDateStr()과 일치하는지
+    // 명시 검증 — KST-shifted host에서 false-green 차단.
+    await expect(todayCell).toHaveAttribute('data-date', getDateStr());
   });
 
   test('keyboard: focus first data cell, ArrowRight moves 7 days', async ({ page }) => {
