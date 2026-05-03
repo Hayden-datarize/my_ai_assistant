@@ -16,6 +16,7 @@ import { getDateStr } from '../../utils/dates';
 import { getCachedUser } from '../../state/user';
 import { TIERS, getCurrentTier } from '../../state/leveling';
 import { BADGE_CATALOG, type BadgeDef } from '../../state/badgeCatalog';
+import { renderGardenGrid } from '../components/garden-grid';
 
 const WEEKDAY_KO = ['월', '화', '수', '목', '금', '토', '일'];
 
@@ -63,6 +64,23 @@ export function hydrateStats(): void {
   hydrateBadges();
   hydrateCategoryBreakdown();
   hydrateGrowthSummary();
+  hydrateGarden();
+}
+
+/** stats 탭 #gardenContainer에 정원 그리드를 렌더링한다. */
+function hydrateGarden(): void {
+  const root = document.getElementById('gardenContainer');
+  const user = getCachedUser();
+  if (!root || !user) return;
+  renderGardenGrid(root, user);
+}
+
+/** 환영 모달 등 외부 호출용 — #gardenSection으로 부드럽게 스크롤한다. */
+export function scrollToGardenSection(): void {
+  const section = document.getElementById('gardenSection');
+  if (section) {
+    section.scrollIntoView({ behavior: 'smooth', block: 'start' });
+  }
 }
 
 function hydrateLevelCard(): void {
