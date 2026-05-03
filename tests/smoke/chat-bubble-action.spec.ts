@@ -1,4 +1,5 @@
 import { test, expect, type Page } from '@playwright/test';
+import { getDateStr } from '../../src/utils/dates';
 
 // B4: verifies end-to-end that when user submits an answer without an API key,
 // a chat bubble with "설정 열기" action is created, and that clicking it
@@ -15,8 +16,8 @@ import { test, expect, type Page } from '@playwright/test';
 // real user would — no synthetic dispatch needed.
 
 async function seedNoApiKey(page: Page): Promise<void> {
-  await page.addInitScript(() => {
-    const today = new Date().toISOString().slice(0, 10);
+  const today = getDateStr();
+  await page.addInitScript((args: { today: string }) => {
     localStorage.setItem(
       'user',
       JSON.stringify({
@@ -24,14 +25,14 @@ async function seedNoApiKey(page: Page): Promise<void> {
         interests: ['tech'],
         onboardedAt: new Date().toISOString(),
         streak: 0,
-        lastActiveDate: today,
+        lastActiveDate: args.today,
         xp: 0,
         earnedBadges: {}, gamificationMigrated: true, schemaVersion: 2,
       }),
     );
     // Ensure no API key so submit triggers the bubble+action path.
     localStorage.removeItem('dg_gemini_key');
-  });
+  }, { today });
 }
 
 test('no API key: answer submit creates "설정 열기" bubble action → navigates to settings', async ({ page }) => {

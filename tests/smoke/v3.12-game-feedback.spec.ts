@@ -1,4 +1,5 @@
 import { test, expect } from '@playwright/test';
+import { getDateStr } from '../../src/utils/dates';
 
 // v3.12 game-feedback + badges end-to-end smoke. Two paths the unit tests
 // (jsdom) can't cover:
@@ -19,8 +20,8 @@ import { test, expect } from '@playwright/test';
 
 test.describe('v3.12 Game Feedback + Badges', () => {
   test.beforeEach(async ({ page }) => {
-    await page.addInitScript(() => {
-      const today = new Date().toISOString().slice(0, 10);
+    const today = getDateStr();
+    await page.addInitScript((args: { today: string }) => {
       localStorage.setItem(
         'user',
         JSON.stringify({
@@ -37,7 +38,7 @@ test.describe('v3.12 Game Feedback + Badges', () => {
       );
       // Seed today's question so hydrateQuestion does not need an API key.
       localStorage.setItem(
-        `dg.todayQuestion.${today}`,
+        `dg.todayQuestion.${args.today}`,
         JSON.stringify({
           type: '분석',
           question: '오늘 가장 인상 깊었던 순간은?',
@@ -46,7 +47,7 @@ test.describe('v3.12 Game Feedback + Badges', () => {
       );
       // Suppress briefings auto-refresh so this spec doesn't hit live RSS.
       sessionStorage.setItem('dg.briefings.auto-refresh-tried', '1');
-    });
+    }, { today });
     await page.goto('/');
   });
 

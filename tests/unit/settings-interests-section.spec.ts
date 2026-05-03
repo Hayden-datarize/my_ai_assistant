@@ -1,4 +1,5 @@
 import { describe, it, expect, beforeEach, afterEach, vi } from 'vitest';
+import { getDateStr } from '../../src/utils/dates';
 
 describe('settings tab: interests section', () => {
   beforeEach(() => {
@@ -15,7 +16,7 @@ describe('settings tab: interests section', () => {
       interests: ['recruiting', 'onboarding'],
       onboardedAt: new Date().toISOString(),
       streak: 0,
-      lastActiveDate: new Date().toISOString().slice(0, 10),
+      lastActiveDate: getDateStr(),
       xp: 0,
       level: 1,
     }));
@@ -72,7 +73,7 @@ describe('settings tab: interests section', () => {
       interests: [],
       onboardedAt: new Date().toISOString(),
       streak: 0,
-      lastActiveDate: new Date().toISOString().slice(0, 10),
+      lastActiveDate: getDateStr(),
       xp: 0,
       level: 1,
     }));
@@ -94,7 +95,7 @@ describe('settings listener registration (P1-1 fix)', () => {
       interests: ['recruiting'],
       onboardedAt: new Date().toISOString(),
       streak: 0,
-      lastActiveDate: new Date().toISOString().slice(0, 10),
+      lastActiveDate: getDateStr(),
       xp: 0,
       level: 1,
     }));

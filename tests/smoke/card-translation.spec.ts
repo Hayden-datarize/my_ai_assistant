@@ -1,4 +1,5 @@
 import { test, expect } from '@playwright/test';
+import { getDateStr } from '../../src/utils/dates';
 
 // Block service worker so tests don't hit stale caches.
 test.use({ serviceWorkers: 'block' });
@@ -23,23 +24,23 @@ test('영문 카드 토글: 한글 ↔ 영문 swap', async ({ page }) => {
     });
   });
 
-  await page.addInitScript((init) => {
+  const today = getDateStr();
+  await page.addInitScript((args: { init: string; today: string }) => {
     // eslint-disable-next-line no-eval
-    eval(init);
+    eval(args.init);
     localStorage.setItem('dg_gemini_key', 'TEST_KEY');
     // Mark auto-refresh as already-tried so hydrateBriefings doesn't kick off
     // a refresh when the seeded date doesn't match the runner's local date.
     sessionStorage.setItem('dg.briefings.auto-refresh-tried', '1');
     // Use a far-future date so any date-comparison still treats it as today-ish
     // (firstDate !== today triggers refresh path, but session flag blocks it).
-    const today = new Date().toISOString().slice(0, 10);
     localStorage.setItem('briefings', JSON.stringify([{
-      id: 'card-1', date: today, url: 'https://e.com/x',
+      id: 'card-1', date: args.today, url: 'https://e.com/x',
       title: 'OpenAI launches new model',
       summary: 'OpenAI announced a new GPT model with improved reasoning capabilities and lower cost.',
       scrapped: false, read: false, memo: '',
     }]));
-  }, seedUser);
+  }, { init: seedUser, today });
 
   await page.goto('/');
   // Wait for card to render
@@ -59,36 +60,36 @@ test('영문 카드 토글: 한글 ↔ 영문 swap', async ({ page }) => {
 });
 
 test('한글 카드는 토글 노출 안 됨', async ({ page }) => {
-  await page.addInitScript((init) => {
+  const today = getDateStr();
+  await page.addInitScript((args: { init: string; today: string }) => {
     // eslint-disable-next-line no-eval
-    eval(init);
+    eval(args.init);
     localStorage.setItem('dg_gemini_key', 'TEST_KEY');
-    const today = new Date().toISOString().slice(0, 10);
     localStorage.setItem('briefings', JSON.stringify([{
-      id: 'card-1', date: today, url: 'https://e.com/y',
+      id: 'card-1', date: args.today, url: 'https://e.com/y',
       title: '오픈AI 새 모델 발표',
       summary: '한국어 본문입니다.',
       scrapped: false, read: false, memo: '',
     }]));
-  }, seedUser);
+  }, { init: seedUser, today });
   await page.goto('/');
   await expect(page.locator('.briefing-card')).toHaveCount(1, { timeout: 5000 });
   await expect(page.locator('.card-lang-toggle')).toHaveCount(0);
 });
 
 test('API key 없으면 토글 비노출', async ({ page }) => {
-  await page.addInitScript((init) => {
+  const today = getDateStr();
+  await page.addInitScript((args: { init: string; today: string }) => {
     // eslint-disable-next-line no-eval
-    eval(init);
+    eval(args.init);
     localStorage.removeItem('dg_gemini_key');
-    const today = new Date().toISOString().slice(0, 10);
     localStorage.setItem('briefings', JSON.stringify([{
-      id: 'card-1', date: today, url: 'https://e.com/x',
+      id: 'card-1', date: args.today, url: 'https://e.com/x',
       title: 'OpenAI launches',
       summary: 'English body content here for testing only.',
       scrapped: false, read: false, memo: '',
     }]));
-  }, seedUser);
+  }, { init: seedUser, today });
   await page.goto('/');
   await expect(page.locator('.briefing-card')).toHaveCount(1, { timeout: 5000 });
   await expect(page.locator('.card-lang-toggle')).toHaveCount(0);
@@ -109,19 +110,19 @@ test('background queue: 영문 제목이 자동으로 한글로 swap된다', asy
     });
   });
 
-  await page.addInitScript((init) => {
+  const today = getDateStr();
+  await page.addInitScript((args: { init: string; today: string }) => {
     // eslint-disable-next-line no-eval
-    eval(init);
+    eval(args.init);
     sessionStorage.setItem('dg.briefings.auto-refresh-tried', '1');
     localStorage.setItem('dg_gemini_key', 'TEST_KEY');
-    const today = new Date().toISOString().slice(0, 10);
     localStorage.setItem('briefings', JSON.stringify([{
-      id: 'card-1', date: today, url: 'https://e.com/x',
+      id: 'card-1', date: args.today, url: 'https://e.com/x',
       title: 'OpenAI launches new model',
       summary: 'long English body containing more than eighty characters to trigger summarize path. lorem ipsum dolor sit amet.',
       scrapped: false, read: false, memo: '',
     }]));
-  }, seedUser);
+  }, { init: seedUser, today });
 
   await page.goto('/');
   await expect(page.locator('.briefing-card')).toHaveCount(1, { timeout: 5000 });

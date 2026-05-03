@@ -1,18 +1,19 @@
 import { test, expect } from '@playwright/test';
+import { getDateStr } from '../../src/utils/dates';
 
 test.use({ serviceWorkers: 'block' });
 
 async function seedUser(page: import('@playwright/test').Page, interests: string[]): Promise<void> {
-  await page.addInitScript((ids) => {
-    const today = new Date().toISOString().slice(0,10);
+  const today = getDateStr();
+  await page.addInitScript((args: { ids: string[]; today: string }) => {
     localStorage.setItem('user', JSON.stringify({
-      name: '테', interests: ids,
+      name: '테', interests: args.ids,
       onboardedAt: new Date().toISOString(),
-      streak: 0, lastActiveDate: today, xp: 0, earnedBadges: {}, gamificationMigrated: true, schemaVersion: 2,
+      streak: 0, lastActiveDate: args.today, xp: 0, earnedBadges: {}, gamificationMigrated: true, schemaVersion: 2,
     }));
     // v3.3.4.3: suppress briefings auto-refresh (no briefings fixture seeded)
     sessionStorage.setItem('dg.briefings.auto-refresh-tried', '1');
-  }, interests);
+  }, { ids: interests, today });
 }
 
 test('settings: opens interests modal + save adds a chip + persists', async ({ page }) => {

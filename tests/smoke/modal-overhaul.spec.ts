@@ -1,19 +1,21 @@
 import { test, expect, type Page } from '@playwright/test';
+import { getDateStr } from '../../src/utils/dates';
 
 async function seedUserAndAnswer(page: Page): Promise<void> {
-  await page.addInitScript(() => {
+  const today = getDateStr();
+  await page.addInitScript((args: { today: string }) => {
     localStorage.setItem('user', JSON.stringify({
       name: '테스트', interests: ['ai_ml'], onboardedAt: new Date().toISOString(),
       streak: 0, lastActiveDate: new Date().toISOString(), xp: 0, earnedBadges: {}, gamificationMigrated: true, schemaVersion: 2,
     }));
     localStorage.setItem('dg.answers', JSON.stringify([{
       id: 'a1', questionId: 'q1', text: '테스트 답변 내용', authorId: 'self',
-      type: 'reflection', date: new Date().toISOString().slice(0, 10),
+      type: 'reflection', date: args.today,
       createdAt: new Date().toISOString(), schemaVersion: 1,
     }]));
     // v3.3.4.3: suppress briefings auto-refresh (no briefings fixture seeded)
     sessionStorage.setItem('dg.briefings.auto-refresh-tried', '1');
-  });
+  }, { today });
 }
 
 async function openArchiveModal(page: Page, viewport: 'mobile' | 'desktop'): Promise<void> {
