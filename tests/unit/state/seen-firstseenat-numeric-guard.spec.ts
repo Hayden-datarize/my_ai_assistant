@@ -21,7 +21,7 @@ describe('seen — firstSeenAt Number.isFinite guard (v3.14.3 P1-1)', () => {
     vi.restoreAllMocks();
   });
 
-  it('rejects records with NaN firstSeenAt (defensive guard, JSON 우회 simulation)', async () => {
+  it('NaN firstSeenAt → isSeen false (JSON 우회 simulation, defensive guard)', async () => {
     vi.spyOn(JSON, 'parse').mockImplementationOnce(() => [
       { url: 'https://valid.example/1', firstSeenAt: 1735000000000 },
       { url: 'https://nan.example/2', firstSeenAt: NaN },
@@ -29,26 +29,41 @@ describe('seen — firstSeenAt Number.isFinite guard (v3.14.3 P1-1)', () => {
     // `localStorage.setItem`은 mock된 JSON.parse가 무시하므로 생략 — loadSeen 내부 `getItem` 결과는
     // null → '[]' fallback이 되고 mockImplementationOnce가 우선 적용된다.
     const { isSeen } = await import('../../../src/state/seen');
-    expect(isSeen('https://valid.example/1', 1735000000000)).toBe(true);
-    expect(isSeen('https://nan.example/2', 1735000000000)).toBe(false);
+    expect(
+      isSeen('https://valid.example/1', 1735000000000),
+      'valid finite firstSeenAt → seen',
+    ).toBe(true);
+    expect(
+      isSeen('https://nan.example/2', 1735000000000),
+      'NaN firstSeenAt should be filtered out by guard',
+    ).toBe(false);
   });
 
-  it('rejects records with Infinity firstSeenAt (defensive guard)', async () => {
+  it('Infinity firstSeenAt → isSeen false (strict invariant, guard 부재 시 RED)', async () => {
     vi.spyOn(JSON, 'parse').mockImplementationOnce(() => [
       { url: 'https://inf.example/1', firstSeenAt: Infinity },
     ]);
     const { isSeen } = await import('../../../src/state/seen');
-    expect(isSeen('https://inf.example/1', 1735000000000)).toBe(false);
+    expect(
+      isSeen('https://inf.example/1', 1735000000000),
+      'Infinity firstSeenAt should be filtered out by guard',
+    ).toBe(false);
   });
 
-  it('LRU sort stable when one record is corrupted (JSON 우회 simulation)', async () => {
+  it('NaN-corrupted record 1건 + 정상 1건 → LRU sort stable (정상만 active)', async () => {
     vi.spyOn(JSON, 'parse').mockImplementationOnce(() => [
       { url: 'https://corrupt.example/x', firstSeenAt: NaN },
     ]);
     const { recordSeen, loadActiveSeenUrls } = await import('../../../src/state/seen');
     recordSeen(['https://normal.example/y'], 1735000000000);
     const active = loadActiveSeenUrls(1735000000000);
-    expect(active.has('https://normal.example/y')).toBe(true);
-    expect(active.has('https://corrupt.example/x')).toBe(false);
+    expect(
+      active.has('https://normal.example/y'),
+      'normal record should remain active',
+    ).toBe(true);
+    expect(
+      active.has('https://corrupt.example/x'),
+      'NaN-corrupted record should be excluded',
+    ).toBe(false);
   });
 });
