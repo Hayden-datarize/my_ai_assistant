@@ -2,6 +2,7 @@ import type { User } from './user';
 import type { MissionInstance, MissionPeriod, MissionAction } from './missionTypes';
 import { DAILY_POOL, WEEKLY_FIXED, MONTHLY_FIXED, getMissionDef } from './missionCatalog';
 import { assertNever } from '../utils/assertNever';
+import { applyMissionBonus } from './plantEngine';
 
 // en-CA 로케일은 YYYY-MM-DD 형식을 보장 (ISO 8601 준수)
 const KST_FMT = new Intl.DateTimeFormat('en-CA', { timeZone: 'Asia/Seoul', year: 'numeric', month: '2-digit', day: '2-digit' });
@@ -183,9 +184,18 @@ export function tickMissionProgress(user: User, action: MissionAction, now: Date
       m.completed = true;
       user.xp += def.rewardXp;
       switch (m.period) {
-        case 'daily':   user.missions.cumulative.dailyCount++;   break;
-        case 'weekly':  user.missions.cumulative.weeklyCount++;  break;
-        case 'monthly': user.missions.cumulative.monthlyCount++; break;
+        case 'daily':
+          user.missions.cumulative.dailyCount++;
+          applyMissionBonus(user, 'daily');    // v3.15 T6: mission anchor 이행
+          break;
+        case 'weekly':
+          user.missions.cumulative.weeklyCount++;
+          applyMissionBonus(user, 'weekly');
+          break;
+        case 'monthly':
+          user.missions.cumulative.monthlyCount++;
+          applyMissionBonus(user, 'monthly');
+          break;
         default:        assertNever(m.period);
       }
     }
