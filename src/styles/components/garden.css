@@ -1,0 +1,92 @@
+/* ============================================
+   Component — garden (v3.15)
+   Loaded into @layer components via main.css
+   ============================================ */
+@layer components {
+  /* Full grid (stats 탭) */
+  .garden-grid {
+    display: grid;
+    grid-template-columns: repeat(3, 1fr);
+    gap: 12px;
+  }
+  @media (max-width: 480px) {
+    .garden-grid { grid-template-columns: 1fr; }
+  }
+  .garden-card {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 4px;
+    padding: 16px 12px;
+    border-radius: 12px;
+    background: var(--bg-card);
+    min-height: 160px;
+    position: relative;
+    transition: transform 0.2s, box-shadow 0.2s;
+  }
+  .garden-card.bloomed {
+    background: linear-gradient(135deg, var(--bg-card), var(--accent-light));
+  }
+  .garden-card.wilting {
+    opacity: 0.5;
+    filter: grayscale(0.4);
+    transform: rotate(-2deg);
+  }
+  .garden-emoji { font-size: 32px; }
+  .garden-name { font-weight: 600; font-size: var(--font-size-sm); }
+  .garden-stage-label { color: var(--text-secondary); font-size: var(--font-size-xs); }
+  .garden-cum-count { color: var(--text-tertiary); font-size: var(--font-size-xs); }
+  .garden-trophy { margin-left: 4px; }
+
+  /* Mini preview row (홈) */
+  .garden-mini-row {
+    display: flex;
+    gap: 8px;
+    padding: 12px 0;
+    overflow-x: auto;  /* 6+ 분야 narrow 화면 fallback */
+  }
+  .garden-mini-cell {
+    flex: 0 0 50px;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 2px;
+    padding: 8px 4px;
+    background: transparent;
+    border: 0;
+    border-radius: 8px;
+    cursor: pointer;
+    transition: box-shadow 0.15s;
+    position: relative;
+  }
+  .garden-mini-cell:hover,
+  .garden-mini-cell:active {
+    /* tap target 시각 cue */
+    box-shadow: 0 4px 8px rgba(0, 0, 0, 0.1);
+  }
+  .garden-mini-cell.wilting {
+    opacity: 0.5;
+    filter: grayscale(0.4);
+  }
+  .garden-mini-emoji { font-size: 24px; }
+  .garden-mini-label { font-size: 11px; color: var(--text-secondary); }
+  .garden-mini-trophy {
+    position: absolute;
+    top: 2px;
+    right: 2px;
+    font-size: 10px;
+  }
+
+  .garden-empty {
+    color: var(--text-tertiary);
+    text-align: center;
+    padding: 24px;
+  }
+
+  @media (prefers-reduced-motion: reduce) {
+    .garden-card,
+    .garden-mini-cell {
+      transition: none;
+    }
+  }
+}

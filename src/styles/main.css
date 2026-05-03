@@ -12,6 +12,7 @@
 @import './components/cards.css' layer(components);
 @import './components/forms.css' layer(components);
 @import './components/heatmap.css' layer(components);
+@import './components/garden.css' layer(components);
 @import './components/shared.css' layer(components);
 @import './pages/home.css' layer(components);
 @import './pages/archive.css' layer(components);
