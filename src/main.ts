@@ -6,6 +6,7 @@ import { mountStatsHandlers } from './ui/handlers/stats';
 import { mountMissionsHandlers } from './ui/handlers/missions';
 import { mountRewards } from './ui/rewards';
 import { renderOnboarding } from './ui/onboarding';
+import { maybeShowWelcomeGarden } from './ui/modals/welcome-garden';
 import { qs } from './utils/dom';
 
 const USER_STORAGE = 'user';
@@ -28,6 +29,8 @@ function bootMainApp(): void {
   mountSidebar();
   mountRewards();
   switchTab('home');
+  // v3.15: onboarding 완료 사용자에게만 환영 정원 모달 1회 표시 (gardenIntroduced flag guard)
+  maybeShowWelcomeGarden();
 }
 
 function bootOnboarding(): void {

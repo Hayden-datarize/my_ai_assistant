@@ -8,7 +8,7 @@ import { escapeHtml } from '../../utils/escapeHtml';
  * 실제 INTERESTS catalog 15개 ID 기준 (`src/utils/categories.ts`).
  * 사용자 정의 분야는 id 그대로 fallback (escapeHtml 적용).
  */
-const INTEREST_LABEL: Record<string, string> = {
+export const INTEREST_LABEL: Record<string, string> = {
   recruiting:    '채용',
   onboarding:    '온보딩',
   culture:       '조직문화',
