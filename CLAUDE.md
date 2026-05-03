@@ -74,6 +74,16 @@ firebase deploy --only hosting   # 사용자 명시 승인 후
 
 ---
 
+## Deploy 패턴 (v3.14.4 T14 graduation)
+
+본 프로젝트는 **origin remote 미등록 — main 직배포 패턴**을 사용한다:
+
+- 사용자 "배포해줘" 명시 시점에만 `npm run build` → `firebase deploy --only hosting`.
+- `git push` 시도 금지 (origin 없음).
+- PR 워크플로 N/A (main 직커밋).
+
+---
+
 ## Codex 2-pass Review (v3.14.4 T13 graduation, lesson #1)
 
 각 사이클은 다음 두 시점에 **Codex 독립 review**를 받는다:
