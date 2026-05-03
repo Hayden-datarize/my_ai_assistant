@@ -5,8 +5,16 @@ import { escapeHtml } from '../utils/escapeHtml';
 
 const MAX_VISIBLE = 3;
 // v3.14.3 T10 (P3-toast-const): export — spec/외부 코드 canonical 참조.
-// 값 의미: badge unlock(3000) / level-up(4000, 가장 큼: confetti와 함께 시각 가중) /
-// streak milestone(3000) / mission complete(3500).
+// v3.14.4 T9 (M2): 일관성 정당화 추가.
+//
+// gamification toast 전용 scale (3000~4000ms). general-purpose toast(`utils/toast.ts`
+// default 2500ms, `user.ts` corruption 4000ms)와는 분리된 도메인.
+//
+// 값 정당화:
+// - badge(3000)·streak(3000): 단순 알림, 짧지도 길지도 않은 표준값.
+// - levelup(4000): confetti 애니메이션(1100ms)과 함께 시각 가중 — corruption(4000)과
+//   동일 상한, "축하" 가독성 마진.
+// - mission(3500): 미션 progress text가 길어 streak/badge보다 약간 김.
 export const TOAST_DURATIONS = { badge: 3000, levelup: 4000, streak: 3000, mission: 3500 } as const;
 
 let mounted = false;
@@ -41,19 +49,28 @@ function spawnToast(html: string, modifier: 'badge' | 'levelup' | 'streak' | 'mi
 }
 
 /**
- * Idempotent: safe to call after element detachment (parentElement check).
- * Allows close-button click + auto-dismiss setTimeout to race without
- * double-decrement of activeCount.
+ * Toast DOM 제거 + activeCount 감소.
+ *
+ * Idempotent: parentElement === null이면 early return — close-click + auto-dismiss
+ * setTimeout race에서 double-decrement 방지.
  *
  * v3.14.2 T9 (P2-12-7/8 closeout): 이 guard가 timer leak을 무해화하므로
  * 별도 dedup 추적 불필요.
  *
- * v3.14.3 T11 (P3-T9-anchor): test invariant —
- *   `vi.advanceTimersByTime(durationMs)` 호출 시:
- *   1. setTimeout(removeToast, durationMs) fire.
- *   2. removeToast가 detached element(이미 __resetForTest 또는 close-click) 받음.
- *   3. el.parentElement === null → early return → DOM 변경 0 + activeCount 변경 0.
- *   결과: zombie toast 없음 + state 손상 없음. spec(rewards-reset-clear-timers)에서 검증.
+ * v3.14.3 T11 + v3.14.4 T9 (M1, fake-timer anchor):
+ *   spawnToast가 등록한 `setTimeout(() => removeToast(el), durationMs)` 콜백은
+ *   `vi.advanceTimersByTime(durationMs)` 호출 시 fire한다. 따라서 spec에서
+ *   명시적 removeToast 호출 불필요 — fake timer side-effect로 자동 호출됨.
+ *
+ *   Detached element를 받는 경로 (race window):
+ *   1. `__resetForTest()` 가 container를 비운 직후 timer fire
+ *   2. close-button click이 timer fire 직전 발생
+ *   양쪽 모두 `el.parentElement === null` → early return → DOM/state 변경 0.
+ *
+ *   spec: `tests/unit/ui/rewards-reset-clear-timers.spec.ts`.
+ *
+ * @internal — production caller는 spawnToast의 setTimeout/close-click handler
+ * 두 개뿐. 외부 모듈에서 직접 호출 안 함.
  */
 function removeToast(el: HTMLElement): void {
   if (!el.parentElement) return;
