@@ -34,9 +34,9 @@ describe('events', () => {
     off();
   });
 
-  it('EVENT_NAMES covers all 22 wired events (16 tab-dispatched + 1 nav + 5 reward)', () => {
-    expect(EVENT_NAMES).toHaveLength(22);
-    expect(new Set(EVENT_NAMES).size).toBe(22);
+  it('EVENT_NAMES covers all 23 wired events (16 tab-dispatched + 1 nav + 6 reward)', () => {
+    expect(EVENT_NAMES).toHaveLength(23);
+    expect(new Set(EVENT_NAMES).size).toBe(23);
   });
 
   it('V32_DEFERRED_EVENTS lists the 6 v3.2 stubs', () => {

@@ -19,6 +19,8 @@ export interface Snapshot {
   missionsActive: ReadonlyArray<Readonly<MissionInstance>>;
   /** v3.13 T5: 누적 완료 카운트 (daily/weekly/monthly) */
   missionsCumulative: { daily: number; weekly: number; monthly: number };
+  /** v3.15 T5: interestId → stage (entry 미생성 시 key 부재) */
+  plantStages: Record<string, number>;
 }
 
 export type GameEvent =
@@ -26,6 +28,7 @@ export type GameEvent =
   | { kind: 'level-up'; tierId: number; at: number }
   | { kind: 'streak-milestone'; days: number; at: number }
   | { kind: 'badge'; badgeId: string; at: number }
-  | { kind: 'mission-complete'; defId: string; period: MissionPeriod; rewardXp: number; at: number };
+  | { kind: 'mission-complete'; defId: string; period: MissionPeriod; rewardXp: number; at: number }
+  | { kind: 'plant-stage-up'; interestId: string; newStage: 1 | 2 | 3 | 4 | 5; at: number };
 
 export const STREAK_MILESTONES = [3, 7, 30, 100, 365] as const;

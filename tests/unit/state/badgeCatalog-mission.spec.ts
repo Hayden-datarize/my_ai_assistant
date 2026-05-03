@@ -16,6 +16,7 @@ function snapshot(daily: number, weekly: number, monthly: number): Snapshot {
     earnedBadgeIds: new Set(),
     missionsActive: [],
     missionsCumulative: { daily, weekly, monthly },
+    plantStages: {},
   };
 }
 

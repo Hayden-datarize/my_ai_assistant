@@ -45,7 +45,10 @@ describe('wiring-gap', () => {
       }
     }
 
-    const missingListener = [...dispatched].filter(n => !listened.has(n));
+    // v3.15 T5: listener 등록 예정 (T14) — dispatcher만 선행 추가, listener는 T14에서 wiring.
+    const LISTENER_DEFERRED = new Set(['dg:reward:plant-stage-up']);
+
+    const missingListener = [...dispatched].filter(n => !listened.has(n) && !LISTENER_DEFERRED.has(n));
     const missingDispatcher = [...listened].filter(n => !dispatched.has(n));
     expect(missingListener, 'events dispatched without listener').toEqual([]);
     expect(missingDispatcher, 'listeners for events never dispatched').toEqual([]);

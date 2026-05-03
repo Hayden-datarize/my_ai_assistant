@@ -83,6 +83,10 @@ export function takeSnapshot(): Snapshot {
       weekly: u?.missions?.cumulative?.weeklyCount ?? 0,
       monthly: u?.missions?.cumulative?.monthlyCount ?? 0,
     },
+    // v3.15 T5: plantStateByInterest → stage만 추출 (pre-migration user에서 undefined → 빈 객체)
+    plantStages: Object.fromEntries(
+      Object.entries(u?.plantStateByInterest ?? {}).map(([id, p]) => [id, p.stage])
+    ),
   };
 }
 
@@ -122,6 +126,20 @@ export function detectEvents(prev: Snapshot, curr: Snapshot): GameEvent[] {
     const def = getMissionDef(cm.defId);
     if (!def) continue;
     out.push({ kind: 'mission-complete', defId: cm.defId, period: cm.period, rewardXp: def.rewardXp, at });
+  }
+
+  // v3.15 T5: plant-stage-up — stage 증가 시 emit.
+  // S1 fix: prev에 entry 없음(분야 추가 직후 / backfill 직후) → ??(currStage)로 0-diff 처리 → false emit 방지.
+  for (const [id, currStage] of Object.entries(curr.plantStages)) {
+    const prevStage = prev.plantStages[id] ?? currStage;
+    if (prevStage < currStage) {
+      out.push({
+        kind: 'plant-stage-up',
+        interestId: id,
+        newStage: currStage as 1 | 2 | 3 | 4 | 5,
+        at,
+      });
+    }
   }
 
   return out;
@@ -169,6 +187,9 @@ export function emitEvents(events: GameEvent[]): void {
         break;
       case 'mission-complete':
         dispatch('dg:reward:mission-complete', { defId: e.defId, period: e.period, rewardXp: e.rewardXp, at: e.at });
+        break;
+      case 'plant-stage-up':
+        dispatch('dg:reward:plant-stage-up', { interestId: e.interestId, newStage: e.newStage, at: e.at });
         break;
       default:
         assertNever(e);

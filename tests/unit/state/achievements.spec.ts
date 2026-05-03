@@ -14,6 +14,7 @@ function emptySnap(over: Partial<Snapshot> = {}): Snapshot {
     earnedBadgeIds: new Set(),
     missionsActive: [],
     missionsCumulative: { daily: 0, weekly: 0, monthly: 0 },
+    plantStages: {},
     ...over,
   };
 }
