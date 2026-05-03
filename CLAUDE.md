@@ -72,6 +72,8 @@ firebase deploy --only hosting   # 사용자 명시 승인 후
 
 사이클 끝(배포 직전): `npm run lint && npm test && npm run test:smoke` 3종 일괄 재확인.
 
+**Bundle 측정 표준 (v3.14.5 T5 graduation)**: 사이클 retro에 bundle 절대값 기록 시 `gzip -c dist/assets/index-*.js | wc -c` 단일 stream을 canonical로 기록한다. vite reporter chunked estimation은 dual-record 폐기 (v3.14.4가 마지막 사례).
+
 ---
 
 ## Deploy 패턴 (v3.14.4 T14 graduation)
