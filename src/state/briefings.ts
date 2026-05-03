@@ -1,8 +1,12 @@
 import { isHttpsUrl } from '../utils/url';
+import { interestKeywords, matchKeyword } from '../utils/interestKeywords';
+import { showToast } from '../utils/toast';
 import { takeSnapshot, runSweep } from './achievements';
 import { getActiveMissions, tickMissionProgress } from './missionEngine';
 import type { MissionAction } from './missionTypes';
-import { getCachedUser, saveUser } from './user';
+import { tickPlantActivity } from './plantEngine';
+import { getCachedUser, saveUser, getSaveErrorMessage } from './user';
+import type { User } from './user';
 
 export interface Briefing {
   id: string;
@@ -58,6 +62,25 @@ function mutate(index: number, fn: (b: Briefing) => void): void {
   saveBriefings(list);
 }
 
+/**
+ * briefing 1개에 매칭되는 모든 분야로 tickPlantActivity 호출 (in-memory only).
+ *
+ * T7 (S7 fix / Codex P1-1): saveUser 호출하지 않음. caller (mutateWithSweep) 가 단일
+ * saveUser 시점에 모든 mutate 결과 persist. atomic single-write 원칙 (v3.10/v3.13.1).
+ *
+ * @param user    - User (in-memory mutate)
+ * @param briefing - 분야 매칭 대상
+ * @param delta   - 보통 +1 (스크랩 1회 또는 메모 1회)
+ */
+export function tickPlantsByBriefingInMemory(user: User, briefing: Briefing, delta: number): void {
+  const hay = `${briefing.sourceTitle ?? ''} ${briefing.title} ${briefing.summary}`.toLowerCase();
+  for (const interestId of user.interests) {
+    if (interestKeywords(interestId).some(k => matchKeyword(hay, k))) {
+      tickPlantActivity(user, interestId, delta);
+    }
+  }
+}
+
 function mutateWithSweep(index: number, fn: (b: Briefing) => void, action?: MissionAction): void {
   const u = action ? getCachedUser() : null;
   const now = new Date();                                                         // single now capture (v3.13.1 T14 / codex P1-1)
@@ -67,15 +90,32 @@ function mutateWithSweep(index: number, fn: (b: Briefing) => void, action?: Miss
   const target = list[index];
   if (!target) return;
   const prev = takeSnapshot();
-  fn(target);
-  saveBriefings(list);  // throws on Quota — sweep 안 함 (false-fire 방지)
 
-  if (u && action) {
-    tickMissionProgress(u, action, now);
-    // mission tick + lazy regen 상태를 단일 write로 커버.
-    // throw 시 briefing은 이미 persist됨 — XP 손실은 next sweep에서 회복 가능
+  // T7 (S7 fix): scrap/memo 전환 감지 — pre-mutation snapshot
+  const wasScrapped = target.scrapped;
+  const memoWasEmpty = !target.memo || target.memo.trim().length === 0;
+
+  fn(target);
+  saveBriefings(list);  // throws on Quota — 이후 saveUser 안 함 (false-fire 방지)
+
+  if (u) {
+    // T7 (S7 fix): plant tick — in-memory only, mutateWithSweep의 단일 saveUser 활용
+    if (action === 'scrap' && target.scrapped && !wasScrapped) {
+      tickPlantsByBriefingInMemory(u, target, 1);  // false→true 전환만
+    }
+    if (action === 'memo' && memoWasEmpty && target.memo.trim().length > 0) {
+      tickPlantsByBriefingInMemory(u, target, 1);  // 빈→non-빈 전환만
+    }
+
+    if (action) tickMissionProgress(u, action, now);
+    // mission + plant tick 상태를 단일 write로 커버 (atomic single-write 원칙).
+    // throw 시 briefing은 이미 persist됨 — XP/plant 손실은 next sweep에서 회복 가능
     // (mission instance 자체는 saveUser fail로 미persist, 다음 진입 시 lazy regen).
-    saveUser(u);
+    try {
+      saveUser(u);
+    } catch (err) {
+      showToast(getSaveErrorMessage(err));
+    }
   }
 
   const curr = takeSnapshot();
