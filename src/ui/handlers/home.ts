@@ -29,6 +29,8 @@ import { createLangToggle, type LangToggleEl, type LangState } from '../componen
 import { checkAndIncrement, getCap, getTodayCount } from '../../state/usage';
 import { showCapToast, showTranslateError, showPartialTranslateFail } from '../translateToast';
 import { getCachedUser, getSaveErrorMessage, recordDailyAnswer, saveUser } from '../../state/user';
+import { renderGardenMini } from '../components/garden-grid';
+import { scrollToGardenSection } from './stats';
 import { loadActiveSeenUrls, recordSeen, purgeExpiredSeen } from '../../state/seen';
 import { MSG } from '../messages';
 import { getActiveMissions, getKSTDateIso } from '../../state/missionEngine';
@@ -308,10 +310,33 @@ export function mountHomeHandlers(): void {
 export async function hydrateHome(container: HTMLElement): Promise<void> {
   void container; // accepted for API symmetry with handlers/stats.ts etc
   hydrateGreetingAndStreak();
+  hydrateGardenMini();
   hydrateBriefings();
   await hydrateQuestion();
   hydrateChatHistory();
   applyTheme();
+}
+
+/**
+ * 홈 탭 #gardenMini placeholder에 mini preview를 렌더링하고
+ * cell 클릭 시 stats 탭 + gardenSection scroll을 연결한다.
+ * renderHome() 호출 시 DOM이 완전 교체되므로 listener 누적 없음.
+ * @internal
+ */
+function hydrateGardenMini(): void {
+  const root = document.getElementById('gardenMini');
+  const user = getCachedUser();
+  if (!root || !user) return;
+  renderGardenMini(root, user);
+  root.addEventListener('click', (ev) => {
+    const cell = (ev.target as HTMLElement)?.closest('.garden-mini-cell');
+    if (!cell) return;
+    // switchTab은 nav.ts에서 import 가능하나, 홈 핸들러는 이미 dg:home:switch-tab 이벤트 패턴을 사용.
+    // 일관성을 위해 동일 패턴 유지 (on handler → switchTab 내부 호출).
+    document.dispatchEvent(new CustomEvent('dg:home:switch-tab', { detail: { tab: 'stats' } }));
+    // stats 탭 hydrate 후 scroll — requestAnimationFrame으로 paint 안정 보장
+    requestAnimationFrame(() => scrollToGardenSection());
+  });
 }
 
 /**

@@ -40,6 +40,9 @@ export function renderHome(container: HTMLElement): void {
         <span class="xp-badge" id="xpBadge">0 XP</span>
       </div>
 
+      <!-- Garden Mini Preview -->
+      <div id="gardenMini"></div>
+
       <!-- Briefing Section -->
       <div class="section-header">
         <h2>📰 오늘의 브리핑</h2>
