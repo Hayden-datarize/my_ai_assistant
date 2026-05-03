@@ -74,6 +74,20 @@ firebase deploy --only hosting   # 사용자 명시 승인 후
 
 ---
 
+## Codex 2-pass Review (v3.14.4 T13 graduation, lesson #1)
+
+각 사이클은 다음 두 시점에 **Codex 독립 review**를 받는다:
+
+1. **사전 review (spec phase)** — spec + draft plan 작성 직후. P0/P1/P2 분류, in-cycle 반영.
+   - 가치: NaN 직렬화 한계, deep semantics, cross-file invariant 등 **plan controller grep으로 못 잡는 깊이**. v3.14.3 lesson #1.
+2. **최종 review (deploy gate)** — 모든 main work commit 후, 배포 직전. `DEPLOY_APPROVED / APPROVED_WITH_NOTES / REJECT` 분류.
+   - 사용자 "배포해줘" 명시 시점에 게이트로 작동.
+
+권한 issue 시: spec self-review로 사전 대체 가능, 단 최종은 cycle wrap-up에서 별도 시점 재시도
+(v3.14.2 retro 패턴 — Codex 권한 미작동으로 review 누락된 사이클은 차기 사이클 carry-forward).
+
+---
+
 ## Documentation Navigation
 
 **📋 Master Index**: `docs/INDEX.md` - Complete navigation with token costs
