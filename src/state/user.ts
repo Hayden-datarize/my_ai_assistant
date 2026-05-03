@@ -5,6 +5,7 @@ import { takeSnapshot, runSweep } from './achievements';
 import type { MissionInstance } from './missionTypes';
 import { getActiveMissions, tickMissionProgress } from './missionEngine';
 import type { PlantState } from './plantTypes';
+import { backfillGarden } from './backfillGarden';
 
 export interface User {
   name: string;
@@ -61,7 +62,12 @@ export function getCachedUser(): User | null {
       notifyCorruption();
       return null;
     }
-    if (parsed?.schemaVersion !== 4) {
+
+    // T8: backfill 자동 (sweep 우회 — 환영 모달 highlight로만 통지)
+    if (!user.gardenBackfilled) {
+      backfillGarden(user);
+      try { localStorage.setItem(KEY, JSON.stringify(user)); } catch { /* ignore */ }
+    } else if (parsed?.schemaVersion !== 4) {
       // lazy migrate v1/v2 → v3 (정상 데이터만 persist; 손상 데이터는 위에서 null)
       // setItem 실패(Quota 등)는 무시 — in-memory 변환 결과는 그대로 반환
       try { localStorage.setItem(KEY, JSON.stringify(user)); } catch { /* ignore */ }

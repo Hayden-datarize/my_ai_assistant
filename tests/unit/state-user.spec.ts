@@ -11,7 +11,8 @@ describe('state/user', () => {
   });
 
   it('saveUser and loadUserData roundtrip', () => {
-    const u = mkUser({ name: 'H', interests: ['ai_ml'], onboardedAt: '2026-04-19' });
+    // T8: gardenBackfilled: true로 backfill 스킵 — loadUserData in-memory mutation 방지
+    const u = mkUser({ name: 'H', interests: ['ai_ml'], onboardedAt: '2026-04-19', gardenBackfilled: true });
     saveUser(u);
     expect(loadUserData()).toEqual(u);
   });
@@ -65,7 +66,8 @@ describe('state/user', () => {
 
   it('recordDailyAnswer propagates DOMException when setItem throws QuotaExceededError', () => {
     vi.setSystemTime(new Date('2026-04-19'));
-    saveUser(mkUser({ name: 'H' }));
+    // T8: gardenBackfilled: true로 backfill setItem 호출 차단 — spy가 saveUser에 도달하도록
+    saveUser(mkUser({ name: 'H', gardenBackfilled: true }));
     const spy = vi.spyOn(Storage.prototype, 'setItem').mockImplementationOnce(() => {
       throw new DOMException('quota', 'QuotaExceededError');
     });
