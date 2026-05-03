@@ -82,16 +82,33 @@ export function migrateUserToV2(raw: unknown): User {
 }
 
 /**
+ * v3.14.5 T3: MissionInstance shape guard — defId가 string이어야 유효한 인스턴스.
+ * missing/non-string defId를 가진 element를 active 배열에서 차단한다.
+ */
+function isValidMissionInstance(m: unknown): m is MissionInstance {
+  if (typeof m !== 'object' || m === null) return false;
+  const r = m as Record<string, unknown>;
+  return typeof r.defId === 'string';
+}
+
+/**
  * v3.14.4 T2: MissionInstance numeric field 가드.
  * windowStart/progress가 NaN/Infinity인 경우 0으로 normalize.
  * hand-edited LS 또는 future migration JSON-bypass로 인한 silent corruption 차단.
  * (seen.ts firstSeenAt / usage.ts와 동일 패턴.)
+ *
+ * v3.14.5 T3: progressDates array element guard.
+ * codex 사전 P1-1: progressDates는 readonly string[] (missionTypes.ts:28) — 별도 할당 시
+ * TS strict readonly 충돌. object literal 안에서 처리해야 함.
  */
 function sanitizeMissionInstance(m: MissionInstance): MissionInstance {
   return {
     ...m,
     windowStart: typeof m.windowStart === 'number' && Number.isFinite(m.windowStart) ? m.windowStart : 0,
     progress: typeof m.progress === 'number' && Number.isFinite(m.progress) ? m.progress : 0,
+    progressDates: Array.isArray(m.progressDates)
+      ? m.progressDates.filter((d): d is string => typeof d === 'string')
+      : m.progressDates,
   };
 }
 
@@ -133,7 +150,9 @@ export function migrateUserToV3(raw: unknown): User {
         // 새 outer 배열 + 새 inner 객체를 생성 (이전 v3.13.1의 reference passthrough invariant
         // 의도적으로 완화 — sanitize는 마이그레이션 시점 one-shot, 이후 tickMissionProgress의
         // in-place mutation은 새 인스턴스 위에서 정상 동작).
-        active: (m.active as MissionInstance[]).map(sanitizeMissionInstance),
+        // v3.14.5 T3: shape guard로 malformed element (missing/non-string defId) 차단,
+        // 이후 numeric/progressDates sanitize 적용.
+        active: (m.active as unknown[]).filter(isValidMissionInstance).map(sanitizeMissionInstance),
         cumulative,
         lastDailySeed: typeof m.lastDailySeed === 'string' ? m.lastDailySeed : '',
         currentWeekIso: typeof m.currentWeekIso === 'string' ? m.currentWeekIso : '',
