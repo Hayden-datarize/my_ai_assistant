@@ -1,5 +1,7 @@
-import { describe, it, expect, beforeEach } from 'vitest';
+import { describe, it, expect, beforeEach, afterEach } from 'vitest';
 import { detectEvents, takeSnapshot } from '../../../src/state/achievements';
+import { mountRewards, __resetForTest } from '../../../src/ui/rewards';
+import { dispatch } from '../../../src/ui/events';
 import type { Snapshot } from '../../../src/state/gameTypes';
 
 function makeSnap(plantStages: Record<string, number> = {}): Snapshot {
@@ -97,5 +99,44 @@ describe('takeSnapshot.plantStages', () => {
   it('user 없음 → 빈 plantStages', () => {
     const snap = takeSnapshot();
     expect(snap.plantStages).toEqual({});
+  });
+});
+
+describe('plant-stage-up event handler (max stage, T14)', () => {
+  beforeEach(() => {
+    // eslint-disable-next-line no-restricted-syntax -- jsdom DOM seed; static template, no user interpolation
+    document.body.innerHTML = '<div id="modalRoot"></div>';
+    __resetForTest();
+    mountRewards();
+  });
+
+  afterEach(() => {
+    __resetForTest();
+  });
+
+  it('newStage === 5 → toast--bloom emit', async () => {
+    dispatch('dg:reward:plant-stage-up', { interestId: 'ai_ml', newStage: 5, at: Date.now() });
+    await new Promise(r => setTimeout(r, 50));
+    const toast = document.querySelector('.toast--bloom');
+    expect(toast?.textContent).toMatch(/AI/i);
+    expect(toast?.textContent).toContain('만개');
+  });
+
+  it('newStage 1~4 → toast 안 emit (silent)', async () => {
+    for (const stage of [1, 2, 3, 4] as const) {
+      dispatch('dg:reward:plant-stage-up', { interestId: 'ai_ml', newStage: stage, at: Date.now() });
+    }
+    await new Promise(r => setTimeout(r, 50));
+    expect(document.querySelectorAll('.toast--bloom')).toHaveLength(0);
+  });
+
+  it('C5 fix: toast 클릭 시 navigate 안 함 (비-action toast — close 버튼만 동작)', async () => {
+    dispatch('dg:reward:plant-stage-up', { interestId: 'ai_ml', newStage: 5, at: Date.now() });
+    await new Promise(r => setTimeout(r, 50));
+    const toast = document.querySelector('.toast--bloom') as HTMLElement | null;
+    expect(toast).not.toBeNull();
+    // bloom toast에는 navigate 링크/버튼이 없음 (비-action)
+    expect(toast?.querySelectorAll('[data-tab-id]')).toHaveLength(0);
+    expect(toast?.querySelectorAll('a[href]')).toHaveLength(0);
   });
 });

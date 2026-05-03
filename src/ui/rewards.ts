@@ -2,6 +2,8 @@ import { on } from './events';
 import { findBadge } from '../state/badgeCatalog';
 import { TIERS } from '../state/leveling';
 import { escapeHtml } from '../utils/escapeHtml';
+import { INTEREST_LABEL } from './components/garden-grid';
+import { MSG } from './messages';
 
 const MAX_VISIBLE = 3;
 // v3.14.3 T10 (P3-toast-const): export — spec/외부 코드 canonical 참조.
@@ -15,7 +17,7 @@ const MAX_VISIBLE = 3;
 // - levelup(4000): confetti 애니메이션(1100ms)과 함께 시각 가중 — corruption(4000)과
 //   동일 상한, "축하" 가독성 마진.
 // - mission(3500): 미션 progress text가 길어 streak/badge보다 약간 김.
-export const TOAST_DURATIONS = { badge: 3000, levelup: 4000, streak: 3000, mission: 3500 } as const;
+export const TOAST_DURATIONS = { badge: 3000, levelup: 4000, streak: 3000, mission: 3500, bloom: 4000 } as const;
 
 let mounted = false;
 let activeCount = 0;
@@ -33,7 +35,7 @@ function ensureContainer(): HTMLElement {
   return el;
 }
 
-function spawnToast(html: string, modifier: 'badge' | 'levelup' | 'streak' | 'mission', durationMs: number): HTMLElement | null {
+function spawnToast(html: string, modifier: 'badge' | 'levelup' | 'streak' | 'mission' | 'bloom', durationMs: number): HTMLElement | null {
   if (activeCount >= MAX_VISIBLE) return null;
   const container = ensureContainer();
   const el = document.createElement('div');
@@ -186,6 +188,16 @@ export function mountRewards(): void {
       : `<span class="toast-text">🎯 미션 완수! +${rewardXp} XP</span><button type="button" class="toast-close" aria-label="닫기">×</button>`;
     const el = spawnToast(html, 'mission', TOAST_DURATIONS.mission);
     if (el && isMonthly) el.classList.add('toast--monthly');
+  }));
+
+  // v3.15 T14 — stage 4→5 (만개) bloom toast + confetti (C5 fix: 비-action, navigate 안 함)
+  disposers.push(on('dg:reward:plant-stage-up', ({ interestId, newStage }) => {
+    if (newStage !== 5) return;  // stage 1~4 silent (잡음 회피)
+    const plainLabel = INTEREST_LABEL[interestId] ?? interestId;
+    const message = MSG.GARDEN_BLOOM(plainLabel);  // e.g. "AI/ML 정원이 만개했어요 🌸"
+    const html = `<span class="toast-text">${escapeHtml(message)}</span>`;
+    spawnToast(html, 'bloom', TOAST_DURATIONS.bloom);
+    playConfetti();
   }));
 }
 
