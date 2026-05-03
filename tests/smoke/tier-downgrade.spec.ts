@@ -1,4 +1,5 @@
 import { test, expect } from '@playwright/test';
+import { getDateStr } from '../../src/utils/dates';
 
 test.use({ serviceWorkers: 'block' });
 
@@ -15,19 +16,14 @@ type SeedBriefing = {
   imageUrl?: string;
 };
 
-// v3.14.4 T3: 로컬(KST) 기준 today 문자열. src/utils/dates.ts getDateStr()와
-// 일치시켜야 hydrateBriefings의 stale 판정을 우회. UTC ISO를 쓰면 KST 새벽
-// 시간대에 1일 차이가 나 fixture가 refreshBriefings로 덮여쓰임.
-function localTodayStr(): string {
-  const d = new Date();
-  return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`;
-}
-
+// v3.14.4 T3: today를 Node-side getDateStr()로 계산해 args로 전달 (cardnews.spec.ts 선례).
+// src/utils/dates.ts getDateStr()와 1:1 일치시켜야 hydrateBriefings의 stale 판정을 우회.
+// browser-context의 toISOString()은 UTC라 KST 새벽엔 1일 어긋나 fixture가 refresh로 덮여쓰임.
 async function seedOneBriefing(
   page: import('@playwright/test').Page,
   imageUrl: string,
 ): Promise<void> {
-  const today = localTodayStr();
+  const today = getDateStr();
   const briefing: SeedBriefing = {
     id: 'tier-test',
     date: today,
@@ -40,20 +36,18 @@ async function seedOneBriefing(
     sourceTitle: 'TestSource',
     imageUrl,
   };
-  await page.addInitScript((payload) => {
-    const d = new Date();
-    const t = `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`;
+  await page.addInitScript((args: { briefing: SeedBriefing; today: string }) => {
     localStorage.setItem('user', JSON.stringify({
       name: '테',
       interests: ['tech'],
       onboardedAt: new Date().toISOString(),
       streak: 0,
-      lastActiveDate: t,
+      lastActiveDate: args.today,
       xp: 0,
       earnedBadges: {}, gamificationMigrated: true, schemaVersion: 2,
     }));
-    localStorage.setItem('briefings', JSON.stringify([payload]));
-  }, briefing);
+    localStorage.setItem('briefings', JSON.stringify([args.briefing]));
+  }, { briefing, today });
 }
 
 test('tier 1 → 2 when image URL returns 404', async ({ page }) => {
