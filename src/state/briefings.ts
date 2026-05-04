@@ -101,7 +101,12 @@ function mutateWithSweep(index: number, fn: (b: Briefing) => void, action?: Miss
   if (u) {
     // T7 (S7 fix): plant tick — in-memory only, mutateWithSweep의 단일 saveUser 활용
     if (action === 'scrap' && target.scrapped && !wasScrapped) {
-      tickPlantsByBriefingInMemory(u, target, 1);  // false→true 전환만
+      tickPlantsByBriefingInMemory(u, target, 1);  // scrap +1 (false→true 전환)
+      // C1 catch-up (v3.16 T1): scrap ON 시점에 기존 memo가 있으면 memo도 retroactive +1
+      // (backfill 정책 "scrap된 briefing의 memo만 카운트"와 정합).
+      if (target.memo && target.memo.trim().length > 0) {
+        tickPlantsByBriefingInMemory(u, target, 1);  // memo catch-up +1
+      }
     }
     // P1-1 fix (v3.15 T16.1): memo tick은 스크랩된 briefing에만 적용 (backfill 정책과 정합).
     // 스크랩 안 한 briefing의 memo는 활동으로 간주하지 않음.

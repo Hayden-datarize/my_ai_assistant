@@ -137,6 +137,51 @@ describe('mutateWithSweep integration (S7 fix — atomic single saveUser)', () =
     const u = JSON.parse(localStorage.getItem('user')!);
     expect(u.plantStateByInterest.ai_ml).toBeUndefined();
   });
+
+  // v3.16 T1 C1 fix: memo 먼저 → scrap ON 시 memo retroactive catch-up
+  it('C1 catch-up: memo 먼저 → scrap ON → memo +1 + scrap +1 (cumulative +2)', () => {
+    // beforeEach briefing은 scrapped=false, memo=''. memo 먼저 채움 (스크랩 없는 동안엔 tick 0)
+    saveMemo(0, '메모 먼저');
+    const u0 = JSON.parse(localStorage.getItem('user')!);
+    expect(u0.plantStateByInterest.ai_ml).toBeUndefined();  // 스크랩 없는 memo는 tick 안 됨
+
+    toggleScrap(0);  // 이제 scrap ON → scrap +1 + memo catch-up +1
+
+    const u1 = JSON.parse(localStorage.getItem('user')!);
+    expect(u1.plantStateByInterest.ai_ml?.cumulativeActivity).toBe(2);
+  });
+
+  it('C1 baseline (regression guard): scrap 먼저 → memo 추가 → memo +1 (기존 동작 유지)', () => {
+    toggleScrap(0);              // scrap +1
+    const u1 = JSON.parse(localStorage.getItem('user')!);
+    expect(u1.plantStateByInterest.ai_ml?.cumulativeActivity).toBe(1);
+
+    saveMemo(0, '나중에 작성');   // 스크랩됐고 빈→non-빈 → memo +1
+
+    const u2 = JSON.parse(localStorage.getItem('user')!);
+    expect(u2.plantStateByInterest.ai_ml?.cumulativeActivity).toBe(2);
+  });
+
+  it('C1 regression: 비스크랩 + memo only → cumulative 변화 없음 (정책 일치)', () => {
+    // beforeEach briefing은 scrapped=false
+    saveMemo(0, '비스크랩에 memo만 추가');
+
+    const u = JSON.parse(localStorage.getItem('user')!);
+    expect(u.plantStateByInterest.ai_ml).toBeUndefined();  // tick 0
+  });
+
+  it('C1 regression: scrap OFF 토글 → catch-up 없음', () => {
+    // 먼저 scrap ON + memo 작성 → cumulative 2
+    toggleScrap(0);              // scrap +1
+    saveMemo(0, '메모 있음');     // memo +1
+    const u1 = JSON.parse(localStorage.getItem('user')!);
+    expect(u1.plantStateByInterest.ai_ml?.cumulativeActivity).toBe(2);
+
+    toggleScrap(0);  // ON → OFF → no-op (un-scrap은 catch-up 없음)
+
+    const u2 = JSON.parse(localStorage.getItem('user')!);
+    expect(u2.plantStateByInterest.ai_ml?.cumulativeActivity).toBe(2);
+  });
 });
 
 describe('mutateWithSweep P0-2: saveUser 실패 시 sweep 차단 (atomic invariant)', () => {
