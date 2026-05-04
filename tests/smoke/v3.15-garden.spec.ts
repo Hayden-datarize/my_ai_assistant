@@ -24,7 +24,6 @@ test.describe('v3.15 정원 smoke', () => {
     await primeUserWithGarden(page);
     await page.goto('/');
     // 홈 탭이 기본 active — renderGardenMini가 .garden-mini-row를 #gardenMini placeholder 안에 inject
-    // NOTE: #gardenMini ID가 outer placeholder와 inner row 둘 다에 존재하므로 .garden-mini-row를 사용
     await expect(page.locator('.garden-mini-row')).toBeVisible();
     // 첫 번째 .garden-mini-cell 클릭 → dg:home:switch-tab { tab: 'stats' } dispatch
     await page.locator('.garden-mini-cell').first().click();

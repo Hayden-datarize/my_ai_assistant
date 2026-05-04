@@ -100,5 +100,5 @@ export function renderGardenMini(root: HTMLElement, user: User): void {
       </button>`;
   }).join('');
   // eslint-disable-next-line no-restricted-syntax -- 위에서 escapeHtml 전처리 완료
-  root.innerHTML = `<div class="garden-mini-row" id="gardenMini">${cells}</div>`;
+  root.innerHTML = `<div class="garden-mini-row">${cells}</div>`;
 }
