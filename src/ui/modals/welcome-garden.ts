@@ -56,7 +56,11 @@ export function maybeShowWelcomeGarden(): void {
     </div>
   `;
 
+  // C3 (v3.16): AbortController로 single cleanup point — close path 모두에서 listener 자동 제거
+  const escController = new AbortController();
+
   function close(navigate: boolean): void {
+    escController.abort();  // keydown listener 즉시 제거
     dialog.remove();
     const u = getCachedUser();
     if (u && !u.gardenIntroduced) {
@@ -75,12 +79,13 @@ export function maybeShowWelcomeGarden(): void {
   dialog.querySelector('#welcomeGardenViewBtn')?.addEventListener('click', () => close(true));
   dialog.querySelector('#welcomeGardenCloseBtn')?.addEventListener('click', () => close(false));
   dialog.addEventListener('click', (e) => { if (e.target === dialog) close(false); });
-  document.addEventListener('keydown', function onEsc(e: KeyboardEvent) {
-    if (e.key === 'Escape') {
-      document.removeEventListener('keydown', onEsc);
-      close(false);
-    }
-  });
+  document.addEventListener(
+    'keydown',
+    (e: KeyboardEvent) => {
+      if (e.key === 'Escape') close(false);
+    },
+    { signal: escController.signal },
+  );
 
   document.body.appendChild(dialog);
 }

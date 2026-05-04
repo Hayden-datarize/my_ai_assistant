@@ -103,4 +103,65 @@ describe('maybeShowWelcomeGarden', () => {
     expect(() => maybeShowWelcomeGarden()).not.toThrow();
     expect(document.querySelector('.welcome-garden-modal')).toBeFalsy();
   });
+
+  // C3 (v3.16): Escape listener cleanup via AbortController
+
+  it('C3 baseline: open 후 ESC press → 모달 닫힘 (기존 동작 유지)', () => {
+    setUser({ gardenIntroduced: false, plants: { ai_ml: { stage: 1, cumulativeActivity: 0 } } });
+    maybeShowWelcomeGarden();
+    expect(document.querySelector('.welcome-garden-modal')).toBeTruthy();
+    document.dispatchEvent(new KeyboardEvent('keydown', { key: 'Escape' }));
+    expect(document.querySelector('.welcome-garden-modal')).toBeNull();
+  });
+
+  it('C3 cleanup: 버튼 close → AbortController.signal.aborted=true (listener 즉시 정리)', () => {
+    const OriginalAbortController = global.AbortController;
+    const captured: AbortController[] = [];
+    global.AbortController = class extends OriginalAbortController {
+      constructor() {
+        super();
+        captured.push(this);
+      }
+    } as typeof AbortController;
+
+    try {
+      setUser({ gardenIntroduced: false, plants: { ai_ml: { stage: 1, cumulativeActivity: 0 } } });
+      maybeShowWelcomeGarden();
+      expect(captured.length).toBeGreaterThanOrEqual(1);
+      const escController = captured[captured.length - 1]!;
+      expect(escController.signal.aborted).toBe(false);
+
+      (document.querySelector('#welcomeGardenCloseBtn') as HTMLButtonElement).click();
+      expect(escController.signal.aborted).toBe(true);
+    } finally {
+      global.AbortController = OriginalAbortController;
+    }
+  });
+
+  it('C3 cleanup: backdrop click → AbortController.signal.aborted=true', () => {
+    const OriginalAbortController = global.AbortController;
+    const captured: AbortController[] = [];
+    global.AbortController = class extends OriginalAbortController {
+      constructor() {
+        super();
+        captured.push(this);
+      }
+    } as typeof AbortController;
+
+    try {
+      setUser({ gardenIntroduced: false, plants: { ai_ml: { stage: 1, cumulativeActivity: 0 } } });
+      maybeShowWelcomeGarden();
+      const escController = captured[captured.length - 1]!;
+      const dialog = document.querySelector('.welcome-garden-modal') as HTMLElement;
+
+      const clickEvent = new MouseEvent('click', { bubbles: true });
+      Object.defineProperty(clickEvent, 'target', { value: dialog });
+      dialog.dispatchEvent(clickEvent);
+
+      expect(escController.signal.aborted).toBe(true);
+      expect(document.querySelector('.welcome-garden-modal')).toBeNull();
+    } finally {
+      global.AbortController = OriginalAbortController;
+    }
+  });
 });
