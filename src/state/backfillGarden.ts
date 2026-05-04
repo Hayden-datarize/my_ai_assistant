@@ -24,7 +24,8 @@ export function backfillGarden(user: User): void {
       const hay = `${b.sourceTitle ?? ''} ${b.title} ${b.summary}`.toLowerCase();
       return interestKeywords(interestId).some(k => matchKeyword(hay, k));
     });
-    const memoCount = matched.filter(b => b.memo.trim().length > 0).length;
+    // C4 (v3.16): memo가 undefined인 legacy/loose briefing 방어
+    const memoCount = matched.filter(b => !!b.memo && b.memo.trim().length > 0).length;
     const cumulativeActivity = matched.length + memoCount;
     const stage = thresholdLookup(cumulativeActivity);
 

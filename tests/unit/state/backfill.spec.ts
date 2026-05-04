@@ -114,4 +114,18 @@ describe('backfillGarden', () => {
     // stage 2 이상이지만 sweep 이벤트 없이 조용히 완료
     expect(u.plantStateByInterest['ai_ml']?.stage).toBeGreaterThanOrEqual(2);
   });
+
+  it('C4 (v3.16): briefing.memo가 undefined여도 backfillGarden은 throw하지 않음', () => {
+    // legacy/loose cast 시 memo가 undefined일 수 있는 case
+    const briefings = [
+      { id: '1', scrapped: true, title: 'AI 발표', summary: '', memo: undefined as unknown as string, sourceTitle: '', url: '', date: '' },
+      { id: '2', scrapped: true, title: 'AI 트렌드', summary: '', memo: '정상', sourceTitle: '', url: '', date: '' },
+    ];
+    const u = makeUser(briefings);
+    // memo undefined에서도 throw하지 않음
+    expect(() => backfillGarden(u)).not.toThrow();
+    // 정상 memo만 카운트 (undefined는 0 처리)
+    expect(u.plantStateByInterest['ai_ml']?.cumulativeActivity).toBe(3); // matched=2 + memoCount=1
+    expect(u.plantStateByInterest['ai_ml']?.stage).toBe(1);
+  });
 });
