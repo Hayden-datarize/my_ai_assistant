@@ -1,4 +1,4 @@
-import { describe, it, expect, beforeEach } from 'vitest';
+import { describe, it, expect, beforeEach, vi } from 'vitest';
 import {
   tickPlantsByBriefingInMemory,
   toggleScrap,
@@ -98,23 +98,83 @@ describe('mutateWithSweep integration (S7 fix — atomic single saveUser)', () =
     expect(u.plantStateByInterest.ai_ml?.cumulativeActivity).toBe(1);
   });
 
-  it('saveMemo (빈→non-빈) → 식물 +1', () => {
+  it('saveMemo (빈→non-빈, 스크랩 없음) → 식물 변동 없음 (P1-1: 스크랩 없이 memo만은 tick X)', () => {
+    // beforeEach에서 briefing은 scrapped=false
     saveMemo(0, '메모 내용');
     const u = JSON.parse(localStorage.getItem('user')!);
-    expect(u.plantStateByInterest.ai_ml?.cumulativeActivity).toBe(1);
+    // 스크랩 없이 메모만 작성 → P1-1 fix로 plant tick 안 됨
+    expect(u.plantStateByInterest.ai_ml).toBeUndefined();
   });
 
-  it('saveMemo (non-빈 → 다른 non-빈) → 변동 0 (이미 카운트한 메모)', () => {
-    saveMemo(0, '메모 1');  // 빈 → non-빈 (+1)
-    saveMemo(0, '메모 2');  // non-빈 → non-빈 (no-op)
+  it('saveMemo (스크랩 후 빈→non-빈) → 식물 +1 (스크랩된 경우만 tick)', () => {
+    toggleScrap(0);           // false→true 스크랩 (+1)
+    const u1 = JSON.parse(localStorage.getItem('user')!);
+    expect(u1.plantStateByInterest.ai_ml?.cumulativeActivity).toBe(1);  // scrap tick
+    saveMemo(0, '메모 내용'); // 스크랩됐으므로 빈→non-빈 → +1
+    const u2 = JSON.parse(localStorage.getItem('user')!);
+    expect(u2.plantStateByInterest.ai_ml?.cumulativeActivity).toBe(2);
+  });
+
+  it('saveMemo (non-빈 → 다른 non-빈, 스크랩 없음) → 변동 0', () => {
+    saveMemo(0, '메모 1');  // 스크랩 없음 → tick X
+    saveMemo(0, '메모 2');  // non-빈 → non-빈 (no-op 기준)
     const u = JSON.parse(localStorage.getItem('user')!);
-    expect(u.plantStateByInterest.ai_ml?.cumulativeActivity).toBe(1);
+    // 스크랩 없이 메모만 → 변동 없음
+    expect(u.plantStateByInterest.ai_ml).toBeUndefined();
   });
 
   it('스크랩 + 메모 동시 발생 → 각 +1 합쳐 +2', () => {
     toggleScrap(0);        // 스크랩 +1
-    saveMemo(0, '메모');   // 메모 +1
+    saveMemo(0, '메모');   // 스크랩됐으므로 메모 +1
     const u = JSON.parse(localStorage.getItem('user')!);
     expect(u.plantStateByInterest.ai_ml?.cumulativeActivity).toBe(2);
+  });
+
+  // v3.15 T16.1 P1-1 fix: 스크랩 없이 memo만 작성 시 plant tick 안 됨
+  it('P1-1 fix: 스크랩 안 된 briefing + memo 작성 → plant tick 0 (backfill 정책 정합)', () => {
+    // briefing은 scrapped=false 상태 (beforeEach에서 설정)
+    saveMemo(0, '메모');
+    const u = JSON.parse(localStorage.getItem('user')!);
+    expect(u.plantStateByInterest.ai_ml).toBeUndefined();
+  });
+});
+
+describe('mutateWithSweep P0-2: saveUser 실패 시 sweep 차단 (atomic invariant)', () => {
+  beforeEach(() => {
+    localStorage.clear();
+    const now = new Date();
+    const seedUser = mkUser({
+      interests: ['ai_ml'],
+      gardenBackfilled: true,
+      missions: {
+        active: [],
+        cumulative: { dailyCount: 0, weeklyCount: 0, monthlyCount: 0 },
+        lastDailySeed: getKSTDateIso(now),
+        currentWeekIso: getKSTWeekIso(now),
+        currentMonthIso: getKSTMonthIso(now),
+      },
+    });
+    localStorage.setItem('user', JSON.stringify(seedUser));
+    saveBriefings([mkBriefing({ id: '1', title: 'AI 모델 최신 동향', summary: '' })]);
+  });
+
+  it('P0-2 fix: saveUser throws → runSweep 호출 안 됨 (sweep 차단)', async () => {
+    // saveUser를 throw하도록 mock
+    const userModule = await import('../../../src/state/user');
+    const saveSpy = vi.spyOn(userModule, 'saveUser').mockImplementationOnce(() => {
+      throw new DOMException('QuotaExceededError', 'QuotaExceededError');
+    });
+
+    // runSweep 호출 여부 spy
+    const achievementsModule = await import('../../../src/state/achievements');
+    const sweepSpy = vi.spyOn(achievementsModule, 'runSweep');
+
+    toggleScrap(0);
+
+    // saveUser throw → saveOk=false → runSweep 호출 0회
+    expect(sweepSpy).not.toHaveBeenCalled();
+
+    saveSpy.mockRestore();
+    sweepSpy.mockRestore();
   });
 });

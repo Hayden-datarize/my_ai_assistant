@@ -59,6 +59,51 @@ describe('migrateUserToV3 v4 early return (Codex S5 / P0-1 fix)', () => {
     const out = migrateUserToV3(v3);
     expect(out.schemaVersion).toBe(3);
   });
+
+  // v3.15 T16.1 P0-1 fix: v4 early return도 mission normalization 적용 검증
+  it('v4 user with malformed missions.active (non-string defId) → active 항목 차단', () => {
+    const v4 = {
+      name: 'h', interests: ['recruiting'], onboardedAt: '', streak: 0,
+      lastActiveDate: '', xp: 0, earnedBadges: {}, gamificationMigrated: true,
+      schemaVersion: 4,
+      missions: {
+        active: [
+          { defId: 'daily-1', period: 'daily', windowStart: 0, progress: 0, progressDates: [] },
+          { defId: 123, period: 'daily' },           // non-string defId — invalid
+          { period: 'weekly' },                       // missing defId — invalid
+        ],
+        cumulative: { dailyCount: 3, weeklyCount: 1, monthlyCount: 0 },
+        lastDailySeed: '2026-05-04', currentWeekIso: '2026-W18', currentMonthIso: '2026-05',
+      },
+      plantStateByInterest: { recruiting: { stage: 2, cumulativeActivity: 10 } },
+      gardenIntroduced: true, gardenBackfilled: true,
+    };
+    const out = migrateUserToV3(v4);
+    // valid defId를 가진 항목만 통과
+    expect(out.missions.active).toHaveLength(1);
+    expect(out.missions.active[0]?.defId).toBe('daily-1');
+    // plant 필드는 보존
+    expect((out as any).plantStateByInterest.recruiting.stage).toBe(2);
+  });
+
+  it('v4 user with non-finite cumulative.dailyCount → 0 fallback', () => {
+    const v4 = {
+      name: 'h', interests: [], onboardedAt: '', streak: 0,
+      lastActiveDate: '', xp: 0, earnedBadges: {}, gamificationMigrated: true,
+      schemaVersion: 4,
+      missions: {
+        active: [],
+        cumulative: { dailyCount: NaN, weeklyCount: Infinity, monthlyCount: -Infinity },
+        lastDailySeed: '', currentWeekIso: '', currentMonthIso: '',
+      },
+      plantStateByInterest: {},
+      gardenIntroduced: false, gardenBackfilled: false,
+    };
+    const out = migrateUserToV3(v4);
+    expect(out.missions.cumulative.dailyCount).toBe(0);
+    expect(out.missions.cumulative.weeklyCount).toBe(0);
+    expect(out.missions.cumulative.monthlyCount).toBe(0);
+  });
 });
 
 describe('isValidUserShape v4 nested guard (Codex S8 / P1-2 fix)', () => {

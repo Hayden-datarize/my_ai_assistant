@@ -1,4 +1,4 @@
-import { describe, it, expect, beforeEach, vi } from 'vitest';
+import { describe, it, expect, beforeEach, vi, afterEach } from 'vitest';
 
 describe('getCachedUser — corrupt v2 toast (v3.12.1 P2-NEW-4)', () => {
   beforeEach(() => {
@@ -43,5 +43,51 @@ describe('getCachedUser — corrupt v2 toast (v3.12.1 P2-NEW-4)', () => {
       const t = document.querySelector('.toast');
       expect(t?.textContent ?? '').toMatch(/저장된 데이터|새로고침/);
     });
+  });
+});
+
+describe('getCachedUser — backfill persist toast (v3.15 T16.1 P1-3 fix)', () => {
+  beforeEach(() => {
+    localStorage.clear();
+    // eslint-disable-next-line no-restricted-syntax -- jsdom fixture, no user interpolation
+    document.body.innerHTML = '<div id="modalRoot"></div>';
+    vi.resetModules();
+  });
+
+  afterEach(() => {
+    vi.restoreAllMocks();
+  });
+
+  it('backfill 후 setItem throws (Quota) → toast emit + getCachedUser는 user 객체 반환 (throw X)', async () => {
+    // gardenBackfilled=false인 v4 user 세팅 → backfill path 진입
+    localStorage.setItem('user', JSON.stringify({
+      name: 'h', interests: ['ai_ml'], onboardedAt: '', streak: 0,
+      lastActiveDate: '', xp: 0, earnedBadges: {}, gamificationMigrated: true,
+      schemaVersion: 4,
+      missions: { active: [], cumulative: { dailyCount: 0, weeklyCount: 0, monthlyCount: 0 },
+                  lastDailySeed: '', currentWeekIso: '', currentMonthIso: '' },
+      plantStateByInterest: {},
+      gardenIntroduced: false, gardenBackfilled: false,
+    }));
+
+    // setItem을 throw하도록 mock (첫 번째 호출만 — backfill persist용)
+    const setItemSpy = vi.spyOn(Storage.prototype, 'setItem').mockImplementationOnce(() => {
+      throw new DOMException('QuotaExceededError', 'QuotaExceededError');
+    });
+
+    const { getCachedUser } = await import('../../../src/state/user');
+    const u = getCachedUser();
+
+    // getCachedUser는 throw하지 않고 user 객체 반환
+    expect(u).not.toBeNull();
+    expect(u?.name).toBe('h');
+
+    // toast가 (동적 import 비동기) emit되어야 함
+    await vi.waitFor(() => {
+      const t = document.querySelector('.toast');
+      expect(t).not.toBeNull();
+    });
+
+    setItemSpy.mockRestore();
   });
 });

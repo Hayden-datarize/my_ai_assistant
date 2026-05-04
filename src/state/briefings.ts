@@ -103,19 +103,30 @@ function mutateWithSweep(index: number, fn: (b: Briefing) => void, action?: Miss
     if (action === 'scrap' && target.scrapped && !wasScrapped) {
       tickPlantsByBriefingInMemory(u, target, 1);  // false→true 전환만
     }
-    if (action === 'memo' && memoWasEmpty && target.memo.trim().length > 0) {
-      tickPlantsByBriefingInMemory(u, target, 1);  // 빈→non-빈 전환만
+    // P1-1 fix (v3.15 T16.1): memo tick은 스크랩된 briefing에만 적용 (backfill 정책과 정합).
+    // 스크랩 안 한 briefing의 memo는 활동으로 간주하지 않음.
+    if (action === 'memo' && target.scrapped && memoWasEmpty && target.memo.trim().length > 0) {
+      tickPlantsByBriefingInMemory(u, target, 1);  // 스크랩+빈→non-빈 전환만
     }
 
     if (action) tickMissionProgress(u, action, now);
     // mission + plant tick 상태를 단일 write로 커버 (atomic single-write 원칙).
+    // P0-2 fix (v3.15 T16.1): saveUser 실패 시 sweep 차단 (atomic invariant 보장).
     // throw 시 briefing은 이미 persist됨 — XP/plant 손실은 next sweep에서 회복 가능
     // (mission instance 자체는 saveUser fail로 미persist, 다음 진입 시 lazy regen).
+    let saveOk = false;
     try {
       saveUser(u);
+      saveOk = true;
     } catch (err) {
       showToast(getSaveErrorMessage(err));
     }
+
+    if (saveOk) {
+      const curr = takeSnapshot();
+      runSweep(prev, curr);
+    }
+    return;
   }
 
   const curr = takeSnapshot();

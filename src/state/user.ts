@@ -66,7 +66,14 @@ export function getCachedUser(): User | null {
     // T8: backfill 자동 (sweep 우회 — 환영 모달 highlight로만 통지)
     if (!user.gardenBackfilled) {
       backfillGarden(user);
-      try { localStorage.setItem(KEY, JSON.stringify(user)); } catch { /* ignore */ }
+      // P1-3 fix (v3.15 T16.1): backfill persist 실패 시 toast 통지 (v3.7 saveUser throw 정책과 정합).
+      // best-effort: getCachedUser는 boot path이므로 throw 금지, 다음 진입 시 gardenBackfilled=false로 재시도.
+      try { localStorage.setItem(KEY, JSON.stringify(user)); }
+      catch (err) {
+        void import('../utils/toast').then(({ showToast }) => {
+          showToast(getSaveErrorMessage(err));
+        }).catch(() => { /* toast import 실패는 production 외 발생 안 함 */ });
+      }
     } else if (parsed?.schemaVersion !== 4) {
       // lazy migrate v1/v2 → v3 (정상 데이터만 persist; 손상 데이터는 위에서 null)
       // setItem 실패(Quota 등)는 무시 — in-memory 변환 결과는 그대로 반환

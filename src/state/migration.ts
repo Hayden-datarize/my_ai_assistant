@@ -114,6 +114,39 @@ function sanitizeMissionInstance(m: MissionInstance): MissionInstance {
 }
 
 /**
+ * v3.15 T16.1 (P0-1 fix): mission normalization 로직을 별도 helper로 추출.
+ * v3 idempotent path와 v4 early return path 모두에서 호출하여
+ * malformed mission 데이터를 가진 v4 user도 sanitize하도록 보장.
+ *
+ * @param v - Partial<User> with missions field — in-memory mutate 없이 normalized missions 반환
+ * @returns normalized missions object
+ */
+function buildNormalizedMissions(v: { missions?: Partial<User['missions']> }): User['missions'] {
+  const m = v.missions;
+  if (!m || !Array.isArray(m.active)) {
+    return {
+      active: [] as MissionInstance[],
+      cumulative: { dailyCount: 0, weeklyCount: 0, monthlyCount: 0 },
+      lastDailySeed: '',
+      currentWeekIso: '',
+      currentMonthIso: '',
+    };
+  }
+  const cumulative = {
+    dailyCount: Number.isFinite(m.cumulative?.dailyCount) ? (m.cumulative!.dailyCount as number) : 0,
+    weeklyCount: Number.isFinite(m.cumulative?.weeklyCount) ? (m.cumulative!.weeklyCount as number) : 0,
+    monthlyCount: Number.isFinite(m.cumulative?.monthlyCount) ? (m.cumulative!.monthlyCount as number) : 0,
+  };
+  return {
+    active: (m.active as unknown[]).filter(isValidMissionInstance).map(sanitizeMissionInstance),
+    cumulative,
+    lastDailySeed: typeof m.lastDailySeed === 'string' ? m.lastDailySeed : '',
+    currentWeekIso: typeof m.currentWeekIso === 'string' ? m.currentWeekIso : '',
+    currentMonthIso: typeof m.currentMonthIso === 'string' ? m.currentMonthIso : '',
+  };
+}
+
+/**
  * v3.13: schema v2 → v3 — missions 필드 추가.
  * - active 빈 배열, cumulative 0, ISO 필드 빈 문자열.
  * - shape guard: missions 필드 NaN/잘못된 타입 차단 (silent corruption 방지).
@@ -131,6 +164,9 @@ function sanitizeMissionInstance(m: MissionInstance): MissionInstance {
  *
  * raw 입력 narrowing: `Partial<User> & {…}` 형태로 좁혀, `unknown` 단일 cast
  * (`as User`)에서 발생하던 미정의 필드 접근 시 type-safety 약화를 보강.
+ *
+ * v3.15 T16.1 (P0-1 fix): v4 early return도 buildNormalizedMissions로 mission normalization 적용.
+ * malformed mission 데이터를 가진 v4 user가 조용히 로드되는 문제 해소.
  */
 export function migrateUserToV3(raw: unknown): User {
   const v = raw as Partial<User> & {
@@ -140,30 +176,19 @@ export function migrateUserToV3(raw: unknown): User {
   // S5 fix (Codex P0-1): v4 user는 v3 migrate 통과 — schemaVersion=3 덮어쓰고 missions reset 방지.
   // v4가 v3의 superset (plantStateByInterest + gardenIntroduced + gardenBackfilled 추가)이므로
   // 모든 v3 필드 보존되어 안전.
-  if (v?.schemaVersion === 4) return v as User;
-
-  if (v?.schemaVersion === 3 && v.missions && Array.isArray(v.missions.active)) {
-    const m = v.missions;
-    const cumulative = {
-      dailyCount: Number.isFinite(m.cumulative?.dailyCount) ? (m.cumulative!.dailyCount as number) : 0,
-      weeklyCount: Number.isFinite(m.cumulative?.weeklyCount) ? (m.cumulative!.weeklyCount as number) : 0,
-      monthlyCount: Number.isFinite(m.cumulative?.monthlyCount) ? (m.cumulative!.monthlyCount as number) : 0,
-    };
+  // v3.15 T16.1 (P0-1 fix): plant 필드는 그대로 두고, missions만 normalize.
+  if (v?.schemaVersion === 4) {
     return {
       ...(v as User),
-      missions: {
-        // v3.14.4 T2: 각 MissionInstance의 windowStart/progress NaN/Infinity 차단.
-        // 새 outer 배열 + 새 inner 객체를 생성 (이전 v3.13.1의 reference passthrough invariant
-        // 의도적으로 완화 — sanitize는 마이그레이션 시점 one-shot, 이후 tickMissionProgress의
-        // in-place mutation은 새 인스턴스 위에서 정상 동작).
-        // v3.14.5 T3: shape guard로 malformed element (missing/non-string defId) 차단,
-        // 이후 numeric/progressDates sanitize 적용.
-        active: (m.active as unknown[]).filter(isValidMissionInstance).map(sanitizeMissionInstance),
-        cumulative,
-        lastDailySeed: typeof m.lastDailySeed === 'string' ? m.lastDailySeed : '',
-        currentWeekIso: typeof m.currentWeekIso === 'string' ? m.currentWeekIso : '',
-        currentMonthIso: typeof m.currentMonthIso === 'string' ? m.currentMonthIso : '',
-      },
+      missions: buildNormalizedMissions(v),
+    };
+  }
+
+  if (v?.schemaVersion === 3 && v.missions && Array.isArray(v.missions.active)) {
+    // v3.15 T16.1 (P0-1 fix): buildNormalizedMissions helper로 통합 (v4 path와 동일 sanitize 적용).
+    return {
+      ...(v as User),
+      missions: buildNormalizedMissions(v),
     };
   }
   return {
