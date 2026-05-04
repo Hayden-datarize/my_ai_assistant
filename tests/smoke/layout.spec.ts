@@ -53,12 +53,31 @@ test('mobile (375x667) keeps bottom nav + submit is not covered', async ({ page 
   await expect(page.locator('#homeTab')).toBeVisible();
 
   const nav = page.locator('#bottomNav');
+  await expect(nav).toBeVisible();
   const navBox = await nav.boundingBox();
   expect(navBox).not.toBeNull();
   expect(navBox!.y + navBox!.height).toBeGreaterThan(600);
 
+  // v3.16 T6 (C6): #submitBtn lives in #questionSection (non-fixed flow content) below
+  // briefing scroll + garden mini. `scrollIntoViewIfNeeded()` only scrolls until submit
+  // is fully in viewport, but the fixed bottom-nav (z-index var(--z-floating)) overlaps
+  // the lower 64px — submit lands underneath. Use `block: 'center'` so submit settles
+  // mid-viewport, well clear of the nav. The assertion below verifies the invariant.
   const submit = page.locator('#submitBtn');
-  await submit.scrollIntoViewIfNeeded();
+  await expect(submit).toBeVisible();
+  await submit.evaluate((el) => {
+    el.scrollIntoView({ block: 'center', behavior: 'instant' });
+  });
+
+  // Geometric invariant polling — defends against any residual style/scroll race
+  // (Codex 사전 P2-3 pattern). Same property as the final assertion.
+  await expect.poll(async () => {
+    const sBox = await submit.boundingBox();
+    const nBox = await nav.boundingBox();
+    if (!sBox || !nBox) return null;
+    return sBox.y + sBox.height <= nBox.y;
+  }, { timeout: 2000, intervals: [100, 200, 400] }).toBe(true);
+
   const submitBox = await submit.boundingBox();
   expect(submitBox).not.toBeNull();
   expect(submitBox!.y + submitBox!.height).toBeLessThanOrEqual(navBox!.y);
