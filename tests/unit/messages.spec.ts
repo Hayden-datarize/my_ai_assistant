@@ -2,19 +2,14 @@ import { describe, it, expect } from 'vitest';
 import { MSG } from '../../src/ui/messages';
 
 // 버튼 라벨류, 섹션 타이틀, 단어형 스테이지 라벨 — UI 표준상 끝 마침표 X (메시지 톤 규칙 예외)
+// v3.16 T5: GARDEN_SECTION_TITLE / GARDEN_STAGE_LABEL_* / GARDEN_TROPHY_LABEL은 src/ 미사용으로 제거됨
+// (실제 UI는 plantCatalog.STAGE_LABEL을 사용). bundle trim 부수 효과.
 const BUTTON_LABEL_KEYS = new Set([
   'DELETE_UNDO_ACTION',
-  // v3.15 Garden — 모달 타이틀 / 버튼 / 섹션 타이틀 / 스테이지 라벨
+  // v3.15 Garden — 모달 타이틀 / 버튼
   'GARDEN_INTRODUCE_TITLE',
   'GARDEN_CTA_VIEW',
   'GARDEN_CTA_CLOSE',
-  'GARDEN_SECTION_TITLE',
-  'GARDEN_STAGE_LABEL_SEED',
-  'GARDEN_STAGE_LABEL_SPROUT',
-  'GARDEN_STAGE_LABEL_STEM',
-  'GARDEN_STAGE_LABEL_BUD',
-  'GARDEN_STAGE_LABEL_BLOOM',
-  'GARDEN_TROPHY_LABEL',
 ]);
 
 describe('MSG (i18n Lite)', () => {

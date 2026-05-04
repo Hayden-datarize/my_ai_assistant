@@ -1,5 +1,6 @@
 import { describe, it, expect, beforeEach } from 'vitest';
-import { renderGardenGrid, renderGardenMini } from '../../../src/ui/components/garden-grid';
+import { renderGardenGrid, renderGardenMini, INTEREST_LABEL } from '../../../src/ui/components/garden-grid';
+import { INTERESTS } from '../../../src/utils/categories';
 import type { User } from '../../../src/state/user';
 
 // 최소한의 User fixture — plantStateByInterest 테스트에 필요한 필드만 포함
@@ -108,5 +109,27 @@ describe('renderGardenMini (홈 preview)', () => {
     const u = mkUser({ ai_ml: { stage: 1, cumulativeActivity: 0 } });
     renderGardenMini(root, u);
     expect(root.querySelector('.garden-mini-cell')?.getAttribute('aria-label')).toContain('AI/ML');
+  });
+});
+
+// v3.16 T5 (C5 bundle trim): INTEREST_LABEL을 INTERESTS catalog에서 derive하도록 변경.
+// 15개 catalog ID에 대해 빈 문자열 아님 + emoji prefix 분리 정확성을 회귀 안전망으로 보장.
+describe('INTEREST_LABEL (catalog-derived plain label)', () => {
+  it('15 catalog IDs 모두 non-empty string', () => {
+    for (const interest of INTERESTS) {
+      expect(INTEREST_LABEL[interest.id], `INTEREST_LABEL.${interest.id}`).toBeTruthy();
+      expect(INTEREST_LABEL[interest.id]?.length ?? 0).toBeGreaterThan(0);
+    }
+  });
+
+  it('emoji prefix 제거 — label은 원본 label과 한 칸 차 (catalog 컨벤션 emoji+space+label)', () => {
+    for (const interest of INTERESTS) {
+      const plain = INTEREST_LABEL[interest.id];
+      // 원본 label은 'emoji 한국어' 형식 — plain은 한국어 부분만
+      expect(interest.label.endsWith(plain ?? '')).toBe(true);
+      // plain은 emoji 자체를 포함하지 않음 (첫 글자가 한글이거나 영문)
+      const firstChar = plain?.[0] ?? '';
+      expect(firstChar).toMatch(/[가-힣A-Za-z]/);
+    }
   });
 });

@@ -19,10 +19,8 @@ import { generateQuestion, chat, evaluateAnswer } from '../../services/gemini';
 import { autoSendAnswer } from '../../services/slack';
 import { summarizeOrTranslateBody, translateTitle, isSessionBlocked } from '../../services/translate';
 import { TranslateQueue } from '../translateQueue';
-import { escapeHtml } from '../../utils/escapeHtml';
 import { getDateStr } from '../../utils/dates';
 import { showToast } from '../../utils/toast';
-import { INTERESTS } from '../../utils/categories';
 import { detectLanguage } from '../../utils/lang';
 import { openMemoModal } from '../modals/memo';
 import { createLangToggle, type LangToggleEl, type LangState } from '../components/cardLangToggle';
@@ -956,6 +954,4 @@ async function exportData(): Promise<void> {
   a.remove();
   URL.revokeObjectURL(url);
   showToast('백업 파일을 다운로드했어요');
-  void escapeHtml; // keep util referenced to avoid unused-import nit
-  void INTERESTS; // reserved for future recommendation personalisation
 }

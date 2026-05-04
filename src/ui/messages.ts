@@ -45,11 +45,4 @@ export const MSG = {
   GARDEN_CTA_VIEW: '정원 보러 가기',
   GARDEN_CTA_CLOSE: '닫기',
   GARDEN_BLOOM: (interest: string): string => `${interest} 정원이 만개했어요 🌸`,
-  GARDEN_SECTION_TITLE: '내 정원',
-  GARDEN_STAGE_LABEL_SEED: '씨앗',
-  GARDEN_STAGE_LABEL_SPROUT: '새싹',
-  GARDEN_STAGE_LABEL_STEM: '줄기',
-  GARDEN_STAGE_LABEL_BUD: '봉오리',
-  GARDEN_STAGE_LABEL_BLOOM: '만개',
-  GARDEN_TROPHY_LABEL: '만개 ✨',
 } as const;

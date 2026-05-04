@@ -2,29 +2,16 @@ import type { User } from '../../state/user';
 import { getPlantIcon, STAGE_LABEL, TROPHY_MARK } from '../../state/plantCatalog';
 import { checkWilting } from '../../state/plantEngine';
 import { escapeHtml } from '../../utils/escapeHtml';
+import { INTERESTS } from '../../utils/categories';
 
 /**
  * 분야 ID → 한국어 짧은 라벨 (emoji 제외 plain text).
- * 실제 INTERESTS catalog 15개 ID 기준 (`src/utils/categories.ts`).
- * 사용자 정의 분야는 id 그대로 fallback (escapeHtml 적용).
+ * INTERESTS catalog (`src/utils/categories.ts`) 의 `🎯 채용` 같은 emoji-prefix label에서
+ * 첫 공백 이후만 추출해 derive. 사용자 정의 분야는 id 그대로 fallback.
  */
-export const INTEREST_LABEL: Record<string, string> = {
-  recruiting:    '채용',
-  onboarding:    '온보딩',
-  culture:       '조직문화',
-  hr_system:     '인사제도',
-  labor_law:     '노무/법률',
-  leadership:    '리더십',
-  pm:            '프로덕트',
-  ai_ml:         'AI/ML',
-  data:          '데이터분석',
-  startup:       '스타트업',
-  marketing:     '마케팅',
-  productivity:  '생산성',
-  career:        '커리어',
-  communication: '커뮤니케이션',
-  self_dev:      '자기계발',
-};
+export const INTEREST_LABEL: Record<string, string> = Object.fromEntries(
+  INTERESTS.map(i => [i.id, i.label.replace(/^\S+\s+/, '')]),
+);
 
 function shortLabel(interestId: string, full: boolean): string {
   // 사용자 정의 분야는 id 그대로 fallback
