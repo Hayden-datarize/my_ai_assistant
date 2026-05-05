@@ -159,8 +159,30 @@ describe('v3.17 T2 — dark warm charcoal', () => {
     expect(tokensCss).toMatch(/\[data-theme="dark"\][\s\S]*?--bg:\s*#161823/);
   });
 
-  it('--bg-card dark = #22242F (warm card)', () => {
-    expect(tokensCss).toMatch(/\[data-theme="dark"\][\s\S]*?--bg-card:\s*#22242F/);
+  // v3.18 T3 (G2-2): dark --bg-card lifted from #22242F to #2A2D3A
+  // (luminance 0.018 → 0.027, ratio 1.14:1 → 1.29:1, target >=1.25, 카드 boundary 인지 회복)
+  // T0 review P0-1 정정: 이전 plan ratio 1.82→2.45 주장은 산술 오류. 재계산 후 정정.
+  it('--bg-card dark = #2A2D3A (lifted for visual hierarchy vs --bg)', () => {
+    expect(tokensCss).toMatch(/\[data-theme="dark"\][\s\S]*?--bg-card:\s*#2A2D3A/);
+  });
+
+  it('dark --bg-card luminance ratio vs --bg ≥ 1.25:1 (visual hierarchy lift, T0 review P0-1 정정)', () => {
+    // Pure CSS regex assertion — light values
+    const darkBlock = tokensCss.match(/\[data-theme="dark"\]\s*\{([^}]*)\}/)?.[1] ?? '';
+    const bgCardMatch = darkBlock.match(/--bg-card:\s*(#[0-9A-Fa-f]+)/);
+    const bgMatch = darkBlock.match(/--bg:\s*(#[0-9A-Fa-f]+)/);
+    expect(bgCardMatch).not.toBeNull();
+    expect(bgMatch).not.toBeNull();
+    // Hex → relative luminance (sRGB; gamma 단순화 — visual hierarchy 검증 목적)
+    const lum = (hex: string): number => {
+      const r = parseInt(hex.slice(1, 3), 16) / 255;
+      const g = parseInt(hex.slice(3, 5), 16) / 255;
+      const b = parseInt(hex.slice(5, 7), 16) / 255;
+      const linearize = (c: number): number => c <= 0.03928 ? c / 12.92 : Math.pow((c + 0.055) / 1.055, 2.4);
+      return 0.2126 * linearize(r) + 0.7152 * linearize(g) + 0.0722 * linearize(b);
+    };
+    const ratio = (lum(bgCardMatch![1]!) + 0.05) / (lum(bgMatch![1]!) + 0.05);
+    expect(ratio).toBeGreaterThanOrEqual(1.25);
   });
 
   it('--bg-input dark = #363846', () => {
