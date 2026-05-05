@@ -46,13 +46,13 @@
   --accent-light: #422006;
   --success: #34D399;
   --success-light: #064E3B;
-  --bg: #0F172A;
-  --bg-card: #1E293B;
-  --bg-input: #334155;
+  --bg: #161823;
+  --bg-card: #22242F;
+  --bg-input: #363846;
   --text-primary: #F1F5F9;
   --text-secondary: #94A3B8;
   --text-tertiary: #64748B;
-  --border: #334155;
+  --border: #363846;
   --bg-disabled: #475569;  /* slate-600 — v3.3.4 for .btn-primary:disabled */
   --shadow-sm: 0 1px 2px rgba(0,0,0,0.4), 0 1px 1px rgba(0,0,0,0.3);
   --shadow-md: 0 4px 12px rgba(0,0,0,0.5), 0 2px 4px rgba(0,0,0,0.3);
@@ -128,7 +128,7 @@
 
 [data-theme="dark"] {
   /* Heatmap palette (dark) — v3.3.3 ramp B */
-  --heatmap-l0: #0F172A;   /* was var(--bg-card) — slate-900, distinct from card bg */
+  --heatmap-l0: #161823;   /* warm charcoal — synced to dark --bg (v3.17 T2) */
   --heatmap-l1: #4338CA;   /* was #3730A3 — indigo-700, lifts l1 */
   --heatmap-l2: #6366F1;
   --heatmap-l3: var(--primary);

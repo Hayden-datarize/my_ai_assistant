@@ -372,9 +372,9 @@ describe('v3.3.3 palette ramp B', () => {
     expect(roots).toMatch(/--heatmap-l3:\s*var\(--primary\)/);
   });
 
-  it('dark ramp: l0=#0F172A, l1=#4338CA, l2=#6366F1, l3=primary', () => {
+  it('dark ramp: l0=#161823, l1=#4338CA, l2=#6366F1, l3=primary', () => {
     const darks = css.match(/\[data-theme="dark"\]\s*\{[^}]*\}/g)?.join('\n') ?? '';
-    expect(darks).toMatch(/--heatmap-l0:\s*#0F172A/);
+    expect(darks).toMatch(/--heatmap-l0:\s*#161823/);
     expect(darks).toMatch(/--heatmap-l1:\s*#4338CA/);
     expect(darks).toMatch(/--heatmap-l2:\s*#6366F1/);
     expect(darks).toMatch(/--heatmap-l3:\s*var\(--primary\)/);

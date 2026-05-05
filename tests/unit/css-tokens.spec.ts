@@ -152,3 +152,30 @@ describe('v3.17 tokens — color / shadow / radius / motion', () => {
     expect(tokensCss).toMatch(/--shadow-md:[^;]*rgba[^;]*,[^;]*rgba/);
   });
 });
+
+describe('v3.17 T2 — dark warm charcoal', () => {
+  it('--bg dark = #161823 (warm charcoal, was slate-900 #0F172A)', () => {
+    expect(tokensCss).toMatch(/\[data-theme="dark"\][\s\S]*?--bg:\s*#161823/);
+  });
+
+  it('--bg-card dark = #22242F (warm card)', () => {
+    expect(tokensCss).toMatch(/\[data-theme="dark"\][\s\S]*?--bg-card:\s*#22242F/);
+  });
+
+  it('--bg-input dark = #363846', () => {
+    expect(tokensCss).toMatch(/\[data-theme="dark"\][\s\S]*?--bg-input:\s*#363846/);
+  });
+
+  it('--border dark = #363846', () => {
+    expect(tokensCss).toMatch(/\[data-theme="dark"\][\s\S]*?--border:\s*#363846/);
+  });
+
+  it('--heatmap-l0 dark synced to --bg #161823', () => {
+    // The heatmap dark block has its own [data-theme="dark"] selector — ensure --heatmap-l0 matches new --bg.
+    // Find the [data-theme="dark"] block that actually contains --heatmap-l0 (the second one).
+    const darkBlocks = [...tokensCss.matchAll(/\[data-theme="dark"\]\s*\{([\s\S]*?)\}/g)];
+    const heatmapBlock = darkBlocks.find((m) => /--heatmap-l0:/.test(m[1] ?? ''));
+    const value = heatmapBlock?.[1]?.match(/--heatmap-l0:\s*(#[0-9A-Fa-f]+)/)?.[1];
+    expect(value?.toLowerCase()).toBe('#161823');
+  });
+});
