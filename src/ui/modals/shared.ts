@@ -14,7 +14,7 @@ interface CloseOpts {
 }
 
 let active: HTMLDivElement | null = null;
-let escHandler: ((e: KeyboardEvent) => void) | null = null;
+let escController: AbortController | null = null;
 let activeOnClose: (() => void) | null = null;
 let activeFocusTrap: FocusTrap | null = null;
 let lastFocusedBeforeOpen: HTMLElement | null = null;
@@ -63,8 +63,10 @@ export function openModal(cfg: ModalConfig): HTMLDivElement {
   active = wrap;
   activeOnClose = cfg.onClose ?? null;
 
-  escHandler = (e) => { if (e.key === 'Escape') closeModal(); };
-  document.addEventListener('keydown', escHandler);
+  escController = new AbortController();
+  document.addEventListener('keydown', (e) => {
+    if (e.key === 'Escape') closeModal();
+  }, { signal: escController.signal });
 
   // 3. Activate focus trap (auto-focuses first focusable inside modal)
   activeFocusTrap = createFocusTrap(wrap);
@@ -95,9 +97,9 @@ export function closeModal(opts?: CloseOpts): void {
     active.remove();
     active = null;
   }
-  if (escHandler) {
-    document.removeEventListener('keydown', escHandler);
-    escHandler = null;
+  if (escController) {
+    escController.abort();
+    escController = null;
   }
   activeOnClose = null;
 
