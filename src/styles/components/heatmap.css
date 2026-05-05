@@ -81,6 +81,12 @@
   transform: scale(1.25);
   z-index: 1;
 }
+/* v3.17 T4: :hover 단독 selector — pointer hover에 glow를 더해
+   :focus-visible의 focus-ring과 시각 위계를 분리. focus-visible은
+   아래 규칙에서 box-shadow를 focus-ring으로 덮어 키보드 우선. */
+.heatmap-cell:hover {
+  box-shadow: var(--shadow-glow);
+}
 .heatmap-cell:focus-visible {
   outline: none;
   box-shadow: var(--focus-ring);
