@@ -120,16 +120,16 @@ describe('v3.3.3 modal backdrop token', () => {
 });
 
 describe('v3.17 tokens — color / shadow / radius / motion', () => {
-  it('exposes --primary-vivid #6366F1', () => {
-    expect(tokensCss).toMatch(/--primary-vivid:\s*#6366F1\b/);
+  it('does not define --primary-vivid (G1-1, dead since v3.17 T1)', () => {
+    expect(tokensCss).not.toMatch(/--primary-vivid:/);
   });
 
-  it('exposes --primary-gradient with linear-gradient', () => {
-    expect(tokensCss).toMatch(/--primary-gradient:\s*linear-gradient/);
+  it('does not define --primary-gradient (G1-2, dead since v3.3.0 baseline)', () => {
+    expect(tokensCss).not.toMatch(/--primary-gradient:/);
   });
 
-  it('exposes --accent-gradient with linear-gradient', () => {
-    expect(tokensCss).toMatch(/--accent-gradient:\s*linear-gradient/);
+  it('does not define --accent-gradient (G1-3, dead since v3.3.0 baseline)', () => {
+    expect(tokensCss).not.toMatch(/--accent-gradient:/);
   });
 
   it('exposes --shadow-glow focus ring', () => {
@@ -167,8 +167,8 @@ describe('v3.17 T2 — dark warm charcoal', () => {
     expect(tokensCss).toMatch(/\[data-theme="dark"\][\s\S]*?--bg-input:\s*#363846/);
   });
 
-  it('--border dark = #363846', () => {
-    expect(tokensCss).toMatch(/\[data-theme="dark"\][\s\S]*?--border:\s*#363846/);
+  it('--border dark = #4B4D5A (lifted from #363846 to break collapse with --bg-input)', () => {
+    expect(tokensCss).toMatch(/\[data-theme="dark"\][\s\S]*?--border:\s*#4B4D5A/);
   });
 
   it('--heatmap-l0 dark synced to --bg #161823', () => {

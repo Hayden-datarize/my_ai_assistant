@@ -31,4 +31,10 @@ describe('v3.17 T5 — garden polish', () => {
     expect(css).toMatch(/\.garden-empty\s*\{[\s\S]*?background:\s*var\(--bg-card\)/);
     expect(css).toMatch(/\.garden-empty\s*\{[\s\S]*?padding:\s*var\(--space-8\)\s+var\(--space-4\)/);
   });
+
+  it('garden-mini-cell:hover/active uses var(--shadow-md) (G1-5, was hardcoded rgba)', () => {
+    expect(css).toMatch(
+      /\.garden-mini-cell:hover[^{]*,\s*\.garden-mini-cell:active\s*\{[^}]*?box-shadow:\s*var\(--shadow-md\)/
+    );
+  });
 });

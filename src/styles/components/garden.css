@@ -75,7 +75,7 @@
   .garden-mini-cell:hover,
   .garden-mini-cell:active {
     /* tap target 시각 cue */
-    box-shadow: 0 4px 8px rgba(0, 0, 0, 0.1);
+    box-shadow: var(--shadow-md);
   }
   .garden-mini-cell.wilting {
     opacity: 0.5;
