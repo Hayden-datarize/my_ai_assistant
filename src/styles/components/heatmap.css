@@ -99,6 +99,12 @@
 .heatmap-cell.is-today:focus-visible {
   box-shadow: inset 0 0 0 2px var(--primary), var(--focus-ring);
 }
+/* v3.17 T4 review I-1: pointer hover on today cell — merge inset indicator
+   with hover glow (multi-shadow). Specificity (0,3,0) > both .is-today (0,2,0)
+   and .heatmap-cell:hover (0,2,0), so this wins unambiguously. */
+.heatmap-cell.is-today:hover {
+  box-shadow: inset 0 0 0 2px var(--primary), var(--shadow-glow);
+}
 
 /* Mobile override — larger tap target */
 @media (max-width: 767px) {
@@ -163,6 +169,7 @@
 .heatmap-cell.is-future:hover,
 .heatmap-cell.is-future:focus-visible {
   transform: none;
+  box-shadow: none;
 }
 
 /* Reduce motion (local rule — base.css has no global rule in v3.3.2 baseline)

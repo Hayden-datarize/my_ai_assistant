@@ -21,4 +21,16 @@ describe('v3.17 T4 — heatmap polish', () => {
   it('heatmap-info 라벨 color text-secondary 사용 (regression guard)', () => {
     expect(heatmapCss).toMatch(/\.heatmap-info\s*\{[\s\S]*?color:\s*var\(--text-secondary\)/);
   });
+
+  it('is-today + hover preserves inset indicator AND glow (multi-shadow merge)', () => {
+    expect(heatmapCss).toMatch(
+      /\.heatmap-cell\.is-today:hover\s*\{[^}]*box-shadow:\s*inset[^,]+,\s*var\(--shadow-glow\)/
+    );
+  });
+
+  it('is-future + hover suppresses box-shadow', () => {
+    expect(heatmapCss).toMatch(
+      /\.heatmap-cell\.is-future:hover[\s\S]*?box-shadow:\s*none/
+    );
+  });
 });
