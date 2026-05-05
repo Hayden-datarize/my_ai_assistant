@@ -117,3 +117,38 @@ describe('v3.3.3 modal backdrop token', () => {
     expect(dark).toMatch(/--modal-backdrop:\s*rgba\(0,\s*0,\s*0,\s*0\.6\)/);
   });
 });
+
+describe('v3.17 tokens — color / shadow / radius / motion', () => {
+  it('exposes --primary-vivid #6366F1', () => {
+    expect(tokensCss).toMatch(/--primary-vivid:\s*#6366F1\b/);
+  });
+
+  it('exposes --primary-gradient with linear-gradient', () => {
+    expect(tokensCss).toMatch(/--primary-gradient:\s*linear-gradient/);
+  });
+
+  it('exposes --accent-gradient with linear-gradient', () => {
+    expect(tokensCss).toMatch(/--accent-gradient:\s*linear-gradient/);
+  });
+
+  it('exposes --shadow-glow focus ring', () => {
+    expect(tokensCss).toMatch(/--shadow-glow:\s*0 0 0 4px rgba\(99,\s*102,\s*241,\s*0\.15\)/);
+  });
+
+  it('exposes --radius-2xl: 24px', () => {
+    expect(tokensCss).toMatch(/--radius-2xl:\s*24px/);
+  });
+
+  it('exposes --ease-spring cubic-bezier(0.34,1.56,0.64,1)', () => {
+    expect(tokensCss).toMatch(/--ease-spring:\s*cubic-bezier\(0\.34,\s*1\.56,\s*0\.64,\s*1\)/);
+  });
+
+  it('exposes --ease-out-soft cubic-bezier(0.22,1,0.36,1)', () => {
+    expect(tokensCss).toMatch(/--ease-out-soft:\s*cubic-bezier\(0\.22,\s*1,\s*0\.36,\s*1\)/);
+  });
+
+  it('--shadow-md is multi-layer (3D depth)', () => {
+    // Two rgba layers comma-separated indicates 3D depth treatment.
+    expect(tokensCss).toMatch(/--shadow-md:[^;]*rgba[^;]*,[^;]*rgba/);
+  });
+});
