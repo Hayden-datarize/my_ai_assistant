@@ -153,7 +153,7 @@ test.describe('heatmap visual + interaction', () => {
     expect(bg0).toMatch(/226,\s*232,\s*240/);  // #E2E8F0
   });
 
-  test('v3.3.3 dark l0 = slate-900 (#0F172A)', async ({ page }) => {
+  test('v3.17 T2 dark l0 = warm charcoal (#161823)', async ({ page }) => {
     await page.addInitScript(() => {
       document.documentElement.dataset['theme'] = 'dark';
       document.body.classList.add('dark');
@@ -166,6 +166,6 @@ test.describe('heatmap visual + interaction', () => {
     const l0 = page.locator('.heatmap-cell.level-0').first();
     if (await l0.count() === 0) return;  // no heatmap rendered yet, skip silently
     const bg = await l0.evaluate((el) => getComputedStyle(el).backgroundColor);
-    expect(bg).toMatch(/15,\s*23,\s*42/);  // #0F172A
+    expect(bg).toMatch(/22,\s*24,\s*35/);  // #161823 — bumped from #0F172A in v3.17 T2 (carry from T8 smoke regression catch)
   });
 });
