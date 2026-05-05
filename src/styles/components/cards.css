@@ -52,12 +52,24 @@
 .briefing-card {
   position: relative;
   aspect-ratio: 4 / 5;
-  border-radius: var(--radius-lg);
+  border-radius: var(--radius-2xl);
   overflow: hidden;
   background: var(--bg-card);
+  box-shadow: var(--shadow-md);
   transition: transform 0.2s;
 }
-.briefing-card:hover { transform: translateY(-2px); }
+@media (hover: hover) {
+  .briefing-card:hover {
+    transform: translateY(-2px);
+    box-shadow: var(--shadow-lg);
+    transition:
+      transform var(--duration-base) var(--ease-spring),
+      box-shadow var(--duration-base) var(--ease-out-soft);
+  }
+}
+.briefing-card:active {
+  transform: translateY(0);
+}
 
 .briefing-card .card-main {
   display: block;
