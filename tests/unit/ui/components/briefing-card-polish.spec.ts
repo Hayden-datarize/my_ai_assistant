@@ -21,8 +21,19 @@ describe('v3.17 T3 — briefing card hero polish', () => {
     expect(cardsCss).toMatch(/@media\s*\(hover:\s*hover\)\s*\{[\s\S]*?\.briefing-card:hover[\s\S]*?translateY\(-2px\)/);
   });
 
-  it('briefing-card hover uses spring easing token', () => {
-    expect(cardsCss).toMatch(/\.briefing-card:hover[\s\S]*?var\(--ease-spring\)/);
+  it('briefing-card transition uses spring easing token (T2: moved from :hover to default block for symmetry)', () => {
+    // v3.18 T2: ease-spring은 이제 default block의 transition declaration에 위치.
+    // :hover는 transform/box-shadow 값만 override.
+    expect(cardsCss).toMatch(/\.briefing-card\s*\{[^}]*?var\(--ease-spring\)/);
+  });
+});
+
+describe('v3.18 T2 — briefing-card hover symmetry', () => {
+  // v3.18 T2 (G2-1): hover transition symmetry — default state must include both
+  // transform + box-shadow so leaving hover animates back smoothly.
+  it('briefing-card default state has transition for both transform AND box-shadow (G2-1)', () => {
+    const defaultBlock = cardsCss.match(/\.briefing-card\s*\{[^}]*\}/)?.[0] ?? '';
+    expect(defaultBlock).toMatch(/transition:[^;]*transform[^;]*,[^;]*box-shadow/);
   });
 });
 
