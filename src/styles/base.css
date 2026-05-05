@@ -31,3 +31,10 @@ h3 { font-size: 1.1rem; }
   outline: 2px solid var(--primary);
   outline-offset: 2px;
 }
+
+/* v3.17 T6 — fixed-nav overlap 본질 해법 (carry-B from v3.16 lesson #4).
+   :where() specificity 0 → 기존 element override 가능. JS scrollIntoView fix와 양립. */
+:where(input, textarea, [data-scroll-target]) {
+  scroll-margin-top: calc(var(--nav-height) + 16px);
+  scroll-margin-bottom: var(--content-bottom-pad);
+}

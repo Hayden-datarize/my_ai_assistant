@@ -9,6 +9,7 @@ const stylesDir = join(here, '..', '..', 'src', 'styles');
 const tokensCss = readFileSync(join(stylesDir, 'tokens.css'), 'utf-8');
 const layoutCss = readFileSync(join(stylesDir, 'layout.css'), 'utf-8');
 const formsCss = readFileSync(join(stylesDir, 'components', 'forms.css'), 'utf-8');
+const baseCss = readFileSync(join(stylesDir, 'base.css'), 'utf-8');
 
 describe('css drift guards (v3.2b-polish)', () => {
   it('--sidebar-width defined in :root with 240px', () => {
@@ -177,5 +178,16 @@ describe('v3.17 T2 — dark warm charcoal', () => {
     const heatmapBlock = darkBlocks.find((m) => /--heatmap-l0:/.test(m[1] ?? ''));
     const value = heatmapBlock?.[1]?.match(/--heatmap-l0:\s*(#[0-9A-Fa-f]+)/)?.[1];
     expect(value?.toLowerCase()).toBe('#161823');
+  });
+});
+
+describe('v3.17 T6 — scroll-margin CSS UX (carry-B)', () => {
+  it('input/textarea/data-scroll-target 전역 selector에 scroll-margin-top', () => {
+    expect(baseCss).toMatch(/:where\(input,\s*textarea,\s*\[data-scroll-target\]\)/);
+    expect(baseCss).toMatch(/scroll-margin-top:\s*calc\(var\(--nav-height\)\s*\+\s*16px\)/);
+  });
+
+  it('scroll-margin-bottom uses --content-bottom-pad', () => {
+    expect(baseCss).toMatch(/scroll-margin-bottom:\s*var\(--content-bottom-pad\)/);
   });
 });
