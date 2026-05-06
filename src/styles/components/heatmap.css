@@ -105,6 +105,13 @@
 .heatmap-cell.is-today:hover {
   box-shadow: inset 0 0 0 2px var(--primary), var(--shadow-glow);
 }
+/* v3.18 T4 (G2-3): is-today + focus-visible + hover triple combo —
+   keyboard-focused today cell + pointer hover. Specificity (0,4,0) > all
+   sub-combos, so this wins. Layers all 3 visual signals: inset indicator,
+   focus-ring (keyboard a11y priority), and hover glow. */
+.heatmap-cell.is-today:focus-visible:hover {
+  box-shadow: inset 0 0 0 2px var(--primary), var(--focus-ring), var(--shadow-glow);
+}
 
 /* Mobile override — larger tap target */
 @media (max-width: 767px) {
