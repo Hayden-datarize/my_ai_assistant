@@ -46,6 +46,16 @@ export function renderSettings(container: HTMLElement): void {
         <input type="password" id="apiKeyInput" autocomplete="off" placeholder="AI...로 시작하는 키" style="width:100%;padding:10px;border:1px solid var(--border);border-radius:var(--radius-sm);background:var(--bg-input);color:var(--text-primary);" />
         <button type="button" id="saveApiKeyBtn" class="btn btn-primary btn-block mt-16" style="margin-top:8px;">저장</button>
         <div id="apiKeyStatus" style="margin-top:8px;font-size:0.85rem;"></div>
+        <details style="margin-top:12px;">
+          <summary style="cursor:pointer;font-size:0.9rem;">API 키 발급 받기</summary>
+          <ol style="font-size:0.85rem;margin-top:8px;line-height:1.6;padding-left:20px;">
+            <li><a href="https://aistudio.google.com/app/apikey" target="_blank" rel="noopener noreferrer">Google AI Studio</a> 접속 (Google 계정 로그인 필요)</li>
+            <li>"Create API Key" 클릭 → 새 프로젝트 또는 기존 프로젝트 선택</li>
+            <li>생성된 키 ("AI..."로 시작) 복사해 위 입력란에 붙여넣기</li>
+            <li>"저장" 버튼 클릭</li>
+          </ol>
+          <p style="font-size:0.8rem;color:var(--text-secondary);margin-top:8px;">※ API 키는 이 브라우저에만 저장됩니다. Gemini 무료 한도 (분당 60회 요청) 내에서 사용 가능합니다.</p>
+        </details>
       </section>
       <section class="settings-group" data-testid="translate-settings">
         <div class="settings-group-title">Gemini 번역</div>
