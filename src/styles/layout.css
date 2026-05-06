@@ -74,6 +74,17 @@
   padding-bottom: var(--content-bottom-pad);
 }
 
+/* v3.18.1 H5 (#6): mobile settings 좌우 여백 — 다른 탭은 자체 컴포넌트가 padding 제공,
+   settings는 inline `<section>`만 있어 viewport edge에 flush.
+   데스크톱은 기존 #settingsTab { padding-left: 80px } override 그대로 유지 +
+   padding-right: 0 (다른 탭과 일관) — mobile-only wrap. */
+@media (max-width: 767px) {
+  #settingsTab {
+    padding-left: 20px;
+    padding-right: 20px;
+  }
+}
+
 /* Insights has no components-layer override (no pages/insights.css), so the
    top/right pad must be set here so its heading aligns with other tabs. */
 #insightsTab {
