@@ -112,6 +112,28 @@ describe('renderGardenMini (홈 preview)', () => {
   });
 });
 
+// v3.18.1 H4 (#5): mini label 4자 + ellipsis (의미 손실 완화)
+// 이전: shortLabel(id, false) = label.slice(0, 2) → '자기계발' → '자기' (의미 손실).
+// 이후: 4자 이하는 그대로, 5자 이상은 4자 + '…'.
+describe('renderGardenMini (mini label 4자 + ellipsis)', () => {
+  let root: HTMLDivElement;
+  beforeEach(() => { root = document.createElement('div'); });
+
+  it('4자 이하 label은 그대로 표시 (자기계발 → 자기계발)', () => {
+    const u = mkUser({ self_dev: { stage: 1, cumulativeActivity: 0 } });
+    renderGardenMini(root, u);
+    const miniLabel = root.querySelector('.garden-mini-label')?.textContent;
+    expect(miniLabel).toBe('자기계발');
+  });
+
+  it('5자 이상 label은 4자 + ellipsis (커뮤니케이션 → 커뮤니케…)', () => {
+    const u = mkUser({ communication: { stage: 1, cumulativeActivity: 0 } });
+    renderGardenMini(root, u);
+    const miniLabel = root.querySelector('.garden-mini-label')?.textContent;
+    expect(miniLabel).toBe('커뮤니케…');
+  });
+});
+
 // v3.16 T5 (C5 bundle trim): INTEREST_LABEL을 INTERESTS catalog에서 derive하도록 변경.
 // 15개 catalog ID에 대해 빈 문자열 아님 + emoji prefix 분리 정확성을 회귀 안전망으로 보장.
 describe('INTEREST_LABEL (catalog-derived plain label)', () => {

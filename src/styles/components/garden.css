@@ -82,7 +82,15 @@
     filter: grayscale(0.4);
   }
   .garden-mini-emoji { font-size: 24px; }
-  .garden-mini-label { font-size: 11px; color: var(--text-secondary); }
+  .garden-mini-label {
+    font-size: 11px;
+    color: var(--text-secondary);
+    display: block;
+    max-width: 100%;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+  }
   .garden-mini-trophy {
     position: absolute;
     top: 2px;

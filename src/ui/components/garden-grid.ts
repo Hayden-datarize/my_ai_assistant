@@ -16,7 +16,8 @@ export const INTEREST_LABEL: Record<string, string> = Object.fromEntries(
 function shortLabel(interestId: string, full: boolean): string {
   // 사용자 정의 분야는 id 그대로 fallback
   const label = INTEREST_LABEL[interestId] ?? interestId;
-  return full ? label : label.slice(0, 2);  // mini는 2자
+  // v3.18.1 H4 (#5): 의미 보존 위해 4자까지 표시 + 4자 초과 ellipsis.
+  return full ? label : label.length > 4 ? label.slice(0, 4) + '…' : label;
 }
 
 /**
