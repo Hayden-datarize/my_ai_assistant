@@ -1,3 +1,4 @@
+import { openModal, closeModal } from './shared';
 import { getCachedUser, saveUser } from '../../state/user';
 import { STAGE_LABEL, getPlantIcon } from '../../state/plantCatalog';
 import { switchTab } from '../nav';
@@ -11,6 +12,10 @@ import { MSG } from '../messages';
  *
  * Highlight: backfill 결과 중 가장 큰 stage 식물 1개 명시.
  * 신규 사용자 (모든 식물 stage 1, cum 0) → highlight 생략, "씨앗부터 시작해요" 대체.
+ *
+ * v3.18.1 H1 (#4): manual `.modal-backdrop` + `.modal-card` (0 CSS 매칭) →
+ * `openModal()` helper로 refactor. `.welcome-garden-modal` wrapper + button IDs는
+ * bodyHtml 안에 보존하여 spec 11 case 호환. AbortController는 openModal 내부에서 관리.
  */
 export function maybeShowWelcomeGarden(): void {
   const user = getCachedUser();
@@ -41,12 +46,8 @@ export function maybeShowWelcomeGarden(): void {
     highlightHtml = `<p class="welcome-garden-newcomer">${escapeHtml(MSG.GARDEN_NEWCOMER)}</p>`;
   }
 
-  const dialog = document.createElement('div');
-  dialog.className = 'welcome-garden-modal modal-backdrop';
-  // eslint-disable-next-line no-restricted-syntax -- 정적 셸; user 보간값은 위에서 escapeHtml 완료
-  dialog.innerHTML = `
-    <div class="modal-card" role="dialog" aria-labelledby="welcomeGardenTitle">
-      <h2 id="welcomeGardenTitle">${escapeHtml(MSG.GARDEN_INTRODUCE_TITLE)}</h2>
+  const bodyHtml = `
+    <div class="welcome-garden-modal">
       <p>${escapeHtml(MSG.GARDEN_INTRODUCE_BODY).replace(/\n/g, '<br>')}</p>
       ${highlightHtml}
       <div class="modal-actions">
@@ -56,36 +57,29 @@ export function maybeShowWelcomeGarden(): void {
     </div>
   `;
 
-  // C3 (v3.16): AbortController로 single cleanup point — close path 모두에서 listener 자동 제거
-  const escController = new AbortController();
+  const wrap = openModal({
+    title: MSG.GARDEN_INTRODUCE_TITLE,
+    bodyHtml,
+    onClose: () => {
+      const u = getCachedUser();
+      if (u && !u.gardenIntroduced) {
+        u.gardenIntroduced = true;
+        // saveUser는 best-effort flag 토글 — Quota 시 다음 진입에서 재시도 (idempotent 설계).
+        // v3.7 saveUser throw 정책은 사용자 데이터 변경 path 적용; 모달 flag 토글은 수용.
+        try { saveUser(u); } catch { /* Quota silent — 다음 진입 재시도 */ }
+      }
+    },
+  });
 
-  function close(navigate: boolean): void {
-    escController.abort();  // keydown listener 즉시 제거
-    dialog.remove();
-    const u = getCachedUser();
-    if (u && !u.gardenIntroduced) {
-      u.gardenIntroduced = true;
-      // saveUser는 best-effort flag 토글 — Quota 시 다음 진입에서 재시도 (idempotent 설계).
-      // v3.7 saveUser throw 정책은 사용자 데이터 변경 path 적용; 모달 flag 토글은 수용.
-      try { saveUser(u); } catch { /* Quota silent — 다음 진입 재시도 */ }
-    }
-    if (navigate) {
+  // "정원 보러 가기" — closeModal()이 onClose fire (gardenIntroduced flag set) 후 stats tab 이동
+  wrap.querySelector<HTMLButtonElement>('#welcomeGardenViewBtn')
+    ?.addEventListener('click', () => {
+      closeModal();
       switchTab('stats');
       // setTimeout 대신 requestAnimationFrame — paint 안정 보장 (home.ts T12 패턴)
       requestAnimationFrame(() => scrollToGardenSection());
-    }
-  }
+    });
 
-  dialog.querySelector('#welcomeGardenViewBtn')?.addEventListener('click', () => close(true));
-  dialog.querySelector('#welcomeGardenCloseBtn')?.addEventListener('click', () => close(false));
-  dialog.addEventListener('click', (e) => { if (e.target === dialog) close(false); });
-  document.addEventListener(
-    'keydown',
-    (e: KeyboardEvent) => {
-      if (e.key === 'Escape') close(false);
-    },
-    { signal: escController.signal },
-  );
-
-  document.body.appendChild(dialog);
+  wrap.querySelector<HTMLButtonElement>('#welcomeGardenCloseBtn')
+    ?.addEventListener('click', () => closeModal());
 }

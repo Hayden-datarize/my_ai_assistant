@@ -152,16 +152,21 @@ describe('maybeShowWelcomeGarden', () => {
       setUser({ gardenIntroduced: false, plants: { ai_ml: { stage: 1, cumulativeActivity: 0 } } });
       maybeShowWelcomeGarden();
       const escController = captured[captured.length - 1]!;
-      const dialog = document.querySelector('.welcome-garden-modal') as HTMLElement;
+      const backdrop = document.querySelector('.dg-modal-backdrop') as HTMLElement;
 
-      const clickEvent = new MouseEvent('click', { bubbles: true });
-      Object.defineProperty(clickEvent, 'target', { value: dialog });
-      dialog.dispatchEvent(clickEvent);
+      backdrop.click();
 
       expect(escController.signal.aborted).toBe(true);
       expect(document.querySelector('.welcome-garden-modal')).toBeNull();
     } finally {
       global.AbortController = OriginalAbortController;
     }
+  });
+
+  it('v3.18.1 H1 — uses .dg-modal-backdrop class (CSS 매칭 보장, regression guard)', () => {
+    setUser({ gardenIntroduced: false, plants: { ai_ml: { stage: 1, cumulativeActivity: 0 } } });
+    maybeShowWelcomeGarden();
+    expect(document.querySelector('.dg-modal-backdrop')).not.toBeNull();
+    expect(document.querySelector('.dg-modal-card')).not.toBeNull();
   });
 });

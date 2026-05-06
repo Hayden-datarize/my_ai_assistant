@@ -5,8 +5,9 @@ async function seedUserAndAnswer(page: Page): Promise<void> {
   const today = getDateStr();
   await page.addInitScript((args: { today: string }) => {
     localStorage.setItem('user', JSON.stringify({
+      // v3.18.1 H1: gardenIntroduced=true → welcome-garden 모달 억제 (archive nav click intercept 방지)
       name: '테스트', interests: ['ai_ml'], onboardedAt: new Date().toISOString(),
-      streak: 0, lastActiveDate: new Date().toISOString(), xp: 0, earnedBadges: {}, gamificationMigrated: true, schemaVersion: 2,
+      streak: 0, lastActiveDate: new Date().toISOString(), xp: 0, earnedBadges: {}, gamificationMigrated: true, gardenIntroduced: true, schemaVersion: 2,
     }));
     localStorage.setItem('dg.answers', JSON.stringify([{
       id: 'a1', questionId: 'q1', text: '테스트 답변 내용', authorId: 'self',
