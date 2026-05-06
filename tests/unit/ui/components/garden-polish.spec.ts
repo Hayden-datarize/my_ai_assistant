@@ -15,8 +15,8 @@ describe('v3.17 T5 — garden polish', () => {
   });
 
   it('garden-card has radius-xl + shadow-md + spring transition', () => {
-    expect(css).toMatch(/\.garden-card\s*\{[\s\S]*?border-radius:\s*var\(--radius-xl\)/);
-    expect(css).toMatch(/\.garden-card\s*\{[\s\S]*?box-shadow:\s*var\(--shadow-md\)/);
+    expect(css).toMatch(/\.garden-card\s*\{[^}]*?border-radius:\s*var\(--radius-xl\)/);
+    expect(css).toMatch(/\.garden-card\s*\{[^}]*?box-shadow:\s*var\(--shadow-md\)/);
     expect(css).toMatch(/\.garden-card[\s\S]*?transition[\s\S]*?var\(--ease-spring\)/);
   });
 
@@ -27,9 +27,9 @@ describe('v3.17 T5 — garden polish', () => {
   });
 
   it('garden-empty fallback message has card-like polish (centered + bg-card)', () => {
-    expect(css).toMatch(/\.garden-empty\s*\{[\s\S]*?text-align:\s*center/);
-    expect(css).toMatch(/\.garden-empty\s*\{[\s\S]*?background:\s*var\(--bg-card\)/);
-    expect(css).toMatch(/\.garden-empty\s*\{[\s\S]*?padding:\s*var\(--space-8\)\s+var\(--space-4\)/);
+    expect(css).toMatch(/\.garden-empty\s*\{[^}]*?text-align:\s*center/);
+    expect(css).toMatch(/\.garden-empty\s*\{[^}]*?background:\s*var\(--bg-card\)/);
+    expect(css).toMatch(/\.garden-empty\s*\{[^}]*?padding:\s*var\(--space-8\)\s+var\(--space-4\)/);
   });
 
   it('garden-mini-cell:hover/active uses var(--shadow-md) (G1-5, was hardcoded rgba)', () => {

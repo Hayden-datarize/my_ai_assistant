@@ -55,6 +55,19 @@ for (let n = 1; n <= 3; n++) {
     await page.goto('/');
     await expect(page.locator('#homeTab')).toBeVisible();
 
+    // v3.18 T7 G4-1: cold-fork hydration guard — submitBtn must be attached + laid out
+    // before geometric assertions. v3.14.3 lesson #2 (cold-start vs warm) — explicit
+    // hydration wait is the root-cause fix; timeout lift below is defense-in-depth.
+    await expect(page.locator('#submitBtn')).toBeAttached();
+    await page.waitForFunction(
+      () => {
+        const el = document.querySelector('#submitBtn') as HTMLElement | null;
+        return !!el && el.offsetHeight > 0;
+      },
+      undefined,
+      { timeout: 5000 },
+    );
+
     const nav = page.locator('#bottomNav');
     await expect(nav).toBeVisible();
     const navBox = await nav.boundingBox();
@@ -79,7 +92,7 @@ for (let n = 1; n <= 3; n++) {
       const nBox = await nav.boundingBox();
       if (!sBox || !nBox) return null;
       return sBox.y + sBox.height <= nBox.y;
-    }, { timeout: 2000, intervals: [100, 200, 400] }).toBe(true);
+    }, { timeout: 3000, intervals: [100, 200, 400] }).toBe(true);
 
     const submitBox = await submit.boundingBox();
     expect(submitBox).not.toBeNull();

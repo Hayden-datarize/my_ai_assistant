@@ -56,4 +56,41 @@ describe('v3.17 T7 — shared modal AbortController cleanup', () => {
     document.dispatchEvent(new KeyboardEvent('keydown', { key: 'Escape' }));
     expect(triggered).toBe(1);
   });
+
+  it('direct listener count — addEventListener spy 0 leak after open/close cycles (G4-2)', () => {
+    // Spy on document.addEventListener to count keydown listeners with AbortSignal.
+    const originalAdd = document.addEventListener.bind(document);
+    const originalRemove = document.removeEventListener.bind(document);
+    let activeKeydownCount = 0;
+
+    document.addEventListener = ((type: string, listener: EventListener, options?: AddEventListenerOptions | boolean) => {
+      if (type === 'keydown') {
+        activeKeydownCount++;
+        const sig = typeof options === 'object' ? options?.signal : undefined;
+        if (sig) {
+          sig.addEventListener('abort', () => {
+            activeKeydownCount = Math.max(0, activeKeydownCount - 1);
+          }, { once: true });
+        }
+      }
+      return originalAdd(type, listener, options);
+    }) as typeof document.addEventListener;
+
+    document.removeEventListener = ((type: string, listener: EventListener, options?: EventListenerOptions | boolean) => {
+      if (type === 'keydown') activeKeydownCount = Math.max(0, activeKeydownCount - 1);
+      return originalRemove(type, listener, options);
+    }) as typeof document.removeEventListener;
+
+    try {
+      for (let i = 0; i < 5; i++) {
+        openModal({ title: `cycle-${i}`, bodyHtml: '<p>x</p>', onClose: () => { /* noop */ } });
+        closeModal();
+      }
+      // After all cycles, no leaked keydown listener should remain from modal system.
+      expect(activeKeydownCount).toBe(0);
+    } finally {
+      document.addEventListener = originalAdd;
+      document.removeEventListener = originalRemove;
+    }
+  });
 });
