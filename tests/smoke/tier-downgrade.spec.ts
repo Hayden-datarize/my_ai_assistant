@@ -44,7 +44,7 @@ async function seedOneBriefing(
       streak: 0,
       lastActiveDate: args.today,
       xp: 0,
-      earnedBadges: {}, gamificationMigrated: true, schemaVersion: 2,
+      earnedBadges: {}, gamificationMigrated: true, gardenIntroduced: true, schemaVersion: 2,
     }));
     localStorage.setItem('briefings', JSON.stringify([args.briefing]));
   }, { briefing, today });

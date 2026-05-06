@@ -4,7 +4,7 @@ test.use({ serviceWorkers: 'block' });
 
 async function seedOnboarding(page: import('@playwright/test').Page): Promise<void> {
   await page.addInitScript(() => {
-    localStorage.setItem('user', JSON.stringify({ interests: ['growth'], gamificationMigrated: true }));
+    localStorage.setItem('user', JSON.stringify({ interests: ['growth'], gamificationMigrated: true, gardenIntroduced: true }));
     localStorage.removeItem('dg-sidebar-last-state');
     // v3.3.4.3: suppress briefings auto-refresh (no briefings fixture seeded)
     sessionStorage.setItem('dg.briefings.auto-refresh-tried', '1');

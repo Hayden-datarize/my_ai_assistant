@@ -5,7 +5,7 @@ import { getDateStr } from '../../src/utils/dates';
 test.use({ serviceWorkers: 'block' });
 
 const seedUser = `
-  localStorage.setItem('user', JSON.stringify({ name: 'T', interests: ['ai_ml'], onboardedAt: '2026-04-26', streak: 1, lastActiveDate: '2026-04-26', xp: 0, earnedBadges: {}, gamificationMigrated: true, schemaVersion: 2 }));
+  localStorage.setItem('user', JSON.stringify({ name: 'T', interests: ['ai_ml'], onboardedAt: '2026-04-26', streak: 1, lastActiveDate: '2026-04-26', xp: 0, earnedBadges: {}, gamificationMigrated: true, gardenIntroduced: true, schemaVersion: 2 }));
 `;
 
 test('영문 카드 토글: 한글 ↔ 영문 swap', async ({ page }) => {

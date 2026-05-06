@@ -32,7 +32,7 @@ test.describe('v3.13 Mission System', () => {
         xp: 0,
         earnedBadges: {},
         gamificationMigrated: true,
-        schemaVersion: 3,
+        schemaVersion: 3, gardenIntroduced: true,
         missions: {
           // daily-answer-1만 active에 직접 주입 (target=1, 답변 1회로 완수)
           active: [
@@ -100,7 +100,7 @@ test.describe('v3.13 Mission System', () => {
         xp: 0,
         earnedBadges: {},
         gamificationMigrated: true,
-        schemaVersion: 3,
+        schemaVersion: 3, gardenIntroduced: true,
         missions: {
           // monthly-answers-20만 active에 주입 (target=20, 답변 1회 → progress 1)
           active: [

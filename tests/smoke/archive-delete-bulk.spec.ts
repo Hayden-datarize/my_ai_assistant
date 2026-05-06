@@ -5,7 +5,7 @@ test('선택 모드에서 다건 선택 + 벌크 삭제 + undo 복원', async ({
 
   await page.addInitScript(() => {
     // 온보딩 완료 상태
-    localStorage.setItem('user', JSON.stringify({ interests: ['tech'], gamificationMigrated: true }));
+    localStorage.setItem('user', JSON.stringify({ interests: ['tech'], gamificationMigrated: true, gardenIntroduced: true }));
     // briefings 자동 새로고침 억제
     sessionStorage.setItem('dg.briefings.auto-refresh-tried', '1');
     localStorage.setItem(
@@ -34,7 +34,7 @@ test('선택 모드에서 다건 선택 + 벌크 삭제 + undo 복원', async ({
 
 test('0건 선택 시 벌크 삭제 버튼 disabled', async ({ page }) => {
   await page.addInitScript(() => {
-    localStorage.setItem('user', JSON.stringify({ interests: ['tech'], gamificationMigrated: true }));
+    localStorage.setItem('user', JSON.stringify({ interests: ['tech'], gamificationMigrated: true, gardenIntroduced: true }));
     sessionStorage.setItem('dg.briefings.auto-refresh-tried', '1');
     localStorage.setItem(
       'dg.answers',

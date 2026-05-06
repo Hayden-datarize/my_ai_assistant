@@ -33,6 +33,7 @@ test.describe('v3.12 Game Feedback + Badges', () => {
           xp: 0,
           earnedBadges: {},
           gamificationMigrated: true,
+          gardenIntroduced: true,
           schemaVersion: 2,
         }),
       );

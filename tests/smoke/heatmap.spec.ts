@@ -28,7 +28,7 @@ async function seedAndGoto(page: import('@playwright/test').Page): Promise<void>
       name: 'tester',
       interests: ['growth'],
       onboardedAt: '2026-04-01',
-      streak: 1, lastActiveDate: '', xp: 10, earnedBadges: {}, gamificationMigrated: true, schemaVersion: 2,
+      streak: 1, lastActiveDate: '', xp: 10, earnedBadges: {}, gamificationMigrated: true, gardenIntroduced: true, schemaVersion: 2,
     }));
     localStorage.setItem('dg.answers', JSON.stringify([
       { date: args.today, text: 'today', type: '감정' },

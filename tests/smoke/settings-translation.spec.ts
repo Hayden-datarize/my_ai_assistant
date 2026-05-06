@@ -15,7 +15,7 @@ test('일일 한도 슬라이더 변경 → 즉시 반영 + persist', async ({ p
         streak: 1,
         lastActiveDate: args.today,
         xp: 0,
-        earnedBadges: {}, gamificationMigrated: true, schemaVersion: 2,
+        earnedBadges: {}, gamificationMigrated: true, gardenIntroduced: true, schemaVersion: 2,
       }),
     );
     localStorage.setItem('dg_gemini_key', 'TEST_KEY');
@@ -47,7 +47,7 @@ test('캐시 초기화 버튼: confirm 후 *Ko 필드 삭제 (브리핑 본문 �
         streak: 1,
         lastActiveDate: args.today,
         xp: 0,
-        earnedBadges: {}, gamificationMigrated: true, schemaVersion: 2,
+        earnedBadges: {}, gamificationMigrated: true, gardenIntroduced: true, schemaVersion: 2,
       }),
     );
     localStorage.setItem('dg_gemini_key', 'TEST_KEY');

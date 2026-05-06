@@ -13,7 +13,7 @@ async function seedOnboardedUser(page: import('@playwright/test').Page): Promise
       streak: 0,
       lastActiveDate: args.today,
       xp: 0,
-      earnedBadges: {}, gamificationMigrated: true, schemaVersion: 2,
+      earnedBadges: {}, gamificationMigrated: true, gardenIntroduced: true, schemaVersion: 2,
     }));
     // v3.3.4.3: suppress briefings auto-refresh (no briefings fixture seeded)
     sessionStorage.setItem('dg.briefings.auto-refresh-tried', '1');

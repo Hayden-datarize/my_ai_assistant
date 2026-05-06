@@ -23,7 +23,7 @@ test.describe('v3.14 Missions Tab', () => {
         xp: 0,
         earnedBadges: {},
         gamificationMigrated: true,
-        schemaVersion: 3,
+        schemaVersion: 3, gardenIntroduced: true,
       };
       localStorage.setItem('user', JSON.stringify(user));
     });
@@ -61,7 +61,7 @@ test.describe('v3.14 Missions Tab', () => {
         xp: 0,
         earnedBadges: {},
         gamificationMigrated: true,
-        schemaVersion: 3,
+        schemaVersion: 3, gardenIntroduced: true,
         missions: {
           // daily-answer-1만 active 주입 → daily 그룹 1개만 렌더 (weekly/monthly empty → skip)
           active: [

@@ -9,6 +9,7 @@ async function seedOnboardedUserWithApiKey(page: Page): Promise<void> {
     localStorage.setItem('user', JSON.stringify({
       name: 'TestUser', interests: ['ai_ml'],
       onboardedAt: '2026-04-01', streak: 3, lastActiveDate: '', xp: 120, level: 2,
+      gardenIntroduced: true,
     }));
     localStorage.setItem('dg_gemini_key', 'test-key-long-enough-for-validation');
     // Seed today's question cache so submit-answer test doesn't hit Gemini /question endpoint

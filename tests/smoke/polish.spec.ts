@@ -6,7 +6,7 @@ async function seedUser(page: import('@playwright/test').Page): Promise<void> {
   await page.addInitScript(() => {
     localStorage.setItem('user', JSON.stringify({
       name: 'Polish', interests: ['pm'],
-      onboardedAt: '2026-04-01', streak: 0, lastActiveDate: '', xp: 0, earnedBadges: {}, gamificationMigrated: true, schemaVersion: 2,
+      onboardedAt: '2026-04-01', streak: 0, lastActiveDate: '', xp: 0, earnedBadges: {}, gamificationMigrated: true, gardenIntroduced: true, schemaVersion: 2,
     }));
     // v3.3.4.3: suppress briefings auto-refresh (tests that need live fetch
     // mock it explicitly via page.route; this prevents unmocked specs from
