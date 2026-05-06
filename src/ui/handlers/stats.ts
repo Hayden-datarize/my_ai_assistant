@@ -132,7 +132,15 @@ function hydrateStatGrid(): void {
   }
 }
 
-function hydrateHeatmap(): void {
+/**
+ * Render the stats-tab heatmap from cached answers.
+ *
+ * @internal Exported for vitest unit testing only (v3.18 T5 G3-1).
+ *           Not part of the public module API.
+ *
+ * v3.13 hydrateGreetingAndStreak / v3.10 패턴 — internal hydrator export.
+ */
+export function hydrateHeatmap(): void {
   const grid = document.getElementById('heatmapGrid');
   if (!grid) return;
   grid.replaceChildren();
@@ -217,12 +225,14 @@ function hydrateHeatmap(): void {
   }
 
   // v3.3.4.2: post-refactor every child is a data cell (no more .is-blank padding).
-  // v3.5 (C1): dataCells[0] is always a *past* cell after v3.3.4.3's future-guard
-  // — the heatmap window starts at firstDay (Mon, 4 weeks ago), which is always
-  // before today. So `tabindex="0"` on dataCells[0] is safe; no first-non-future
-  // search needed.
+  // v3.18 T5 (G3-1): explicit future-aware tabindex — future cells always -1,
+  // first non-future cell is the roving tabindex anchor (0). 이전 implicit
+  // "dataCells[0] is always past" 가정 제거 — firstDay 계산 변경 시 회귀 차단.
   const dataCells = Array.from(grid.querySelectorAll<HTMLButtonElement>('.heatmap-cell'));
-  dataCells.forEach((c, i) => c.setAttribute('tabindex', i === 0 ? '0' : '-1'));
+  const firstReachable = dataCells.find((c) => c.dataset['future'] !== 'true');
+  dataCells.forEach((c) => {
+    c.setAttribute('tabindex', c === firstReachable ? '0' : '-1');
+  });
 
   const moveFocus = (from: HTMLButtonElement, delta: number): void => {
     const startIdx = dataCells.indexOf(from);
