@@ -1,4 +1,4 @@
-import { describe, it, expect, vi, afterEach } from 'vitest';
+import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest';
 import { fetchFeed } from '../../src/services/rss';
 
 afterEach(() => { vi.restoreAllMocks(); });
@@ -45,5 +45,67 @@ describe('services/rss', () => {
     }));
     const res = await fetchFeed('x');
     expect(res.sourceTitle).toBe('');
+  });
+});
+
+describe('v3.18.1 H2 (#9) — fetchFeed retry on 429', () => {
+  beforeEach(() => {
+    vi.useFakeTimers();
+  });
+  afterEach(() => {
+    vi.useRealTimers();
+    vi.restoreAllMocks();
+  });
+
+  it('429 첫 호출 후 retry 시 200 회수', async () => {
+    let callCount = 0;
+    const fetchMock = vi.fn().mockImplementation(async () => {
+      callCount++;
+      if (callCount === 1) {
+        return { ok: false, status: 429, json: async () => ({}) };
+      }
+      return {
+        ok: true,
+        status: 200,
+        json: async () => ({
+          items: [{ title: 't', link: 'https://example.com', description: 'd', pubDate: '' }],
+          feed: { title: 's' },
+        }),
+      };
+    });
+    vi.stubGlobal('fetch', fetchMock);
+    const promise = fetchFeed('https://example.com/feed');
+    await vi.runAllTimersAsync();
+    const result = await promise;
+    expect(callCount).toBe(2);
+    expect(result.items).toHaveLength(1);
+  });
+
+  it('연속 3회 429 → 빈 배열 반환 (max retry 2)', async () => {
+    const fetchMock = vi.fn().mockResolvedValue({
+      ok: false,
+      status: 429,
+      json: async () => ({}),
+    });
+    vi.stubGlobal('fetch', fetchMock);
+    const promise = fetchFeed('https://example.com/feed');
+    await vi.runAllTimersAsync();
+    const result = await promise;
+    expect(result.items).toHaveLength(0);
+    expect(fetchMock).toHaveBeenCalledTimes(3);
+  });
+
+  it('non-retryable status (404) → 즉시 빈 배열 (retry 안 함)', async () => {
+    const fetchMock = vi.fn().mockResolvedValue({
+      ok: false,
+      status: 404,
+      json: async () => ({}),
+    });
+    vi.stubGlobal('fetch', fetchMock);
+    const promise = fetchFeed('https://example.com/feed');
+    await vi.runAllTimersAsync();
+    const result = await promise;
+    expect(result.items).toHaveLength(0);
+    expect(fetchMock).toHaveBeenCalledTimes(1);
   });
 });

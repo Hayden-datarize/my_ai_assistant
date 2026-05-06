@@ -56,6 +56,12 @@ export function extractImage(raw: RawFeedItem): string | undefined {
   return undefined;
 }
 
+// v3.18.1 H2 (#9): rss2json rate limit (429) 대응
+// translate.ts isRetryable 패턴 차용 — 429/503만 retry, max 2회 exponential backoff.
+const RETRYABLE_STATUSES = new Set([429, 503]);
+const MAX_RETRIES = 2;
+const BACKOFF_MS = [200, 800];
+
 export async function fetchFeed(
   feedUrl: string,
   opts: { timeoutMs?: number } = {},
@@ -64,22 +70,30 @@ export async function fetchFeed(
   const timer = setTimeout(() => controller.abort(), opts.timeoutMs ?? 5000);
   try {
     const url = `https://api.rss2json.com/v1/api.json?rss_url=${encodeURIComponent(feedUrl)}`;
-    const r = await fetch(url, { signal: controller.signal });
-    if (!r.ok) return { items: [], sourceTitle: '' };
-    const data = (await r.json()) as {
-      items?: RawFeedItem[];
-      feed?: { title?: string };
-    };
-    const items: FeedItem[] = Array.isArray(data.items)
-      ? data.items.map((rawItem) => ({
-          title: rawItem.title ?? '',
-          link: rawItem.link ?? '',
-          description: rawItem.description ?? '',
-          pubDate: rawItem.pubDate ?? '',
-          image: extractImage(rawItem),
-        }))
-      : [];
-    return { items, sourceTitle: data.feed?.title ?? '' };
+    for (let attempt = 0; attempt <= MAX_RETRIES; attempt++) {
+      const r = await fetch(url, { signal: controller.signal });
+      if (r.ok) {
+        const data = (await r.json()) as {
+          items?: RawFeedItem[];
+          feed?: { title?: string };
+        };
+        const items: FeedItem[] = Array.isArray(data.items)
+          ? data.items.map((rawItem) => ({
+              title: rawItem.title ?? '',
+              link: rawItem.link ?? '',
+              description: rawItem.description ?? '',
+              pubDate: rawItem.pubDate ?? '',
+              image: extractImage(rawItem),
+            }))
+          : [];
+        return { items, sourceTitle: data.feed?.title ?? '' };
+      }
+      if (!RETRYABLE_STATUSES.has(r.status)) break;
+      if (attempt < MAX_RETRIES) {
+        await new Promise((resolve) => setTimeout(resolve, BACKOFF_MS[attempt]));
+      }
+    }
+    return { items: [], sourceTitle: '' };
   } catch {
     return { items: [], sourceTitle: '' };
   } finally {

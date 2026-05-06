@@ -578,8 +578,9 @@ async function refreshBriefings(): Promise<void> {
   const allFeedUrls = Array.from(new Set(picks.flatMap(interestToFeeds)));
   const feedUrls = allFeedUrls.slice(0, 8);
 
+  // v3.18.1 H2 T0 P1-1: retry budget 수용 (1s base + 200+800ms backoff = 6s) — spec §3 R2 cap 일치
   const fetched = await Promise.all(
-    feedUrls.map((u) => fetchFeed(u, { timeoutMs: 5000 })),
+    feedUrls.map((u) => fetchFeed(u, { timeoutMs: 6000 })),
   );
 
   // dedup: 30d retention 안에 있는 url을 사전에 제거
