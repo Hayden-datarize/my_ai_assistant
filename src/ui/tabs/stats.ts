@@ -59,7 +59,7 @@ export function renderStats(container: HTMLElement): void {
         <h3 style="margin-bottom:12px;font-size:0.95rem;">🏆 뱃지</h3>
         <div id="badgesGrid"></div>
       </div>
-      <section id="gardenSection" class="garden-section" aria-label="내 정원">
+      <section id="gardenSection" class="garden-section" aria-label="내 정원" data-scroll-target>
         <h2 class="section-title">내 정원</h2>
         <div id="gardenContainer"></div>
       </section>

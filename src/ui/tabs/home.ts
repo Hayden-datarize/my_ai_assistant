@@ -78,7 +78,7 @@ export function renderHome(container: HTMLElement): void {
       </div>
 
       <!-- AI Chat -->
-      <div class="chat-container" id="chatContainer">
+      <div class="chat-container" id="chatContainer" data-scroll-target>
         <div class="chat-header">
           <h3>💬 AI와 대화하기</h3>
           <span class="turn-counter" id="turnCounter">턴 0/5</span>
