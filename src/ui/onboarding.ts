@@ -13,6 +13,17 @@ import { generateText } from '../services/gemini';
 const STORAGE_KEY_APIKEY = 'dg_gemini_key';
 const STORAGE_KEY_USER = 'user';
 
+/**
+ * Derive the user's display name from raw onboarding input.
+ *
+ * @internal Exported for vitest unit testing only (v3.18.1 H3).
+ *           Empty/whitespace input falls back to '사용자' (generic) —
+ *           prevents 'Hayden' leak across users (P1 개인정보 leak fix).
+ */
+export function deriveOnboardingName(raw: string): string {
+  return raw.trim() || '사용자';
+}
+
 interface OnboardingState {
   step: 1 | 2 | 3;
   picked: Set<string>;
@@ -188,7 +199,7 @@ function renderStep3(wrap: HTMLElement, state: OnboardingState, container: HTMLE
   // fresh user는 answers 0개 → T13 invariant `answers >= 1` 자연 통과 → gamificationMigrated=true 안전.
   const today = new Date().toISOString().slice(0, 10);
   const user = {
-    name: state.name.trim() || 'Hayden',
+    name: deriveOnboardingName(state.name),
     interests: [...state.picked],
     onboardedAt: today,
     streak: 0,
