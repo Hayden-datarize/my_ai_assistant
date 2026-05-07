@@ -101,7 +101,13 @@ export async function sendDmAsBot(
     `https://slack.com/api/users.lookupByEmail?email=${encodeURIComponent(email)}`,
     { method: 'GET', headers: { Authorization: auth } },
   );
-  if (!lookup.ok || !lookup.user?.id) throw new Error('user_not_found');
+  if (!lookup.ok || !lookup.user?.id) {
+    // Slack lookup error 분류 (T4 quality review I1):
+    // - users_not_found: 사용자가 워크스페이스 멤버 아님 (사용자 오타 가능성) → 404
+    // - missing_scope / invalid_auth / account_inactive / ratelimited 등: 서버 설정 issue → 502
+    if (lookup.error === 'users_not_found') throw new Error('user_not_found');
+    throw new Error('lookup_failed');
+  }
   const userId = lookup.user.id;
 
   // Step 2: conversations.open (POST, scope: im:write)

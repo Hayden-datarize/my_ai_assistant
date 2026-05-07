@@ -57,8 +57,11 @@ export const sendAnswerDm = onRequest(
       const msg = e instanceof Error ? e.message : 'unknown';
       if (msg === 'user_not_found') {
         res.status(404).json({ error: 'user_not_found' });
-      } else if (msg === 'dm_open_failed' || msg === 'post_message_failed') {
+      } else if (msg === 'dm_open_failed' || msg === 'post_message_failed' || msg === 'lookup_failed') {
         res.status(502).json({ error: msg });
+      } else if (msg.startsWith('http_5')) {
+        // T4 quality review I2: Slack upstream 5xx → 502 (정확한 의미)
+        res.status(502).json({ error: 'slack_upstream' });
       } else {
         res.status(500).json({ error: 'internal' });
       }

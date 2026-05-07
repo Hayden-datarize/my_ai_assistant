@@ -34,7 +34,7 @@ describe('buildAnswerBlocks', () => {
 describe('sendDmAsBot', () => {
   beforeEach(() => vi.clearAllMocks());
 
-  it('throws user_not_found when lookupByEmail returns ok=false', async () => {
+  it('throws user_not_found when lookupByEmail returns users_not_found', async () => {
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
     (fetch as any).mockResolvedValueOnce({
       ok: true,
@@ -44,6 +44,19 @@ describe('sendDmAsBot', () => {
       // eslint-disable-next-line @typescript-eslint/no-explicit-any
       sendDmAsBot('xoxb-x', 'me@datarize.ai', { blocks: [] } as any),
     ).rejects.toThrow('user_not_found');
+  });
+
+  it('throws lookup_failed when lookup error is server-side (missing_scope/invalid_auth/etc)', async () => {
+    // T4 quality review I1: missing_scope를 user_not_found로 오진하지 않도록 분기
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    (fetch as any).mockResolvedValueOnce({
+      ok: true,
+      json: async () => ({ ok: false, error: 'missing_scope' }),
+    });
+    await expect(
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      sendDmAsBot('xoxb-x', 'me@datarize.ai', { blocks: [] } as any),
+    ).rejects.toThrow('lookup_failed');
   });
 
   it('throws dm_open_failed when conversations.open fails', async () => {
