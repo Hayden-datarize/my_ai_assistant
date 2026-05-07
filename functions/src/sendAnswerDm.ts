@@ -1,5 +1,6 @@
 import { onRequest } from 'firebase-functions/v2/https';
 import { defineSecret } from 'firebase-functions/params';
+import { checkRateLimit } from './rateLimit';
 
 const SLACK_BOT_TOKEN = defineSecret('SLACK_BOT_TOKEN');
 
@@ -35,7 +36,12 @@ export const sendAnswerDm = onRequest(
       res.status(400).json({ error: 'invalid_question' });
       return;
     }
-    // T3에서 rate limit 추가, T4에서 Slack API 호출 추가
+    const rl = checkRateLimit(body.email, Date.now());
+    if (rl !== 'ok') {
+      res.status(429).json({ error: 'rate_limited', kind: rl });
+      return;
+    }
+    // T4에서 Slack API 호출 추가
     res.status(501).json({ error: 'not_implemented_yet' });
   },
 );
