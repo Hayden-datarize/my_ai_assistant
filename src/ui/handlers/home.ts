@@ -309,7 +309,7 @@ export async function hydrateHome(container: HTMLElement): Promise<void> {
   void container; // accepted for API symmetry with handlers/stats.ts etc
   hydrateGreetingAndStreak();
   hydrateGardenMini();
-  hydrateBriefings();
+  void hydrateBriefings();
   await hydrateQuestion();
   hydrateChatHistory();
   applyTheme();
@@ -391,7 +391,7 @@ const AUTO_REFRESH_SESSION_KEY = 'dg.briefings.auto-refresh-tried';
 // SPA module 재초기화는 hard reload 시 발생 — 그게 reproduce scope과 일치.
 let diagLogged = false;
 
-function hydrateBriefings(): void {
+async function hydrateBriefings(): Promise<void> {
   const list = loadBriefings();
   const scroll = document.getElementById('briefingScroll');
   if (!scroll) return;
@@ -422,7 +422,11 @@ function hydrateBriefings(): void {
     const hasInterests = !!user && user.interests.length > 0;
     if (hasInterests && !sessionStorage.getItem(AUTO_REFRESH_SESSION_KEY)) {
       sessionStorage.setItem(AUTO_REFRESH_SESSION_KEY, '1');
-      void refreshBriefings();
+      // v3.19 T9: void → await (race 차단 + 단일 paint).
+      // refreshBriefings 끝에서 hydrateBriefings()를 다시 호출(line 651)하므로
+      // 여기서는 early return — 그 시점에는 list가 today로 갱신되어 isStale=false.
+      await refreshBriefings();
+      return;
     }
     // If stale but we already auto-tried (or user has no interests), fall
     // through and render whatever we have — including nothing, in which case
@@ -569,7 +573,7 @@ export function renderBriefingCard(b: Briefing, idx: number): HTMLElement {
     e.preventDefault();
     e.stopPropagation();
     toggleScrap(idx);
-    hydrateBriefings();
+    void hydrateBriefings();
   });
 
   const memoBtn = document.createElement('button');
@@ -648,7 +652,9 @@ async function refreshBriefings(): Promise<void> {
   }));
   saveBriefings(stored);
   recordSeen(stored.map((b) => b.url), now);
-  hydrateBriefings();
+  // v3.19 T9: 함수 시그니처가 async로 변경 — 이 시점 list는 today로 갱신되어
+  // isStale=false 분기로 빠지므로 재귀 위험 0. await로 paint 완료 보장.
+  await hydrateBriefings();
 
   if (stored.length === 0) {
     // Replace the "브리핑을 불러오는 중…" loading text with an explicit
