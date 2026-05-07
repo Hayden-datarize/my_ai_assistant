@@ -469,7 +469,7 @@ function showArchiveDetail(payload: DetailPayload): void {
   } else {
     const b = payload.briefing;
     parts.push(`<div class="archive-detail-meta">${escapeHtml(b.date)} — 스크랩 기사</div>`);
-    parts.push(`<a class="archive-detail-link" href="${escapeHtml(b.url)}" target="_blank" rel="noopener">${escapeHtml(b.title)}</a>`);
+    parts.push(`<a class="archive-detail-link" href="${escapeHtml(b.url)}" target="_blank" rel="noopener noreferrer">${escapeHtml(b.title)}</a>`);
     parts.push(`<div class="archive-detail-body">${escapeHtml(b.summary)}</div>`);
     if (b.memo) parts.push(`<div class="archive-detail-memo">📝 ${escapeHtml(b.memo)}</div>`);
   }
