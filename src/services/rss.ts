@@ -1,3 +1,6 @@
+// v3.20 T5 (B1): RSS retry telemetry — DEV log + 24h rolling counter (v3.18.1 H2 carry).
+import { recordRetry } from '../utils/rssTelemetry';
+
 export interface FeedItem {
   title: string;
   link: string;
@@ -89,6 +92,12 @@ export async function fetchFeed(
         return { items, sourceTitle: data.feed?.title ?? '' };
       }
       if (!RETRYABLE_STATUSES.has(r.status)) break;
+      // v3.20 T5: telemetry — 24h rolling counter + DEV warn (production 1주 관측).
+      recordRetry(r.status);
+      if (import.meta.env.DEV) {
+        // eslint-disable-next-line no-console
+        console.warn('[dg.rss.retry]', { feedUrl, status: r.status, attempt });
+      }
       if (attempt < MAX_RETRIES) {
         await new Promise((resolve) => setTimeout(resolve, BACKOFF_MS[attempt]));
       }
