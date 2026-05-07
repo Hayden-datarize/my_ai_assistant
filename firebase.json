@@ -2,13 +2,14 @@
   "hosting": {
     "public": "dist",
     "rewrites": [
+      { "source": "/api/sendAnswerDm", "function": "sendAnswerDm" },
       { "source": "**", "destination": "/index.html" }
     ],
     "headers": [
       {
         "source": "**",
         "headers": [
-          { "key": "Content-Security-Policy", "value": "default-src 'self'; script-src 'self'; style-src 'self' https://fonts.googleapis.com; style-src-attr 'unsafe-inline'; font-src 'self' https://fonts.gstatic.com; connect-src 'self' https://generativelanguage.googleapis.com https://hooks.slack.com https://api.rss2json.com https://*.firebaseio.com https://*.googleapis.com https://*.sentry.io; img-src 'self' data: https:; manifest-src 'self'; frame-ancestors 'none'; base-uri 'self'; form-action 'self'" },
+          { "key": "Content-Security-Policy", "value": "default-src 'self'; script-src 'self'; style-src 'self' https://fonts.googleapis.com; style-src-attr 'unsafe-inline'; font-src 'self' https://fonts.gstatic.com; connect-src 'self' https://generativelanguage.googleapis.com https://api.rss2json.com https://*.firebaseio.com https://*.googleapis.com https://*.sentry.io; img-src 'self' data: https:; manifest-src 'self'; frame-ancestors 'none'; base-uri 'self'; form-action 'self'" },
           { "key": "X-Content-Type-Options", "value": "nosniff" },
           { "key": "Referrer-Policy", "value": "strict-origin-when-cross-origin" },
           { "key": "Permissions-Policy", "value": "geolocation=(), microphone=(), camera=()" }

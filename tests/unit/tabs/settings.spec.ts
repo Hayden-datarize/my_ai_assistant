@@ -37,14 +37,14 @@ describe('renderSettings', () => {
     expect(localStorage.getItem('dg_gemini_key')).toBe('AIzaSyAbcdefghijklmnopqrstuvwxyz12345678');
     expect(status.textContent).toMatch(/저장|성공/);
   });
-  it('shows guidance when slack test is clicked with empty webhook', () => {
+  it('shows guidance when slack test is clicked with empty input (v3.19 email schema)', () => {
     const root = document.createElement('div');
     renderSettings(root);
     const testBtn = root.querySelector<HTMLButtonElement>('#testSlackBtn');
     const result = root.querySelector<HTMLDivElement>('#slackTestResult');
     if (!testBtn || !result) throw new Error('elements missing');
     testBtn.click();
-    expect(result.textContent).toMatch(/Webhook|입력/);
+    expect(result.textContent).toMatch(/이메일|입력/);
   });
   it('renders no inline handler attributes', () => {
     const root = document.createElement('div');
@@ -59,10 +59,11 @@ describe('settings tab: slack section', () => {
     document.body.replaceChildren();
   });
 
-  it('renders Webhook input, test/save buttons, and <details> guide', () => {
+  it('renders input, test/save buttons, and <details> guide (UI rewrite in T6)', () => {
     const container = document.createElement('div');
     document.body.append(container);
     renderSettings(container);
+    // v3.19 T1+T5: input id (#slackWebhookInput) + placeholder/안내 문구는 T6에서 #slackEmailInput 등으로 교체.
     expect(container.querySelector('#slackWebhookInput')).not.toBeNull();
     expect(container.querySelector('#testSlackBtn')).not.toBeNull();
     expect(container.querySelector('#saveSlackBtn')).not.toBeNull();
@@ -72,9 +73,9 @@ describe('settings tab: slack section', () => {
     expect(container.querySelector('details')).not.toBeNull();
   });
 
-  it('hydrates input + toggle + reveals toggle/clear row when settings exist', () => {
+  it('hydrates input + toggle + reveals toggle/clear row when email settings exist (v3.19 schema)', () => {
     localStorage.setItem('dg_slack', JSON.stringify({
-      webhook: 'https://hooks.slack.com/services/AAA/BBB/CCC',
+      email: 'me@datarize.ai',
       autoSend: true,
     }));
     const container = document.createElement('div');
@@ -84,39 +85,39 @@ describe('settings tab: slack section', () => {
     const toggle = container.querySelector<HTMLInputElement>('#slackAutoToggle');
     const toggleRow = container.querySelector<HTMLElement>('#slackAutoRow');
     const clearBtn = container.querySelector<HTMLElement>('#clearSlackBtn');
-    expect(input?.value).toBe('https://hooks.slack.com/services/AAA/BBB/CCC');
+    expect(input?.value).toBe('me@datarize.ai');
     expect(toggle?.checked).toBe(true);
     expect(toggleRow?.style.display).toBe('flex');
     expect(clearBtn?.style.display).toBe('block');
   });
 
-  it('save rejects invalid URL format', () => {
+  it('save rejects invalid email format (v3.19 schema)', () => {
     const container = document.createElement('div');
     document.body.append(container);
     renderSettings(container);
     const input = container.querySelector<HTMLInputElement>('#slackWebhookInput')!;
     const saveBtn = container.querySelector<HTMLButtonElement>('#saveSlackBtn')!;
     const result = container.querySelector<HTMLDivElement>('#slackTestResult')!;
-    input.value = 'https://example.com/not-slack';
+    input.value = 'not-an-email';
     saveBtn.click();
-    expect(result.textContent ?? '').toMatch(/Slack Incoming Webhook URL 형식/);
+    expect(result.textContent ?? '').toMatch(/이메일 형식/);
     expect(localStorage.getItem('dg_slack')).toBeNull();
   });
 
-  it('save persists valid URL with autoSend=false by default', () => {
+  it('save persists valid email with autoSend=false by default (v3.19 schema)', () => {
     const container = document.createElement('div');
     document.body.append(container);
     renderSettings(container);
     const input = container.querySelector<HTMLInputElement>('#slackWebhookInput')!;
     const saveBtn = container.querySelector<HTMLButtonElement>('#saveSlackBtn')!;
-    input.value = 'https://hooks.slack.com/services/A/B/C';
+    input.value = 'me@datarize.ai';
     saveBtn.click();
     const stored = JSON.parse(localStorage.getItem('dg_slack') ?? '{}');
-    expect(stored).toEqual({ webhook: 'https://hooks.slack.com/services/A/B/C', autoSend: false });
+    expect(stored).toEqual({ email: 'me@datarize.ai', autoSend: false });
   });
 
-  it('clear wipes stored settings and hides toggle/clear row', () => {
-    localStorage.setItem('dg_slack', JSON.stringify({ webhook: 'https://hooks.slack.com/services/X', autoSend: true }));
+  it('clear wipes stored settings and hides toggle/clear row (v3.19 schema)', () => {
+    localStorage.setItem('dg_slack', JSON.stringify({ email: 'me@datarize.ai', autoSend: true }));
     const container = document.createElement('div');
     document.body.append(container);
     renderSettings(container);

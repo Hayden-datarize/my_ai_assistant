@@ -17,7 +17,7 @@ const ROOT = resolve(dirname(fileURLToPath(import.meta.url)), '..', '..');
 
 const REQUIRED_CONNECT_SRC_HOSTS = [
   'https://generativelanguage.googleapis.com', // Gemini
-  'https://hooks.slack.com',                   // Slack Incoming Webhook
+  // v3.19 T1+T5: hooks.slack.com 제거 — Slack Incoming Webhook 흐름 폐기, sendAnswerDm Function이 same-origin('self')으로 호출됨.
   'https://api.rss2json.com',                  // RSS fetching (briefings)
 ];
 

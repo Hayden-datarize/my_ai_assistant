@@ -1,5 +1,5 @@
 import { loadSlackSettings, saveSlackSettings, clearSlackSettings } from '../../state/slack';
-import { sendToSlack, buildAnswerBlocks } from '../../services/slack';
+import { sendAnswerDm } from '../../services/slack';
 import { showToast, showUndoToast } from '../../utils/toast';
 import { INTERESTS } from '../../utils/categories';
 import { getCap, setCap, getTodayCount } from '../../state/usage';
@@ -240,11 +240,15 @@ function onSaveKey(container: HTMLElement): void {
   }
 }
 
-function isValidWebhookUrl(url: string): boolean {
-  return url.startsWith('https://hooks.slack.com/services/');
+// v3.19 T1+T5: schema 마이그레이션 (webhook → email). 본 핸들러는 schema-level 호환성만 유지하고,
+// 입력 필드/플레이스홀더/안내 문구 등 UI 전면 재작성은 T6에서 수행한다 (#slackWebhookInput id 포함).
+function isValidEmail(email: string): boolean {
+  // basic shape — T6에서 더 엄격한 검증으로 교체
+  return /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email);
 }
 
 function bindSlackHandlers(container: HTMLElement): void {
+  // NOTE: id #slackWebhookInput는 T6에서 #slackEmailInput으로 교체 예정. 현 schema는 email field만 사용.
   const input = container.querySelector<HTMLInputElement>('#slackWebhookInput');
   const testBtn = container.querySelector<HTMLButtonElement>('#testSlackBtn');
   const saveBtn = container.querySelector<HTMLButtonElement>('#saveSlackBtn');
@@ -257,7 +261,7 @@ function bindSlackHandlers(container: HTMLElement): void {
   // Hydrate from storage
   const existing = loadSlackSettings();
   if (existing) {
-    input.value = existing.webhook;
+    input.value = existing.email;
     toggle.checked = existing.autoSend;
     toggleRow.style.display = 'flex';
     clearBtn.style.display = 'block';
@@ -270,15 +274,22 @@ function bindSlackHandlers(container: HTMLElement): void {
 
   testBtn.addEventListener('click', () => {
     void (async () => {
-      const webhook = input.value.trim();
-      if (!webhook) { setResult('Webhook URL을 입력하세요.'); return; }
-      if (!isValidWebhookUrl(webhook)) { setResult('Slack Incoming Webhook URL 형식이 아닙니다.', 'err'); return; }
+      const email = input.value.trim();
+      if (!email) { setResult('이메일을 입력하세요.'); return; }
+      if (!isValidEmail(email)) { setResult('이메일 형식이 아닙니다.', 'err'); return; }
+      // 임시 저장 — sendAnswerDm는 saved settings를 읽음.
+      try {
+        saveSlackSettings({ email, autoSend: toggle.checked });
+      } catch (_e) {
+        setResult('저장 실패 — 브라우저 저장 공간을 확인해주세요.', 'err');
+        return;
+      }
       setResult('전송 중…');
       try {
-        await sendToSlack(webhook, buildAnswerBlocks({
+        await sendAnswerDm({
           question: '샘플 — Daily Growth Slack 연결 테스트',
           answer: '이 메시지가 보이면 연결이 정상입니다.',
-        }));
+        });
         setResult('✅ 전송 성공', 'ok');
       } catch (e) {
         const msg = e instanceof Error ? e.message : String(e);
@@ -288,13 +299,13 @@ function bindSlackHandlers(container: HTMLElement): void {
   });
 
   saveBtn.addEventListener('click', () => {
-    const webhook = input.value.trim();
-    if (!webhook) { showToast('Webhook URL을 입력하세요'); return; }
-    if (!isValidWebhookUrl(webhook)) { setResult('Slack Incoming Webhook URL 형식이 아닙니다.', 'err'); return; }
+    const email = input.value.trim();
+    if (!email) { showToast('이메일을 입력하세요'); return; }
+    if (!isValidEmail(email)) { setResult('이메일 형식이 아닙니다.', 'err'); return; }
     const prev = loadSlackSettings();
     const nextAutoSend = prev?.autoSend ?? false;
     try {
-      saveSlackSettings({ webhook, autoSend: nextAutoSend });
+      saveSlackSettings({ email, autoSend: nextAutoSend });
     } catch (_e) {
       setResult('저장 실패 — 브라우저 저장 공간을 확인해주세요.', 'err');
       return;
@@ -303,17 +314,17 @@ function bindSlackHandlers(container: HTMLElement): void {
     toggleRow.style.display = 'flex';
     clearBtn.style.display = 'block';
     setResult('');
-    showToast(`✅ Slack Webhook ${MSG.SAVE_SUCCESS}`);
+    showToast(`✅ Slack 이메일 ${MSG.SAVE_SUCCESS}`);
   });
 
   toggle.addEventListener('change', () => {
     const current = loadSlackSettings();
     if (!current) {
       toggle.checked = false;
-      showToast('먼저 Webhook URL을 저장하세요');
+      showToast('먼저 이메일을 저장하세요');
       return;
     }
-    saveSlackSettings({ webhook: current.webhook, autoSend: toggle.checked });
+    saveSlackSettings({ email: current.email, autoSend: toggle.checked });
     showToast(toggle.checked ? '✅ 자동 전송 켜짐' : '🔕 자동 전송 꺼짐');
   });
 

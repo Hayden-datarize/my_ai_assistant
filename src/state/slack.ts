@@ -1,7 +1,7 @@
 const KEY = 'dg_slack';
 
 export interface SlackSettings {
-  webhook: string;
+  email: string;
   autoSend: boolean;
 }
 
@@ -9,10 +9,10 @@ export function loadSlackSettings(): SlackSettings | null {
   const raw = localStorage.getItem(KEY);
   if (!raw) return null;
   try {
-    const parsed = JSON.parse(raw) as Partial<SlackSettings>;
-    if (typeof parsed.webhook !== 'string' || parsed.webhook.length === 0) return null;
+    const parsed = JSON.parse(raw) as Partial<SlackSettings> & { webhook?: unknown };
+    if (typeof parsed.email !== 'string' || parsed.email.length === 0) return null;
     return {
-      webhook: parsed.webhook,
+      email: parsed.email,
       autoSend: typeof parsed.autoSend === 'boolean' ? parsed.autoSend : false,
     };
   } catch {
