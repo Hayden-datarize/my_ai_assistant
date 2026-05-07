@@ -394,6 +394,20 @@ function hydrateBriefings(): void {
   const firstDate = list[0]?.date;
   const isStale = list.length === 0 || (firstDate !== undefined && firstDate !== today);
 
+  // v3.19 T7: 진단 정보 1회 출력 (파란 화면 #3 production reproduce 근거)
+  // sample은 sourceTitle + imageUrl 50자 prefix만 — PII 0건.
+  console.info('[dg.briefings.diag]', {
+    swState: navigator.serviceWorker?.controller ? 'controlled' : 'no-controller',
+    itemCount: list.length,
+    sample: list[0] ? {
+      source: list[0].sourceTitle,
+      hasImage: !!list[0].imageUrl,
+      imageUrlPrefix: list[0].imageUrl?.slice(0, 50),
+    } : null,
+    today,
+    isStale,
+  });
+
   if (isStale) {
     const user = getCachedUser();
     const hasInterests = !!user && user.interests.length > 0;
@@ -416,7 +430,14 @@ export function renderBriefingCard(b: Briefing, idx: number): HTMLElement {
   const card = document.createElement('article');
   card.className = 'briefing-card';
   card.dataset['read'] = b.read ? 'true' : 'false';
-  card.dataset['tier'] = b.imageUrl ? '1' : '2';
+  // v3.19 T7: tier-reason 진단 dataset (영구 자산화)
+  if (b.imageUrl) {
+    card.dataset['tier'] = '1';
+    card.dataset['tierReason'] = 'loading';
+  } else {
+    card.dataset['tier'] = '2';
+    card.dataset['tierReason'] = 'no-image-url';
+  }
   card.dataset['briefingId'] = b.id;
 
   // Main link: image (optional) + initial fallback + overlay (source/title/summary)
@@ -432,16 +453,21 @@ export function renderBriefingCard(b: Briefing, idx: number): HTMLElement {
   if (b.imageUrl) {
     const img = document.createElement('img');
     img.className = 'card-thumb';
-    img.src = b.imageUrl;
     img.alt = '';
     img.setAttribute('loading', idx < 3 ? 'eager' : 'lazy');
     img.setAttribute('decoding', 'async');
     img.setAttribute('referrerpolicy', 'no-referrer');
+    // v3.19 T7 P1-5: listener 등록 후 src 할당 (cache hit 시 동기 fire race 차단)
+    img.addEventListener('load', () => {
+      card.dataset['tierReason'] = 'image-loaded';
+    });
     img.addEventListener('error', () => {
       // Transition tier 1 → tier 2 on load failure
       card.dataset['tier'] = '2';
+      card.dataset['tierReason'] = 'image-error';
       img.remove();
     });
+    img.src = b.imageUrl;
     main.append(img);
   }
 
