@@ -1,5 +1,5 @@
 import type { User } from './user';
-import { getDateStr } from '../utils/dates';
+import { getKstDateStr } from '../utils/dates';
 
 const SEVEN_DAYS_MS = 7 * 86400_000;
 const FREEZE_CAP = 2;
@@ -20,7 +20,7 @@ export function regenerateFreeze(u: User, now: Date): void {
   const lastEarnedMs = Date.parse(u.streakFreeze.lastEarnedAt + 'T00:00:00+09:00');
   if (!Number.isFinite(lastEarnedMs)) {
     // 손상된 lastEarnedAt → today으로 reset (count 유지)
-    u.streakFreeze.lastEarnedAt = getDateStr(now);
+    u.streakFreeze.lastEarnedAt = getKstDateStr(now);
     return;
   }
 
@@ -38,5 +38,5 @@ export function regenerateFreeze(u: User, now: Date): void {
 
   // lastEarnedAt += quotient × 7d (cap 도달해도 시간은 진행 — 다음 충전 기준 동기화)
   const newLastEarnedMs = lastEarnedMs + quotient * SEVEN_DAYS_MS;
-  u.streakFreeze.lastEarnedAt = getDateStr(new Date(newLastEarnedMs));
+  u.streakFreeze.lastEarnedAt = getKstDateStr(new Date(newLastEarnedMs));
 }

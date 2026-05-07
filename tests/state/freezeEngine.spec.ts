@@ -49,4 +49,12 @@ describe('regenerateFreeze', () => {
     expect(u.streakFreeze.count).toBe(1);
     expect(u.streakFreeze.lastEarnedAt).toBe('2026-05-01');
   });
+
+  it('write-side는 머신 TZ에 무관하게 KST 날짜 기록 (v3.14.5 Pattern D 회귀 가드)', () => {
+    // 본 spec은 vite.config TZ='Asia/Seoul' 강제 가정.
+    // getKstDateStr이 Intl.DateTimeFormat을 사용하므로 머신 TZ 무관.
+    const u = baseUser({ count: 0, lastEarnedAt: '2026-05-01' });
+    regenerateFreeze(u, new Date(Date.parse('2026-05-08T00:00:00+09:00')));
+    expect(u.streakFreeze.lastEarnedAt).toBe('2026-05-08');
+  });
 });
