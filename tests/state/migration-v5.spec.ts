@@ -23,16 +23,19 @@ describe('migrateUserToV5', () => {
     expect(fixed.streakFreeze.lastEarnedAt).toMatch(/^\d{4}-\d{2}-\d{2}$/);
   });
 
-  it('count 음수 → cap 0으로 clamp 또는 default 복구', () => {
+  it('count 음수 → 전체 default 복구 (count=2 + lastEarnedAt=today)', () => {
     const neg = { schemaVersion: 4, streakFreeze: { count: -1, lastEarnedAt: '2026-05-01' } };
     const fixed = migrateUserToV5(neg);
-    expect(fixed.streakFreeze.count).toBeGreaterThanOrEqual(0);
-    expect(fixed.streakFreeze.count).toBeLessThanOrEqual(2);
+    expect(fixed.streakFreeze.count).toBe(2);
+    expect(fixed.streakFreeze.lastEarnedAt).not.toBe('2026-05-01');
+    expect(fixed.streakFreeze.lastEarnedAt).toMatch(/^\d{4}-\d{2}-\d{2}$/);
   });
 
-  it('count > 2 → cap 2로 clamp', () => {
+  it('count > 2 → 전체 default 복구 (count=2 + lastEarnedAt=today)', () => {
     const over = { schemaVersion: 4, streakFreeze: { count: 5, lastEarnedAt: '2026-05-01' } };
     const fixed = migrateUserToV5(over);
     expect(fixed.streakFreeze.count).toBe(2);
+    expect(fixed.streakFreeze.lastEarnedAt).not.toBe('2026-05-01');
+    expect(fixed.streakFreeze.lastEarnedAt).toMatch(/^\d{4}-\d{2}-\d{2}$/);
   });
 });
