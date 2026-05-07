@@ -1,0 +1,45 @@
+/* v3.20 H2 (F2): welcome-garden 모달 — production CSS rule 0건 본질 fix.
+   src/ui/modals/welcome-garden.ts:50 wrapper + highlight + newcomer + modal-actions.
+   shared.css의 .dg-modal-body 위에 spacing/typography/button stack 정합. */
+
+.welcome-garden-modal {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-3);
+  padding: var(--space-2) 0;
+}
+
+.welcome-garden-modal > p {
+  margin: 0;
+  line-height: 1.6;
+  color: var(--text);
+}
+
+.welcome-garden-highlight {
+  padding: var(--space-3) var(--space-4);
+  background: var(--bg-card);
+  border-radius: var(--radius-md);
+  font-weight: 500;
+  color: var(--primary);
+}
+
+.welcome-garden-newcomer {
+  padding: var(--space-3) var(--space-4);
+  background: var(--bg-card);
+  border-radius: var(--radius-md);
+  font-style: italic;
+  color: var(--text-secondary);
+}
+
+.welcome-garden-modal .modal-actions {
+  display: flex;
+  gap: var(--space-2);
+  margin-top: var(--space-2);
+}
+
+.welcome-garden-modal .modal-actions > .btn-primary,
+.welcome-garden-modal .modal-actions > .btn-secondary {
+  flex: 1;
+  padding: var(--space-3) var(--space-4);
+  font-size: 0.95rem;
+}
