@@ -11,7 +11,7 @@ describe('renderSettings', () => {
     renderSettings(root);
     expect(root.querySelector('#settingsTab')).not.toBeNull();
     expect(root.querySelector('#apiKeyStatus')).not.toBeNull();
-    expect(root.querySelector('#slackWebhookInput')).not.toBeNull();
+    expect(root.querySelector('#slackEmailInput')).not.toBeNull();
   });
   it('rejects a too-short API key', () => {
     const root = document.createElement('div');
@@ -59,12 +59,12 @@ describe('settings tab: slack section', () => {
     document.body.replaceChildren();
   });
 
-  it('renders input, test/save buttons, and <details> guide (UI rewrite in T6)', () => {
+  it('renders input, test/save buttons, and <details> guide (v3.19 T6 email schema)', () => {
     const container = document.createElement('div');
     document.body.append(container);
     renderSettings(container);
-    // v3.19 T1+T5: input id (#slackWebhookInput) + placeholder/안내 문구는 T6에서 #slackEmailInput 등으로 교체.
-    expect(container.querySelector('#slackWebhookInput')).not.toBeNull();
+    // v3.19 T6: webhook URL → 회사 이메일로 전면 재작성. id #slackEmailInput.
+    expect(container.querySelector('#slackEmailInput')).not.toBeNull();
     expect(container.querySelector('#testSlackBtn')).not.toBeNull();
     expect(container.querySelector('#saveSlackBtn')).not.toBeNull();
     expect(container.querySelector('#slackAutoToggle')).not.toBeNull();
@@ -81,7 +81,7 @@ describe('settings tab: slack section', () => {
     const container = document.createElement('div');
     document.body.append(container);
     renderSettings(container);
-    const input = container.querySelector<HTMLInputElement>('#slackWebhookInput');
+    const input = container.querySelector<HTMLInputElement>('#slackEmailInput');
     const toggle = container.querySelector<HTMLInputElement>('#slackAutoToggle');
     const toggleRow = container.querySelector<HTMLElement>('#slackAutoRow');
     const clearBtn = container.querySelector<HTMLElement>('#clearSlackBtn');
@@ -95,12 +95,13 @@ describe('settings tab: slack section', () => {
     const container = document.createElement('div');
     document.body.append(container);
     renderSettings(container);
-    const input = container.querySelector<HTMLInputElement>('#slackWebhookInput')!;
+    const input = container.querySelector<HTMLInputElement>('#slackEmailInput')!;
     const saveBtn = container.querySelector<HTMLButtonElement>('#saveSlackBtn')!;
     const result = container.querySelector<HTMLDivElement>('#slackTestResult')!;
     input.value = 'not-an-email';
     saveBtn.click();
-    expect(result.textContent ?? '').toMatch(/이메일 형식/);
+    // v3.19 T6: 도메인 화이트리스트 메시지 ("Datarize 회사 이메일(@datarize.ai)을 입력하세요.")
+    expect(result.textContent ?? '').toMatch(/datarize\.ai/);
     expect(localStorage.getItem('dg_slack')).toBeNull();
   });
 
@@ -108,7 +109,7 @@ describe('settings tab: slack section', () => {
     const container = document.createElement('div');
     document.body.append(container);
     renderSettings(container);
-    const input = container.querySelector<HTMLInputElement>('#slackWebhookInput')!;
+    const input = container.querySelector<HTMLInputElement>('#slackEmailInput')!;
     const saveBtn = container.querySelector<HTMLButtonElement>('#saveSlackBtn')!;
     input.value = 'me@datarize.ai';
     saveBtn.click();

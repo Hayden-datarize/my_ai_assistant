@@ -65,8 +65,8 @@ export function renderSettings(container: HTMLElement): void {
         <button type="button" id="clearTranslationCacheBtn" class="btn btn-secondary btn-block" style="margin-top:12px;">번역 캐시 초기화</button>
       </section>
       <section class="settings-group">
-        <div class="settings-group-title">Slack Webhook</div>
-        <input type="url" id="slackWebhookInput" placeholder="https://hooks.slack.com/services/..." style="width:100%;padding:10px;border:1px solid var(--border);border-radius:var(--radius-sm);background:var(--bg-input);color:var(--text-primary);" />
+        <div class="settings-group-title">Slack 봇 알림</div>
+        <input type="email" id="slackEmailInput" placeholder="you@datarize.ai" autocomplete="email" style="width:100%;padding:10px;border:1px solid var(--border);border-radius:var(--radius-sm);background:var(--bg-input);color:var(--text-primary);" />
         <div style="display:flex;gap:8px;margin-top:8px;">
           <button type="button" id="testSlackBtn" class="btn btn-secondary" style="flex:1;">🔗 테스트</button>
           <button type="button" id="saveSlackBtn" class="btn btn-primary" style="flex:1;">💾 저장</button>
@@ -77,16 +77,13 @@ export function renderSettings(container: HTMLElement): void {
         </div>
         <button type="button" id="clearSlackBtn" class="btn btn-secondary" style="display:none;margin-top:8px;width:100%;">🗑️ 연결 해제</button>
         <div id="slackTestResult" style="margin-top:8px;font-size:0.85rem;"></div>
-        <details style="margin-top:12px;">
-          <summary style="cursor:pointer;font-size:0.9rem;">Webhook URL 만들기</summary>
-          <ol style="font-size:0.85rem;margin-top:8px;line-height:1.6;padding-left:20px;">
-            <li><a href="https://api.slack.com/apps" target="_blank" rel="noopener">Slack API</a>에서 "Create New App" → "From scratch"</li>
-            <li>Features → Incoming Webhooks 활성화</li>
-            <li>"Add New Webhook to Workspace" → 채널 선택</li>
-            <li>생성된 Webhook URL을 위 입력란에 붙여넣기</li>
-            <li>"💾 저장" 버튼 클릭</li>
-          </ol>
-          <p style="font-size:0.8rem;color:var(--text-secondary);margin-top:8px;">※ 이 Webhook URL은 이 브라우저에만 저장됩니다.</p>
+        <details class="settings-help" style="margin-top:12px;">
+          <summary style="cursor:pointer;font-size:0.9rem;">도움말</summary>
+          <ul style="font-size:0.85rem;margin-top:8px;line-height:1.6;padding-left:20px;">
+            <li>회사 슬랙(Datarize)에 등록된 이메일을 입력하세요.</li>
+            <li>워크스페이스 admin이 봇을 미리 설치한 상태여야 합니다 (HR/IT 문의).</li>
+            <li>본인 DM으로 답변과 인사이트가 전송됩니다.</li>
+          </ul>
         </details>
       </section>
       <section class="settings-group">
@@ -240,16 +237,21 @@ function onSaveKey(container: HTMLElement): void {
   }
 }
 
-// v3.19 T1+T5: schema 마이그레이션 (webhook → email). 본 핸들러는 schema-level 호환성만 유지하고,
-// 입력 필드/플레이스홀더/안내 문구 등 UI 전면 재작성은 T6에서 수행한다 (#slackWebhookInput id 포함).
-function isValidEmail(email: string): boolean {
-  // basic shape — T6에서 더 엄격한 검증으로 교체
-  return /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email);
+// v3.19 T6: Slack section UI 전면 재작성 (webhook URL → 회사 이메일).
+// 도메인 화이트리스트(@datarize.ai)로 회사 외부 이메일 차단 — backend가 lookupByEmail 시
+// 잘못된 이메일을 보내면 user_not_found 에러가 사용자에게 노출되므로 사전 검증.
+const ALLOWED_DOMAIN = '@datarize.ai';
+
+function isValidDatarizeEmail(s: string): boolean {
+  const trimmed = s.trim().toLowerCase();
+  if (!trimmed.endsWith(ALLOWED_DOMAIN)) return false;
+  const local = trimmed.slice(0, -ALLOWED_DOMAIN.length);
+  // local-part: a-z 0-9 . _ - (ASCII subset, 회사 도메인 사용자명 표준)
+  return /^[a-z0-9._-]+$/.test(local);
 }
 
 function bindSlackHandlers(container: HTMLElement): void {
-  // NOTE: id #slackWebhookInput는 T6에서 #slackEmailInput으로 교체 예정. 현 schema는 email field만 사용.
-  const input = container.querySelector<HTMLInputElement>('#slackWebhookInput');
+  const input = container.querySelector<HTMLInputElement>('#slackEmailInput');
   const testBtn = container.querySelector<HTMLButtonElement>('#testSlackBtn');
   const saveBtn = container.querySelector<HTMLButtonElement>('#saveSlackBtn');
   const toggle = container.querySelector<HTMLInputElement>('#slackAutoToggle');
@@ -272,11 +274,13 @@ function bindSlackHandlers(container: HTMLElement): void {
     result.style.color = kind === 'ok' ? 'var(--accent, #059669)' : kind === 'err' ? 'var(--danger, #dc2626)' : '';
   };
 
+  const INVALID_DOMAIN_MSG = 'Datarize 회사 이메일(@datarize.ai)을 입력하세요.';
+
   testBtn.addEventListener('click', () => {
     void (async () => {
       const email = input.value.trim();
       if (!email) { setResult('이메일을 입력하세요.'); return; }
-      if (!isValidEmail(email)) { setResult('이메일 형식이 아닙니다.', 'err'); return; }
+      if (!isValidDatarizeEmail(email)) { setResult(INVALID_DOMAIN_MSG, 'err'); return; }
       // 임시 저장 — sendAnswerDm는 saved settings를 읽음.
       try {
         saveSlackSettings({ email, autoSend: toggle.checked });
@@ -288,9 +292,9 @@ function bindSlackHandlers(container: HTMLElement): void {
       try {
         await sendAnswerDm({
           question: '샘플 — Daily Growth Slack 연결 테스트',
-          answer: '이 메시지가 보이면 연결이 정상입니다.',
+          answer: '본인 DM에 봇 메시지가 도착하면 연결 성공입니다.',
         });
-        setResult('✅ 전송 성공', 'ok');
+        setResult('✅ 전송 성공 — Slack DM을 확인하세요.', 'ok');
       } catch (e) {
         const msg = e instanceof Error ? e.message : String(e);
         setResult(`❌ 전송 실패 — ${msg}`, 'err');
@@ -301,7 +305,7 @@ function bindSlackHandlers(container: HTMLElement): void {
   saveBtn.addEventListener('click', () => {
     const email = input.value.trim();
     if (!email) { showToast('이메일을 입력하세요'); return; }
-    if (!isValidEmail(email)) { setResult('이메일 형식이 아닙니다.', 'err'); return; }
+    if (!isValidDatarizeEmail(email)) { setResult(INVALID_DOMAIN_MSG, 'err'); return; }
     const prev = loadSlackSettings();
     const nextAutoSend = prev?.autoSend ?? false;
     try {
