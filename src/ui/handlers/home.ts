@@ -402,7 +402,8 @@ async function hydrateBriefings(): Promise<void> {
 
   if (!diagLogged) {
     diagLogged = true;
-    // v3.19 T7: 진단 정보 1회 출력 (파란 화면 #3 production reproduce 근거)
+    // v3.19 T7 진단 정보 1회 출력 — v3.20 H3 본질 fix(SW image pass-through) 후
+    // 1주 production 모니터링 시점에 별도 sunset 결정 (spec §1.5).
     // sample은 sourceTitle + imageUrl 50자 prefix만 — PII 0건.
     console.info('[dg.briefings.diag]', {
       swState: navigator.serviceWorker?.controller ? 'controlled' : 'no-controller',

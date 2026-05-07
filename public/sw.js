@@ -1,5 +1,5 @@
-// Service Worker for Daily Growth Assistant v1.3 (v3.19 T8: image-bearing rss2json만 cache)
-const CACHE_NAME = 'daily-growth-v8';
+// Service Worker for Daily Growth Assistant v1.3 (v3.20 H3: cross-origin image pass-through)
+const CACHE_NAME = 'daily-growth-v9';
 const STATIC_ASSETS = [
   '/',
   '/index.html',
@@ -32,6 +32,14 @@ self.addEventListener('fetch', event => {
   // Intercepting these here causes "violates connect-src" + "Failed to convert
   // value to 'Response'" TypeError when the fetch is blocked.
   if (url.hostname === 'fonts.googleapis.com' || url.hostname === 'fonts.gstatic.com') {
+    return;
+  }
+
+  // v3.20 H3 (F3): cross-origin image pass-through.
+  // SW가 fetch()로 처리하면 SW context의 connect-src CSP rule이 적용되어 medium 등
+  // 외부 이미지 도메인이 차단됨 (production 발견 root cause).
+  // pass-through 시 브라우저가 직접 처리 → <img> request는 SW 밖에서 img-src rule로 평가되어 통과.
+  if (event.request.destination === 'image') {
     return;
   }
 
