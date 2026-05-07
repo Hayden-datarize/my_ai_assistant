@@ -126,6 +126,34 @@ function renderStep2(wrap: HTMLElement, state: OnboardingState, container: HTMLE
   help.textContent = '키가 없다면 아래 안내에 따라 무료로 발급할 수 있어요. AI... 로 시작합니다.';
   wrap.append(help);
 
+  // v3.20 H1 (F1): API 키 발급 안내 details (settings.ts:50-58 패턴 차용)
+  const details = document.createElement('details');
+  details.className = 'onboarding-help-details';
+  const summary = document.createElement('summary');
+  summary.textContent = 'API 키 발급 받기';
+  details.append(summary);
+  const ol = document.createElement('ol');
+  const li1 = document.createElement('li');
+  const link = document.createElement('a');
+  link.href = 'https://aistudio.google.com/app/apikey';
+  link.target = '_blank';
+  link.rel = 'noopener noreferrer';
+  link.textContent = 'Google AI Studio';
+  li1.append(link, ' 접속 (Google 계정 로그인 필요)');
+  const li2 = document.createElement('li');
+  const strong = document.createElement('strong');
+  strong.textContent = 'Create API key';
+  li2.append(strong, ' 클릭');
+  const li3 = document.createElement('li');
+  li3.textContent = '발급된 키를 복사해서 위에 붙여넣기';
+  ol.append(li1, li2, li3);
+  details.append(ol);
+  const note = document.createElement('p');
+  note.className = 'onboarding-help-note';
+  note.textContent = '※ API 키는 이 브라우저에만 저장됩니다. Gemini 무료 한도 (분당 60회 요청) 내에서 사용 가능합니다.';
+  details.append(note);
+  wrap.append(details);
+
   const input = document.createElement('input');
   input.id = 'obApiKeyInput';
   input.type = 'password';
