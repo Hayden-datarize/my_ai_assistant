@@ -6,6 +6,7 @@ import type { MissionInstance } from './missionTypes';
 import { getActiveMissions, tickMissionProgress } from './missionEngine';
 import type { PlantState } from './plantTypes';
 import { backfillGarden } from './backfillGarden';
+import { regenerateFreeze, consumeFreezeForGap } from './freezeEngine';
 
 export interface User {
   name: string;
@@ -164,10 +165,22 @@ export function recordDailyAnswer(xpDelta: number): void {
   const prev = takeSnapshot();
 
   if (u.lastActiveDate !== today) {
-    const y = new Date(today);
-    y.setDate(y.getDate() - 1);
-    const yesterday = getDateStr(y);
-    u.streak = u.lastActiveDate === yesterday ? u.streak + 1 : 1;
+    // v3.21 T3: Duolingo 정석 — regen 먼저 → consume → streak update.
+    // 1주+ 결석한 사용자가 진입 시 regen 안 하면 freeze cover 못 함 (사전 review R2).
+    regenerateFreeze(u, now);
+
+    if (!u.lastActiveDate) {
+      // 신규 user (lastActiveDate empty) → streak 1로 시작 (R10).
+      // freeze 변경 없음 (consume 호출 안 함).
+      u.streak = 1;
+    } else {
+      // gap = today와 lastActiveDate 차이 - 1 (KST anchor — Pattern A graduated v3.14.5).
+      const lastMs = Date.parse(u.lastActiveDate + 'T00:00:00+09:00');
+      const todayMs = Date.parse(today + 'T00:00:00+09:00');
+      const gap = Math.max(0, Math.round((todayMs - lastMs) / 86400_000) - 1);
+      const { preserved } = consumeFreezeForGap(u, gap);
+      u.streak = preserved ? u.streak + 1 : 1;
+    }
   }
 
   u.xp += xpDelta;

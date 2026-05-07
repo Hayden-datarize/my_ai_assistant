@@ -1,5 +1,5 @@
 import { describe, it, expect } from 'vitest';
-import { regenerateFreeze } from '../../src/state/freezeEngine';
+import { regenerateFreeze, consumeFreezeForGap } from '../../src/state/freezeEngine';
 import type { User } from '../../src/state/user';
 
 const baseUser = (overrides: Partial<User['streakFreeze']>): User => ({
@@ -56,5 +56,42 @@ describe('regenerateFreeze', () => {
     const u = baseUser({ count: 0, lastEarnedAt: '2026-05-01' });
     regenerateFreeze(u, new Date(Date.parse('2026-05-08T00:00:00+09:00')));
     expect(u.streakFreeze.lastEarnedAt).toBe('2026-05-08');
+  });
+});
+
+describe('consumeFreezeForGap', () => {
+  it('gap 0 → consumed 0, preserved true (no-op)', () => {
+    const u = baseUser({ count: 2 });
+    const r = consumeFreezeForGap(u, 0);
+    expect(r).toEqual({ consumed: 0, preserved: true });
+    expect(u.streakFreeze.count).toBe(2);
+  });
+
+  it('gap 1 + count 1 → consumed 1, preserved true', () => {
+    const u = baseUser({ count: 1 });
+    const r = consumeFreezeForGap(u, 1);
+    expect(r).toEqual({ consumed: 1, preserved: true });
+    expect(u.streakFreeze.count).toBe(0);
+  });
+
+  it('gap 2 + count 2 → consumed 2, preserved true', () => {
+    const u = baseUser({ count: 2 });
+    const r = consumeFreezeForGap(u, 2);
+    expect(r).toEqual({ consumed: 2, preserved: true });
+    expect(u.streakFreeze.count).toBe(0);
+  });
+
+  it('gap 2 + count 1 → consumed 1, preserved false (insufficient)', () => {
+    const u = baseUser({ count: 1 });
+    const r = consumeFreezeForGap(u, 2);
+    expect(r).toEqual({ consumed: 1, preserved: false });
+    expect(u.streakFreeze.count).toBe(0);
+  });
+
+  it('gap 3 + count 0 → consumed 0, preserved false', () => {
+    const u = baseUser({ count: 0 });
+    const r = consumeFreezeForGap(u, 3);
+    expect(r).toEqual({ consumed: 0, preserved: false });
+    expect(u.streakFreeze.count).toBe(0);
   });
 });

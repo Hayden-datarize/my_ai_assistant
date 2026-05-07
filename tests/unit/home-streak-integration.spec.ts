@@ -21,7 +21,7 @@ function setupDOM(): void {
   document.body.appendChild(xp);
 }
 
-function seedUser(overrides: Partial<{ streak: number; lastActiveDate: string; xp: number; level: number }>): void {
+function seedUser(overrides: Partial<{ streak: number; lastActiveDate: string; xp: number; level: number; streakFreezeCount: number }>): void {
   const user = {
     name: 'H',
     interests: ['ai_ml'],
@@ -30,6 +30,9 @@ function seedUser(overrides: Partial<{ streak: number; lastActiveDate: string; x
     lastActiveDate: overrides.lastActiveDate ?? '',
     xp: overrides.xp ?? 0,
     level: overrides.level ?? 1,
+    // v3.21 T3: streakFreeze inject 후 default count=2가 gap 1~2 spec을 cover하므로
+    // 명시적으로 0 default — gap reset 검증 의도 보존. 개별 spec은 override 가능.
+    streakFreeze: { count: overrides.streakFreezeCount ?? 0, lastEarnedAt: overrides.lastActiveDate ?? '2026-04-15' },
   };
   localStorage.setItem('user', JSON.stringify(user));
 }

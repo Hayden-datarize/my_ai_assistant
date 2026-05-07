@@ -40,3 +40,30 @@ export function regenerateFreeze(u: User, now: Date): void {
   const newLastEarnedMs = lastEarnedMs + quotient * SEVEN_DAYS_MS;
   u.streakFreeze.lastEarnedAt = getKstDateStr(new Date(newLastEarnedMs));
 }
+
+/**
+ * Streak Freeze 소비 로직 (Duolingo 정석).
+ *
+ * 결석한 날짜 수(gap) 만큼 freeze를 1:1 소비하여 streak를 보존한다.
+ *
+ * - gap 0 또는 음수/NaN/Infinity → no-op (consumed 0, preserved true)
+ * - gap N + count ≥ N → N consume, preserved true (streak 보존)
+ * - gap N + count < N → 가용한 만큼 소비, preserved false (streak reset)
+ *
+ * In-memory 변경만 (saveUser 호출 X — caller 책임).
+ *
+ * @param u - User
+ * @param gap - 결석한 날짜 수 (today와 lastActiveDate 차이 - 1)
+ * @returns consumed 실제 소비된 freeze 개수, preserved streak 보존 여부 (consumed === gap)
+ *
+ * Note: T5에서 dispatchEvent('dg:reward:streak-freeze-used') 추가 예정.
+ */
+export function consumeFreezeForGap(
+  u: User,
+  gap: number,
+): { consumed: number; preserved: boolean } {
+  if (!Number.isFinite(gap) || gap <= 0) return { consumed: 0, preserved: true };
+  const consumed = Math.min(gap, u.streakFreeze.count);
+  u.streakFreeze.count -= consumed;
+  return { consumed, preserved: consumed === gap };
+}
