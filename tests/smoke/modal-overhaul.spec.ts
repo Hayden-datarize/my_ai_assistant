@@ -1,14 +1,12 @@
 import { test, expect, type Page } from '@playwright/test';
 import { getDateStr } from '../../src/utils/dates';
+import { primeOnboardedUser } from '../helpers/seed';
 
 async function seedUserAndAnswer(page: Page): Promise<void> {
   const today = getDateStr();
+  // v3.18.1 H1: gardenIntroduced=true (helper default) → welcome-garden 모달 억제
+  await primeOnboardedUser(page, { interests: ['ai_ml'] });
   await page.addInitScript((args: { today: string }) => {
-    localStorage.setItem('user', JSON.stringify({
-      // v3.18.1 H1: gardenIntroduced=true → welcome-garden 모달 억제 (archive nav click intercept 방지)
-      name: '테스트', interests: ['ai_ml'], onboardedAt: new Date().toISOString(),
-      streak: 0, lastActiveDate: new Date().toISOString(), xp: 0, earnedBadges: {}, gamificationMigrated: true, gardenIntroduced: true, schemaVersion: 2,
-    }));
     localStorage.setItem('dg.answers', JSON.stringify([{
       id: 'a1', questionId: 'q1', text: '테스트 답변 내용', authorId: 'self',
       type: 'reflection', date: args.today,

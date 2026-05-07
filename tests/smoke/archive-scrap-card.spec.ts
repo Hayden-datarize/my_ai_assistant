@@ -1,10 +1,10 @@
 import { test, expect } from '@playwright/test';
+import { primeOnboardedUser } from '../helpers/seed';
 
 // v3.9 T7: archive scrap 카드 ✕ + select 모드 필터 잠금 E2E 검증
 test('scrap 카드 ✕ → "스크랩 해제" 토스트 표시 (하단 중앙)', async ({ page }) => {
+  await primeOnboardedUser(page);
   await page.addInitScript(() => {
-    // 온보딩 완료 상태 + 사용자 세션
-    localStorage.setItem('user', JSON.stringify({ interests: ['tech'], gamificationMigrated: true, gardenIntroduced: true }));
     // briefings 자동 새로고침 억제 (외부 RSS fetch 방지)
     sessionStorage.setItem('dg.briefings.auto-refresh-tried', '1');
     localStorage.setItem(
@@ -50,8 +50,8 @@ test('scrap 카드 ✕ → "스크랩 해제" 토스트 표시 (하단 중앙)',
 });
 
 test('select 모드 진입 → 다른 chip aria-disabled', async ({ page }) => {
+  await primeOnboardedUser(page);
   await page.addInitScript(() => {
-    localStorage.setItem('user', JSON.stringify({ interests: ['tech'], gamificationMigrated: true, gardenIntroduced: true }));
     sessionStorage.setItem('dg.briefings.auto-refresh-tried', '1');
     localStorage.setItem(
       'briefings',

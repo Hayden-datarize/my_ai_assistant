@@ -1,4 +1,5 @@
 import { test, expect } from '@playwright/test';
+import { primeOnboardedUser } from '../helpers/seed';
 
 // v3.14 T9: 미션 탭 smoke
 //  m1: 6탭 nav 가시 (mobile 375×667) — 신규 '미션' 탭 라벨 확인
@@ -13,20 +14,7 @@ import { test, expect } from '@playwright/test';
 test.describe('v3.14 Missions Tab', () => {
   test('m1: bottom-nav shows 6 items including 미션 (mobile 375×667)', async ({ page }) => {
     await page.setViewportSize({ width: 375, height: 667 });
-    await page.addInitScript(() => {
-      const user = {
-        name: 'T',
-        interests: ['ai_ml'],
-        onboardedAt: 1,
-        streak: 0,
-        lastActiveDate: '',
-        xp: 0,
-        earnedBadges: {},
-        gamificationMigrated: true,
-        schemaVersion: 3, gardenIntroduced: true,
-      };
-      localStorage.setItem('user', JSON.stringify(user));
-    });
+    await primeOnboardedUser(page, { interests: ['ai_ml'], schemaVersion: 3 });
     await page.goto('/');
     await expect(page.locator('.bottom-nav .nav-item')).toHaveCount(6);
     const missionNav = page.locator('.bottom-nav .nav-item', { hasText: '미션' });
@@ -34,6 +22,7 @@ test.describe('v3.14 Missions Tab', () => {
   });
 
   test('m2: switching to missions tab renders #missionsSection with daily group', async ({ page }) => {
+    await primeOnboardedUser(page, { interests: ['ai_ml'], schemaVersion: 3 });
     await page.addInitScript(() => {
       const fmt = new Intl.DateTimeFormat('en-CA', { timeZone: 'Asia/Seoul' });
       const today = fmt.format(new Date());          // 'YYYY-MM-DD' (KST)
@@ -52,26 +41,17 @@ test.describe('v3.14 Missions Tab', () => {
       const weekNum = Math.ceil(((utc.getTime() - yearStart.getTime()) / 86400000 + 1) / 7);
       const thisWeek = `${utc.getUTCFullYear()}-W${String(weekNum).padStart(2, '0')}`;
 
-      const user = {
-        name: 'T',
-        interests: ['ai_ml'],
-        onboardedAt: 1,
-        streak: 0,
-        lastActiveDate: '',
-        xp: 0,
-        earnedBadges: {},
-        gamificationMigrated: true,
-        schemaVersion: 3, gardenIntroduced: true,
-        missions: {
-          // daily-answer-1만 active 주입 → daily 그룹 1개만 렌더 (weekly/monthly empty → skip)
-          active: [
-            { defId: 'daily-answer-1', period: 'daily', windowStart: 0, progress: 0, completed: false },
-          ],
-          cumulative: { dailyCount: 0, weeklyCount: 0, monthlyCount: 0 },
-          lastDailySeed: today,
-          currentWeekIso: thisWeek,
-          currentMonthIso: thisMonth,
-        },
+      // primeOnboardedUser가 set한 user를 read-merge — missions 필드만 추가.
+      const user = JSON.parse(localStorage.getItem('user') ?? '{}');
+      user.missions = {
+        // daily-answer-1만 active 주입 → daily 그룹 1개만 렌더 (weekly/monthly empty → skip)
+        active: [
+          { defId: 'daily-answer-1', period: 'daily', windowStart: 0, progress: 0, completed: false },
+        ],
+        cumulative: { dailyCount: 0, weeklyCount: 0, monthlyCount: 0 },
+        lastDailySeed: today,
+        currentWeekIso: thisWeek,
+        currentMonthIso: thisMonth,
       };
       localStorage.setItem('user', JSON.stringify(user));
     });

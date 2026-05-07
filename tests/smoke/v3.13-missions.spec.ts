@@ -1,4 +1,5 @@
 import { test, expect } from '@playwright/test';
+import { primeOnboardedUser } from '../helpers/seed';
 
 // v3.13 Mission System smoke tests.
 // Two paths that jsdom (vitest) cannot cover:
@@ -19,32 +20,24 @@ const ANSWER_TEXT = 'v3.13 미션 smoke test 답변입니다.';
 
 test.describe('v3.13 Mission System', () => {
   test('sw1: daily-answer-1 답변 1개 → .mission-card--completed + ✓', async ({ page }) => {
+    await primeOnboardedUser(page, { interests: ['ai_ml'], schemaVersion: 3 });
     await page.addInitScript(() => {
       // 브라우저 컨텍스트에서 KST 오늘 날짜 계산
       const today = new Intl.DateTimeFormat('en-CA', { timeZone: 'Asia/Seoul' }).format(new Date());
 
-      const user = {
-        name: 'Smoke',
-        interests: ['ai_ml'],
-        onboardedAt: 1,
-        streak: 0,
-        lastActiveDate: '',
-        xp: 0,
-        earnedBadges: {},
-        gamificationMigrated: true,
-        schemaVersion: 3, gardenIntroduced: true,
-        missions: {
-          // daily-answer-1만 active에 직접 주입 (target=1, 답변 1회로 완수)
-          active: [
-            { defId: 'daily-answer-1', period: 'daily', windowStart: 0, progress: 0, completed: false },
-          ],
-          cumulative: { dailyCount: 0, weeklyCount: 0, monthlyCount: 0 },
-          // lastDailySeed = today → daily regen 차단 (seeded mission 유지)
-          lastDailySeed: today,
-          // weekly/monthly는 regenerate 허용 (이 테스트는 daily만 검증)
-          currentWeekIso: '',
-          currentMonthIso: '',
-        },
+      // primeOnboardedUser가 set한 user를 read-merge — missions 필드만 추가.
+      const user = JSON.parse(localStorage.getItem('user') ?? '{}');
+      user.missions = {
+        // daily-answer-1만 active에 직접 주입 (target=1, 답변 1회로 완수)
+        active: [
+          { defId: 'daily-answer-1', period: 'daily', windowStart: 0, progress: 0, completed: false },
+        ],
+        cumulative: { dailyCount: 0, weeklyCount: 0, monthlyCount: 0 },
+        // lastDailySeed = today → daily regen 차단 (seeded mission 유지)
+        lastDailySeed: today,
+        // weekly/monthly는 regenerate 허용 (이 테스트는 daily만 검증)
+        currentWeekIso: '',
+        currentMonthIso: '',
       };
       localStorage.setItem('user', JSON.stringify(user));
 
@@ -86,34 +79,26 @@ test.describe('v3.13 Mission System', () => {
   });
 
   test('sw2: monthly-answers-20 답변 1개 → progress bar 1/20', async ({ page }) => {
+    await primeOnboardedUser(page, { interests: ['ai_ml'], schemaVersion: 3 });
     await page.addInitScript(() => {
       const fmt = new Intl.DateTimeFormat('en-CA', { timeZone: 'Asia/Seoul' });
       const today = fmt.format(new Date());          // 'YYYY-MM-DD'
       const thisMonth = today.slice(0, 7);           // 'YYYY-MM'
 
-      const user = {
-        name: 'Smoke',
-        interests: ['ai_ml'],
-        onboardedAt: 1,
-        streak: 0,
-        lastActiveDate: '',
-        xp: 0,
-        earnedBadges: {},
-        gamificationMigrated: true,
-        schemaVersion: 3, gardenIntroduced: true,
-        missions: {
-          // monthly-answers-20만 active에 주입 (target=20, 답변 1회 → progress 1)
-          active: [
-            { defId: 'monthly-answers-20', period: 'monthly', windowStart: 0, progress: 0, completed: false },
-          ],
-          cumulative: { dailyCount: 0, weeklyCount: 0, monthlyCount: 0 },
-          // daily regen 차단 (daily 미션이 추가돼도 무방하지만, 테스트 격리를 위해 차단)
-          lastDailySeed: today,
-          // weekly regen 허용
-          currentWeekIso: '',
-          // currentMonthIso = thisMonth → monthly regen 차단 (seeded mission 유지)
-          currentMonthIso: thisMonth,
-        },
+      // primeOnboardedUser가 set한 user를 read-merge — missions 필드만 추가.
+      const user = JSON.parse(localStorage.getItem('user') ?? '{}');
+      user.missions = {
+        // monthly-answers-20만 active에 주입 (target=20, 답변 1회 → progress 1)
+        active: [
+          { defId: 'monthly-answers-20', period: 'monthly', windowStart: 0, progress: 0, completed: false },
+        ],
+        cumulative: { dailyCount: 0, weeklyCount: 0, monthlyCount: 0 },
+        // daily regen 차단 (daily 미션이 추가돼도 무방하지만, 테스트 격리를 위해 차단)
+        lastDailySeed: today,
+        // weekly regen 허용
+        currentWeekIso: '',
+        // currentMonthIso = thisMonth → monthly regen 차단 (seeded mission 유지)
+        currentMonthIso: thisMonth,
       };
       localStorage.setItem('user', JSON.stringify(user));
 

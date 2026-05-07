@@ -1,5 +1,6 @@
 import { test, expect } from '@playwright/test';
 import { getDateStr } from '../../src/utils/dates';
+import { primeOnboardedUser } from '../helpers/seed';
 
 // v3.12 game-feedback + badges end-to-end smoke. Two paths the unit tests
 // (jsdom) can't cover:
@@ -21,22 +22,8 @@ import { getDateStr } from '../../src/utils/dates';
 test.describe('v3.12 Game Feedback + Badges', () => {
   test.beforeEach(async ({ page }) => {
     const today = getDateStr();
+    await primeOnboardedUser(page, { interests: ['ai_ml'] });
     await page.addInitScript((args: { today: string }) => {
-      localStorage.setItem(
-        'user',
-        JSON.stringify({
-          name: 'Smoke',
-          interests: ['ai_ml'],
-          onboardedAt: new Date().toISOString(),
-          streak: 0,
-          lastActiveDate: '',
-          xp: 0,
-          earnedBadges: {},
-          gamificationMigrated: true,
-          gardenIntroduced: true,
-          schemaVersion: 2,
-        }),
-      );
       // Seed today's question so hydrateQuestion does not need an API key.
       localStorage.setItem(
         `dg.todayQuestion.${args.today}`,

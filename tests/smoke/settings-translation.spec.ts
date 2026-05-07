@@ -1,26 +1,15 @@
 import { test, expect } from '@playwright/test';
 import { getDateStr } from '../../src/utils/dates';
+import { primeOnboardedUser } from '../helpers/seed';
 
 test.use({ serviceWorkers: 'block' });
 
 test('일일 한도 슬라이더 변경 → 즉시 반영 + persist', async ({ page }) => {
-  const today = getDateStr();
-  await page.addInitScript((args) => {
-    localStorage.setItem(
-      'user',
-      JSON.stringify({
-        name: 'T',
-        interests: ['AI'],
-        onboardedAt: args.today,
-        streak: 1,
-        lastActiveDate: args.today,
-        xp: 0,
-        earnedBadges: {}, gamificationMigrated: true, gardenIntroduced: true, schemaVersion: 2,
-      }),
-    );
+  await primeOnboardedUser(page, { interests: ['AI'], streak: 1 });
+  await page.addInitScript(() => {
     localStorage.setItem('dg_gemini_key', 'TEST_KEY');
     sessionStorage.setItem('dg.briefings.auto-refresh-tried', '1');
-  }, { today });
+  });
 
   await page.goto('/');
   await page.click('[data-tab-id="settings"]');
@@ -37,19 +26,8 @@ test('일일 한도 슬라이더 변경 → 즉시 반영 + persist', async ({ p
 
 test('캐시 초기화 버튼: confirm 후 *Ko 필드 삭제 (브리핑 본문 유지)', async ({ page }) => {
   const today = getDateStr();
+  await primeOnboardedUser(page, { interests: ['AI'], streak: 1 });
   await page.addInitScript((args) => {
-    localStorage.setItem(
-      'user',
-      JSON.stringify({
-        name: 'T',
-        interests: ['AI'],
-        onboardedAt: args.today,
-        streak: 1,
-        lastActiveDate: args.today,
-        xp: 0,
-        earnedBadges: {}, gamificationMigrated: true, gardenIntroduced: true, schemaVersion: 2,
-      }),
-    );
     localStorage.setItem('dg_gemini_key', 'TEST_KEY');
     sessionStorage.setItem('dg.briefings.auto-refresh-tried', '1');
     localStorage.setItem(

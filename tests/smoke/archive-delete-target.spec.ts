@@ -1,10 +1,10 @@
 import { test, expect } from '@playwright/test';
+import { primeOnboardedUser } from '../helpers/seed';
 
 // v3.8 T4: archive card ✕ 버튼으로 답변 삭제 후 undo로 복원하는 E2E 검증
 test('archive 카드 ✕로 답변 삭제 후 undo로 복원', async ({ page }) => {
+  await primeOnboardedUser(page);
   await page.addInitScript(() => {
-    // 온보딩 완료 상태 + 사용자 세션
-    localStorage.setItem('user', JSON.stringify({ interests: ['tech'], gamificationMigrated: true, gardenIntroduced: true }));
     // briefings 자동 새로고침 억제 (fixture 없음)
     sessionStorage.setItem('dg.briefings.auto-refresh-tried', '1');
     localStorage.setItem(

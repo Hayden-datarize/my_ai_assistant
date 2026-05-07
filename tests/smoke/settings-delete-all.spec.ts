@@ -1,9 +1,11 @@
 import { test, expect } from '@playwright/test';
+import { primeOnboardedUser } from '../helpers/seed';
 
 test('settings 전체 답변 초기화 + undo 복원', async ({ page }) => {
   page.on('dialog', (dialog) => dialog.accept());
 
   // Seed answers + onboarded user before first page load to bypass onboarding modal.
+  await primeOnboardedUser(page, { interests: ['ai_ml'] });
   await page.addInitScript(() => {
     localStorage.setItem(
       'dg.answers',
@@ -11,18 +13,6 @@ test('settings 전체 답변 초기화 + undo 복원', async ({ page }) => {
         { id: 's1', text: 'one', date: '2026-04-27' },
         { id: 's2', text: 'two', date: '2026-04-27' },
       ])
-    );
-    localStorage.setItem(
-      'user',
-      JSON.stringify({
-        name: 'TestUser',
-        interests: ['ai_ml'],
-        onboardedAt: '2026-04-01',
-        streak: 0,
-        lastActiveDate: '',
-        xp: 0,
-        earnedBadges: {}, gamificationMigrated: true, gardenIntroduced: true, schemaVersion: 2,
-      })
     );
     // Suppress briefings auto-refresh (no fixture seeded).
     sessionStorage.setItem('dg.briefings.auto-refresh-tried', '1');

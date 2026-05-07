@@ -1,5 +1,6 @@
 import { test, expect } from '@playwright/test';
 import { getDateStr } from '../../src/utils/dates';
+import { primeOnboardedUser } from '../helpers/seed';
 
 test.use({ serviceWorkers: 'block' });
 
@@ -10,16 +11,8 @@ test.use({ serviceWorkers: 'block' });
 //   browser-context의 toISOString()은 UTC라 KST 새벽엔 1일 어긋남 → fixture refresh로 덮임.
 async function seedAll(page: import('@playwright/test').Page): Promise<void> {
   const today = getDateStr();
+  await primeOnboardedUser(page, { interests: ['growth'] });
   await page.addInitScript((args: { today: string }) => {
-    localStorage.setItem(
-      'user',
-      JSON.stringify({
-        name: 'TestUser',
-        interests: ['growth'],
-        onboardedAt: '2026-04-01',
-        streak: 0, lastActiveDate: '', xp: 0, earnedBadges: {}, gamificationMigrated: true, gardenIntroduced: true, schemaVersion: 2,
-      }),
-    );
     localStorage.setItem(
       'briefings',
       JSON.stringify([

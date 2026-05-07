@@ -1,11 +1,12 @@
 import { test, expect } from '@playwright/test';
+import { primeOnboardedUser } from '../helpers/seed';
 
 // v3.11 T8 — archive 카드 visual upgrade smoke
 // T6 답변 카드 풍부 layout(헤더/질문 preview/본문) + T5 스크랩 카드 home briefing 시각 재사용
 test.describe('v3.11 archive cards visual upgrade', () => {
   test('답변 카드는 새 풍부 layout (헤더 + 질문 미리보기 + 본문)', async ({ page }) => {
+    await primeOnboardedUser(page);
     await page.addInitScript(() => {
-      localStorage.setItem('user', JSON.stringify({ interests: ['tech'], gamificationMigrated: true, gardenIntroduced: true }));
       // briefings 자동 새로고침 억제 (외부 RSS fetch 방지)
       sessionStorage.setItem('dg.briefings.auto-refresh-tried', '1');
       localStorage.setItem(
@@ -39,8 +40,8 @@ test.describe('v3.11 archive cards visual upgrade', () => {
   });
 
   test('스크랩 카드는 home briefing 시각 (이미지 또는 이니셜 + 소스 뱃지 + 오버레이)', async ({ page }) => {
+    await primeOnboardedUser(page);
     await page.addInitScript(() => {
-      localStorage.setItem('user', JSON.stringify({ interests: ['tech'], gamificationMigrated: true, gardenIntroduced: true }));
       sessionStorage.setItem('dg.briefings.auto-refresh-tried', '1');
       localStorage.setItem(
         'briefings',

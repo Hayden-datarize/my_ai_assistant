@@ -1,5 +1,6 @@
 import { test, expect } from '@playwright/test';
 import { getDateStr } from '../../src/utils/dates';
+import { primeOnboardedUser } from '../helpers/seed';
 
 // Block service worker so stats-tab navigation / seeded answers are not
 // cached or intercepted by sw.js (follows convention from layout.spec.ts
@@ -23,13 +24,8 @@ async function seedAndGoto(page: import('@playwright/test').Page): Promise<void>
   // v3.14.5 T1 (Codex IR-1): KST today를 Node-side에서 계산해 args로 전달.
   // browser-context의 toISOString()은 UTC라 KST 새벽엔 1일 어긋나 .is-today cell 0개로 false-green.
   const today = getDateStr();
+  await primeOnboardedUser(page, { interests: ['growth'], streak: 1, xp: 10 });
   await page.addInitScript((args: { today: string }) => {
-    localStorage.setItem('user', JSON.stringify({
-      name: 'tester',
-      interests: ['growth'],
-      onboardedAt: '2026-04-01',
-      streak: 1, lastActiveDate: '', xp: 10, earnedBadges: {}, gamificationMigrated: true, gardenIntroduced: true, schemaVersion: 2,
-    }));
     localStorage.setItem('dg.answers', JSON.stringify([
       { date: args.today, text: 'today', type: '감정' },
     ]));

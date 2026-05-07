@@ -1,4 +1,5 @@
 import { test, expect } from '@playwright/test';
+import { primeOnboardedUser } from '../helpers/seed';
 
 /**
  * v2.0 compat smoke.
@@ -63,11 +64,8 @@ test('legacy v2.0 `answers` key auto-migrates to dg.answers and renders on archi
  * Functional smoke: theme toggle persists across reload.
  */
 test('theme toggle persists after reload', async ({ page }) => {
+  await primeOnboardedUser(page, { interests: ['ai_ml'] });
   await page.addInitScript(() => {
-    localStorage.setItem('user', JSON.stringify({
-      name: 'H', interests: ['ai_ml'], onboardedAt: '2026-04-01',
-      streak: 0, lastActiveDate: '', xp: 0, earnedBadges: {}, gamificationMigrated: true, gardenIntroduced: true, schemaVersion: 2,
-    }));
     // v3.3.4.3: suppress briefings auto-refresh (no briefings fixture seeded)
     sessionStorage.setItem('dg.briefings.auto-refresh-tried', '1');
   });
@@ -96,11 +94,8 @@ test('theme toggle persists after reload', async ({ page }) => {
  * Functional smoke: archive filter chips narrow the list.
  */
 test('archive filter by type narrows the list', async ({ page }) => {
+  await primeOnboardedUser(page, { interests: ['ai_ml'] });
   await page.addInitScript(() => {
-    localStorage.setItem('user', JSON.stringify({
-      name: 'H', interests: ['ai_ml'], onboardedAt: '2026-04-01',
-      streak: 0, lastActiveDate: '', xp: 0, earnedBadges: {}, gamificationMigrated: true, gardenIntroduced: true, schemaVersion: 2,
-    }));
     localStorage.setItem('dg.answers', JSON.stringify([
       { id: 'a1', questionId: 'q', text: '분석형 답변 하나', authorId: 'self', createdAt: '2026-04-18T00:00:00Z', type: '분석', date: '2026-04-18', schemaVersion: 1 },
       { id: 'a2', questionId: 'q', text: '실무형 답변 둘', authorId: 'self', createdAt: '2026-04-17T00:00:00Z', type: '실무', date: '2026-04-17', schemaVersion: 1 },

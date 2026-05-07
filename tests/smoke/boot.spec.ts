@@ -1,14 +1,12 @@
 import { test, expect } from '@playwright/test';
+import { primeOnboardedUser } from '../helpers/seed';
 
 async function seedOnboardedUser(page: import('@playwright/test').Page): Promise<void> {
   // No API key seeded — hydrateQuestion will show "enter key in settings" message
   // and skip the real network call. Tests that need question flow should mock the
   // Gemini endpoint via page.route() instead.
+  await primeOnboardedUser(page, { interests: ['recruiting', 'ai_ml'] });
   await page.addInitScript(() => {
-    localStorage.setItem('user', JSON.stringify({
-      name: 'TestUser', interests: ['recruiting', 'ai_ml'],
-      onboardedAt: '2026-04-01', streak: 0, lastActiveDate: '', xp: 0, earnedBadges: {}, gamificationMigrated: true, gardenIntroduced: true, schemaVersion: 2,
-    }));
     // v3.3.4.3: suppress home auto-refresh of briefings so this spec doesn't
     // hit the real RSS endpoint (no briefings fixture seeded → stale detection
     // would otherwise trigger a live fetch with 5s timeout).

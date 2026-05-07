@@ -1,5 +1,6 @@
 import { test, expect } from '@playwright/test';
 import { getDateStr } from '../../src/utils/dates';
+import { primeOnboardedUser } from '../helpers/seed';
 
 // Block service worker so tests don't hit stale caches and image-load
 // routing via page.route works reliably (matches other briefing specs).
@@ -22,24 +23,12 @@ async function seedBriefings(
   page: import('@playwright/test').Page,
   items: SeedBriefing[],
 ): Promise<void> {
-  const today = getDateStr();
+  await primeOnboardedUser(page);
   await page.addInitScript(
-    ({ cards, today }) => {
-      localStorage.setItem(
-        'user',
-        JSON.stringify({
-          name: '테',
-          interests: ['tech'],
-          onboardedAt: new Date().toISOString(),
-          streak: 0,
-          lastActiveDate: today,
-          xp: 0,
-          earnedBadges: {}, gamificationMigrated: true, gardenIntroduced: true, schemaVersion: 2,
-        }),
-      );
+    ({ cards }) => {
       localStorage.setItem('briefings', JSON.stringify(cards));
     },
-    { cards: items, today },
+    { cards: items },
   );
 }
 

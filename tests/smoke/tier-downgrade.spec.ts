@@ -1,5 +1,6 @@
 import { test, expect } from '@playwright/test';
 import { getDateStr } from '../../src/utils/dates';
+import { primeOnboardedUser } from '../helpers/seed';
 
 test.use({ serviceWorkers: 'block' });
 
@@ -36,18 +37,10 @@ async function seedOneBriefing(
     sourceTitle: 'TestSource',
     imageUrl,
   };
-  await page.addInitScript((args: { briefing: SeedBriefing; today: string }) => {
-    localStorage.setItem('user', JSON.stringify({
-      name: '테',
-      interests: ['tech'],
-      onboardedAt: new Date().toISOString(),
-      streak: 0,
-      lastActiveDate: args.today,
-      xp: 0,
-      earnedBadges: {}, gamificationMigrated: true, gardenIntroduced: true, schemaVersion: 2,
-    }));
+  await primeOnboardedUser(page);
+  await page.addInitScript((args: { briefing: SeedBriefing }) => {
     localStorage.setItem('briefings', JSON.stringify([args.briefing]));
-  }, { briefing, today });
+  }, { briefing });
 }
 
 test('tier 1 → 2 when image URL returns 404', async ({ page }) => {

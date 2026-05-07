@@ -1,4 +1,5 @@
 import { test, expect } from '@playwright/test';
+import { primeOnboardedUser } from '../helpers/seed';
 
 // Disable the service worker so page.route can intercept rss2json calls.
 // The default 'allow' lets sw.js handle the fetch, which bypasses route
@@ -14,19 +15,8 @@ test.use({ serviceWorkers: 'block' });
  * dark in prod and the home tab showed an indefinite loading state.
  */
 test('briefing refresh shows empty state when every rss2json call fails', async ({ page }) => {
+  await primeOnboardedUser(page, { interests: ['recruiting', 'ai_ml'] });
   await page.addInitScript(() => {
-    localStorage.setItem(
-      'user',
-      JSON.stringify({
-        name: 'TestUser',
-        interests: ['recruiting', 'ai_ml'],
-        onboardedAt: '2026-04-01',
-        streak: 0,
-        lastActiveDate: '',
-        xp: 0,
-        earnedBadges: {}, gamificationMigrated: true, gardenIntroduced: true, schemaVersion: 2,
-      }),
-    );
     // Seed an empty briefings cache so refresh has to hit the network.
     localStorage.removeItem('dg.briefings');
   });
@@ -56,16 +46,8 @@ test('briefing refresh shows empty state when every rss2json call fails', async 
 });
 
 test('success response renders source chip from feed.title', async ({ page }) => {
+  await primeOnboardedUser(page, { interests: ['pm'] });
   await page.addInitScript(() => {
-    localStorage.setItem(
-      'user',
-      JSON.stringify({
-        name: 'TestUser',
-        interests: ['pm'],
-        onboardedAt: '2026-04-01',
-        streak: 0, lastActiveDate: '', xp: 0, earnedBadges: {}, gamificationMigrated: true, gardenIntroduced: true, schemaVersion: 2,
-      }),
-    );
     localStorage.removeItem('dg.briefings');
   });
 
