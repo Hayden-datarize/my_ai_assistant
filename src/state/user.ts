@@ -1,6 +1,6 @@
 import { getDateStr } from '../utils/dates';
 import { MSG } from '../ui/messages';
-import { migrateUserToV2, migrateUserToV3, migrateUserToV4 } from './migration';
+import { migrateUserToV2, migrateUserToV3, migrateUserToV4, migrateUserToV5 } from './migration';
 import { takeSnapshot, runSweep } from './achievements';
 import type { MissionInstance } from './missionTypes';
 import { getActiveMissions, tickMissionProgress } from './missionEngine';
@@ -17,7 +17,7 @@ export interface User {
   // ❌ removed: level (computed via getCurrentTier(xp).id)
   earnedBadges: Record<string, number>;     // badgeId → unlockedAt epoch ms
   gamificationMigrated: boolean;            // 환영 모달 1회 보장 flag
-  schemaVersion: 4;
+  schemaVersion: 5;
   missions: {
     active: MissionInstance[];
     cumulative: { dailyCount: number; weeklyCount: number; monthlyCount: number };
@@ -28,6 +28,7 @@ export interface User {
   plantStateByInterest: Record<string, PlantState>;   // v3.15 NEW
   gardenIntroduced: boolean;                           // v3.15 NEW (환영 모달 1회)
   gardenBackfilled: boolean;                           // v3.15 NEW (backfill idempotent)
+  streakFreeze: { count: number; lastEarnedAt: string };  // v3.21 NEW (Duolingo 정석)
 }
 
 /** home.ts / stats.ts 레거시 호환 alias */
@@ -52,11 +53,12 @@ export function getCachedUser(): User | null {
     raw = localStorage.getItem(KEY);
     if (!raw) return null;
     const parsed = JSON.parse(raw);
-    let user = (parsed?.schemaVersion === 2 || parsed?.schemaVersion === 3 || parsed?.schemaVersion === 4)
+    let user = (parsed?.schemaVersion === 2 || parsed?.schemaVersion === 3 || parsed?.schemaVersion === 4 || parsed?.schemaVersion === 5)
       ? parsed
       : migrateUserToV2(parsed);
-    user = migrateUserToV3(user);  // v4 user는 early return (S5 fix)
+    user = migrateUserToV3(user);  // v4/v5 user는 early return (S5 fix)
     user = migrateUserToV4(user);
+    user = migrateUserToV5(user);
     if (!isValidUserShape(user)) {
       // v3.14.2 T12 P1: JSON parse OK이지만 shape invalid도 corruption — 같은 toast.
       notifyCorruption();
@@ -74,8 +76,8 @@ export function getCachedUser(): User | null {
           showToast(getSaveErrorMessage(err));
         }).catch(() => { /* toast import 실패는 production 외 발생 안 함 */ });
       }
-    } else if (parsed?.schemaVersion !== 4) {
-      // lazy migrate v1/v2 → v3 (정상 데이터만 persist; 손상 데이터는 위에서 null)
+    } else if (parsed?.schemaVersion !== 5) {
+      // lazy migrate v1/v2/v3/v4 → v5 (정상 데이터만 persist; 손상 데이터는 위에서 null)
       // setItem 실패(Quota 등)는 무시 — in-memory 변환 결과는 그대로 반환
       try { localStorage.setItem(KEY, JSON.stringify(user)); } catch { /* ignore */ }
     }
@@ -103,7 +105,8 @@ function isValidUserShape(u: unknown): u is User {
   if (!baseValid) return false;
 
   // S8 fix (Codex P1-2): v4 plantStateByInterest nested guard
-  if (r.schemaVersion === 4) {
+  // v3.21 T1: v5도 동일 검증 (v5는 v4의 superset — streakFreeze 추가만)
+  if (r.schemaVersion === 4 || r.schemaVersion === 5) {
     if (typeof r.plantStateByInterest !== 'object' || r.plantStateByInterest === null) return false;
     for (const plant of Object.values(r.plantStateByInterest as Record<string, unknown>)) {
       if (!plant || typeof plant !== 'object') return false;
@@ -112,6 +115,14 @@ function isValidUserShape(u: unknown): u is User {
       if (typeof stage !== 'number' || !Number.isInteger(stage) || stage < 1 || stage > 5) return false;
       if (typeof p.cumulativeActivity !== 'number' || !Number.isFinite(p.cumulativeActivity)) return false;
     }
+  }
+
+  // v3.21 T1: v5 신규 streakFreeze nested guard (silent NaN 차단, v3.12 lesson)
+  if (r.schemaVersion === 5) {
+    const sf = r.streakFreeze as { count?: unknown; lastEarnedAt?: unknown } | undefined | null;
+    if (!sf || typeof sf !== 'object') return false;
+    if (typeof sf.count !== 'number' || !Number.isFinite(sf.count) || sf.count < 0 || sf.count > 2) return false;
+    if (typeof sf.lastEarnedAt !== 'string' || sf.lastEarnedAt.length === 0) return false;
   }
   return true;
 }

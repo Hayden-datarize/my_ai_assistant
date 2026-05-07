@@ -1,4 +1,5 @@
 import { CURRENT_SCHEMA_VERSION, isVersioned, type Answer, type UserSettings } from './schema';
+import { getDateStr } from '../utils/dates';
 
 /**
  * Normalize a raw value into a Phase B Answer.
@@ -169,7 +170,9 @@ function buildNormalizedMissions(v: { missions?: Partial<User['missions']> }): U
  * malformed mission 데이터를 가진 v4 user가 조용히 로드되는 문제 해소.
  */
 export function migrateUserToV3(raw: unknown): User {
-  const v = raw as Partial<User> & {
+  // v3.21 T1: schemaVersion 비교를 위해 schemaVersion만 number로 좁히고 나머지는 Partial<User> narrowing.
+  // (User.schemaVersion이 v5 literal이라 v3/v4 비교 시 TS2367 회피)
+  const v = raw as Omit<Partial<User>, 'schemaVersion'> & {
     schemaVersion?: number;
     missions?: Partial<User['missions']>;
   };
@@ -177,7 +180,8 @@ export function migrateUserToV3(raw: unknown): User {
   // v4가 v3의 superset (plantStateByInterest + gardenIntroduced + gardenBackfilled 추가)이므로
   // 모든 v3 필드 보존되어 안전.
   // v3.15 T16.1 (P0-1 fix): plant 필드는 그대로 두고, missions만 normalize.
-  if (v?.schemaVersion === 4) {
+  // v3.21 T1: v5도 v4의 superset (streakFreeze 추가)이므로 동일 분기 적용.
+  if (v?.schemaVersion === 4 || v?.schemaVersion === 5) {
     return {
       ...(v as User),
       missions: buildNormalizedMissions(v),
@@ -220,7 +224,8 @@ export function migrateUserToV4(u: unknown): User {
     gardenBackfilled?: unknown;
   };
 
-  if (r.schemaVersion === 4) return r as unknown as User;
+  // v3.21 T1: v5 user도 v4의 superset이므로 plantStateByInterest 보존 위해 early return.
+  if (r.schemaVersion === 4 || r.schemaVersion === 5) return r as unknown as User;
 
   // v3 → v4 lazy: 빈 정원 + flag 0
   const migrated = {
@@ -234,4 +239,46 @@ export function migrateUserToV4(u: unknown): User {
     gardenBackfilled: typeof r.gardenBackfilled === 'boolean' ? r.gardenBackfilled : false,
   };
   return migrated as unknown as User;
+}
+
+/**
+ * v3.21 T1: schema v4 → v5 — Streak Freeze 필드 추가.
+ * - streakFreeze: { count: number; lastEarnedAt: string } 신규 필드 (default {count: 2, lastEarnedAt: today}).
+ * - idempotent: 이미 v5면 그대로 반환 (early return, same reference).
+ * - 손상된 streakFreeze (NaN/undefined/음수/cap 초과/empty string) → default 복구.
+ *
+ * 위험:
+ *   - silent NaN (v3.12 lesson) → shape guard에서 isFinite + range check.
+ *   - lazy migration race (v3.12 lesson) — caller(getCachedUser)가 isValidUserShape 가드로 검증.
+ */
+export function migrateUserToV5(u: unknown): User {
+  const r = u as Record<string, unknown> & {
+    schemaVersion?: number;
+    streakFreeze?: unknown;
+  };
+
+  if (r.schemaVersion === 5) return r as unknown as User;
+
+  // v4 → v5 lazy: streakFreeze 신규 또는 손상 시 default
+  const today = getDateStr();
+  const sf = r.streakFreeze as { count?: unknown; lastEarnedAt?: unknown } | undefined | null;
+
+  const validCount =
+    sf !== undefined && sf !== null
+    && typeof sf.count === 'number' && Number.isFinite(sf.count)
+    && sf.count >= 0 && sf.count <= 2;
+  const validDate =
+    sf !== undefined && sf !== null
+    && typeof sf.lastEarnedAt === 'string' && sf.lastEarnedAt.length > 0;
+
+  const streakFreeze =
+    validCount && validDate
+      ? { count: sf!.count as number, lastEarnedAt: sf!.lastEarnedAt as string }
+      : { count: 2, lastEarnedAt: today };
+
+  return {
+    ...r,
+    schemaVersion: 5 as const,
+    streakFreeze,
+  } as unknown as User;
 }

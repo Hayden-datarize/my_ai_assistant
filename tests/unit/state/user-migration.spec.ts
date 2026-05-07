@@ -18,14 +18,16 @@ describe('user schema v2 migration', () => {
     expect(v2.interests).toEqual(['AI']);
   });
 
-  it('loadUserData: schemaVersion 없으면 lazy migrate v1→v4 + saveUser 1회', () => {
+  it('loadUserData: schemaVersion 없으면 lazy migrate v1→v5 + saveUser 1회', () => {
     localStorage.setItem('user', JSON.stringify({ name: '하든', interests: [], onboardedAt: '2026-01-01', streak: 0, lastActiveDate: '', xp: 0, level: 1 }));
     const u = loadUserData()!;
-    expect(u.schemaVersion).toBe(4);
+    expect(u.schemaVersion).toBe(5);
     expect((u as any).level).toBeUndefined();
     expect(u.earnedBadges).toEqual({});
+    expect(u.streakFreeze.count).toBe(2);
+    expect(u.streakFreeze.lastEarnedAt).toMatch(/^\d{4}-\d{2}-\d{2}$/);
     const raw = JSON.parse(localStorage.getItem('user')!);
-    expect(raw.schemaVersion).toBe(4);
+    expect(raw.schemaVersion).toBe(5);
   });
 
   it('loadUserData: schemaVersion 3 idempotent (재호출해도 동일)', () => {

@@ -5,10 +5,11 @@ import type { User } from '../../../src/state/user';
 function makeUserWithPlant(): User {
   return {
     name: 'h', interests: ['ai'], onboardedAt: '', streak: 0, lastActiveDate: '',
-    xp: 0, earnedBadges: {}, gamificationMigrated: true, schemaVersion: 4,
+    xp: 0, earnedBadges: {}, gamificationMigrated: true, schemaVersion: 5,
     missions: { active: [], cumulative: { dailyCount: 0, weeklyCount: 0, monthlyCount: 0 }, lastDailySeed: '', currentWeekIso: '', currentMonthIso: '' },
     plantStateByInterest: { ai: { stage: 3, cumulativeActivity: 30 } },
     gardenIntroduced: false, gardenBackfilled: false,
+    streakFreeze: { count: 2, lastEarnedAt: '2026-05-07' },
   };
 }
 

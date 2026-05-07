@@ -7,11 +7,12 @@ function makeUser(): User {
     name: 'Hayden', interests: ['ai', 'design'], onboardedAt: '2026-04-01',
     streak: 0, lastActiveDate: '2026-05-03', xp: 0,
     earnedBadges: {}, gamificationMigrated: true,
-    schemaVersion: 4,
+    schemaVersion: 5,
     missions: { active: [], cumulative: { dailyCount: 0, weeklyCount: 0, monthlyCount: 0 }, lastDailySeed: '', currentWeekIso: '', currentMonthIso: '' },
     plantStateByInterest: {},
     gardenIntroduced: false,
     gardenBackfilled: false,
+    streakFreeze: { count: 2, lastEarnedAt: '2026-05-07' },
   };
 }
 

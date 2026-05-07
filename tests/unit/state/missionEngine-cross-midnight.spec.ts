@@ -11,12 +11,13 @@ function makeUser(): User {
   return {
     name: 'T', interests: ['pm'], onboardedAt: '2026-04-01',
     streak: 0, lastActiveDate: '', xp: 0, earnedBadges: {},
-    gamificationMigrated: true, schemaVersion: 4,
+    gamificationMigrated: true, schemaVersion: 5,
     missions: { active: [], cumulative: { dailyCount: 0, weeklyCount: 0, monthlyCount: 0 },
       lastDailySeed: '', currentWeekIso: '', currentMonthIso: '' },
     plantStateByInterest: {},
     gardenIntroduced: false,
     gardenBackfilled: false,
+    streakFreeze: { count: 2, lastEarnedAt: '2026-05-07' },
   } as Partial<User> as User;
 }
 

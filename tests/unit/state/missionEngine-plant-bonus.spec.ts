@@ -16,7 +16,7 @@ function makeUserWithPlants(
     xp: 0,
     earnedBadges: {},
     gamificationMigrated: true,
-    schemaVersion: 4,
+    schemaVersion: 5,
     missions: {
       active: missionsActive,
       cumulative: { dailyCount: 0, weeklyCount: 0, monthlyCount: 0 },
@@ -27,6 +27,7 @@ function makeUserWithPlants(
     plantStateByInterest: { ...plants },
     gardenIntroduced: false,
     gardenBackfilled: true,
+    streakFreeze: { count: 2, lastEarnedAt: '2026-05-07' },
   };
 }
 

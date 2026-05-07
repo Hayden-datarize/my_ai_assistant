@@ -14,7 +14,7 @@ function mkUser(plants: Record<string, { stage: 1|2|3|4|5; cumulativeActivity: n
     xp: 0,
     earnedBadges: {},
     gamificationMigrated: true,
-    schemaVersion: 4,
+    schemaVersion: 5,
     missions: {
       active: [],
       cumulative: { dailyCount: 0, weeklyCount: 0, monthlyCount: 0 },
@@ -25,6 +25,7 @@ function mkUser(plants: Record<string, { stage: 1|2|3|4|5; cumulativeActivity: n
     plantStateByInterest: plants,
     gardenIntroduced: true,
     gardenBackfilled: true,
+    streakFreeze: { count: 2, lastEarnedAt: '2026-05-07' },
   };
 }
 

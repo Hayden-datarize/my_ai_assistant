@@ -3,6 +3,7 @@ import type { User } from '../../../src/state/user';
 /**
  * v3.13 T1: unit test용 User v3 픽스처 헬퍼.
  * v3.15 T1: schemaVersion: 4 + plantStateByInterest/gardenIntroduced/gardenBackfilled 기본값 추가.
+ * v3.21 T1: schemaVersion: 5 + streakFreeze 기본값 (count: 2, lastEarnedAt: '2026-05-07').
  * 각 테스트에서 필요한 필드만 override.
  */
 export const DEFAULT_MISSIONS: User['missions'] = {
@@ -24,11 +25,12 @@ export function mkUser(over: Partial<Omit<User, 'schemaVersion' | 'missions'>> &
     xp: 0,
     earnedBadges: {},
     gamificationMigrated: false,
-    schemaVersion: 4,
+    schemaVersion: 5,
     missions: { ...DEFAULT_MISSIONS, ...mOver },
     plantStateByInterest: {},
     gardenIntroduced: false,
     gardenBackfilled: false,
+    streakFreeze: { count: 2, lastEarnedAt: '2026-05-07' },
     ...rest,
   };
 }
