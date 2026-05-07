@@ -1,6 +1,7 @@
 import { onRequest } from 'firebase-functions/v2/https';
 import { defineSecret } from 'firebase-functions/params';
 import { checkRateLimit } from './rateLimit';
+import { buildAnswerBlocks, sendDmAsBot } from './slack';
 
 const SLACK_BOT_TOKEN = defineSecret('SLACK_BOT_TOKEN');
 
@@ -41,7 +42,26 @@ export const sendAnswerDm = onRequest(
       res.status(429).json({ error: 'rate_limited', kind: rl });
       return;
     }
-    // T4에서 Slack API 호출 추가
-    res.status(501).json({ error: 'not_implemented_yet' });
+    try {
+      const payload = buildAnswerBlocks({
+        email: body.email,
+        question: body.question,
+        answer: body.answer,
+        insight: body.insight,
+        streak: typeof body.streak === 'number' ? body.streak : 0,
+        xp: typeof body.xp === 'number' ? body.xp : 0,
+      });
+      await sendDmAsBot(SLACK_BOT_TOKEN.value(), body.email, payload);
+      res.status(200).json({ ok: true });
+    } catch (e) {
+      const msg = e instanceof Error ? e.message : 'unknown';
+      if (msg === 'user_not_found') {
+        res.status(404).json({ error: 'user_not_found' });
+      } else if (msg === 'dm_open_failed' || msg === 'post_message_failed') {
+        res.status(502).json({ error: msg });
+      } else {
+        res.status(500).json({ error: 'internal' });
+      }
+    }
   },
 );
