@@ -17,8 +17,16 @@ export interface AnswerDmRequest {
 const ALLOWED_DOMAIN = '@datarize.ai';
 const ANSWER_CAP = 500;
 
+// v3.20 T4 (A4): cors whitelist (옵션 B) — production 도메인 한정 + 의도치 않은
+// cross-origin 호출 차단 안전망. same-origin rewrite (firebase.json `/api/sendAnswerDm`)
+// 와 정합. 이전 옵션(모든 origin 허용)에서 격상.
+const CORS_ORIGINS = [
+  'https://my-ai-assistant-904f3.web.app',
+  'https://my-ai-assistant-904f3.firebaseapp.com',
+];
+
 export const sendAnswerDm = onRequest(
-  { secrets: [SLACK_BOT_TOKEN], maxInstances: 1, cors: true, region: 'us-central1' },
+  { secrets: [SLACK_BOT_TOKEN], maxInstances: 1, cors: CORS_ORIGINS, region: 'us-central1' },
   async (req, res) => {
     if (req.method !== 'POST') {
       res.status(405).json({ error: 'method_not_allowed' });
