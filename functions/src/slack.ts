@@ -125,5 +125,12 @@ export async function sendDmAsBot(
     headers: { Authorization: auth, 'Content-Type': 'application/json' },
     body: JSON.stringify({ channel: channelId, ...payload }),
   });
-  if (!post.ok) throw new Error('post_message_failed');
+  if (!post.ok) {
+    // v3.20 T10: Slack API error code 가시성 보강 (v3.19 T4 P2 carry).
+    // post_message_failed → 502 응답 매핑은 sendAnswerDm.ts:60에서 처리되지만,
+    // 어떤 Slack 측 사유(`channel_not_found` / `not_in_channel` / `msg_too_long` 등)인지 functions log에 기록.
+    // eslint-disable-next-line no-console
+    console.warn('[dg.slack.postMessage]', { errorCode: post.error, channel: channelId });
+    throw new Error('post_message_failed');
+  }
 }

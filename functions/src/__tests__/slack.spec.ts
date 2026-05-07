@@ -81,4 +81,22 @@ describe('sendDmAsBot', () => {
       sendDmAsBot('xoxb-x', 'me@datarize.ai', { blocks: [] } as any),
     ).resolves.toBeUndefined();
   });
+
+  it('v3.20 T10: chat.postMessage error code logs to functions stderr (visibility 보강)', async () => {
+    const warnSpy = vi.spyOn(console, 'warn').mockImplementation(() => {});
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    (fetch as any)
+      .mockResolvedValueOnce({ ok: true, json: async () => ({ ok: true, user: { id: 'U1' } }) })
+      .mockResolvedValueOnce({ ok: true, json: async () => ({ ok: true, channel: { id: 'D1' } }) })
+      .mockResolvedValueOnce({ ok: true, json: async () => ({ ok: false, error: 'channel_not_found' }) });
+    await expect(
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      sendDmAsBot('xoxb-x', 'me@datarize.ai', { blocks: [] } as any),
+    ).rejects.toThrow('post_message_failed');
+    expect(warnSpy).toHaveBeenCalledWith(
+      '[dg.slack.postMessage]',
+      expect.objectContaining({ errorCode: 'channel_not_found', channel: 'D1' }),
+    );
+    warnSpy.mockRestore();
+  });
 });
