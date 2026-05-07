@@ -52,9 +52,14 @@ self.addEventListener('fetch', event => {
             try {
               const data = await peek.json();
               const first = Array.isArray(data?.items) ? data.items[0] : null;
+              // T8 quality review I1: production extractImage(rss.ts:35)와 strictness 정합 —
+              // 빈 문자열/non-image type false positive 차단.
               shouldCache = !!first && (
-                typeof first?.enclosure?.link === 'string' ||
-                typeof first?.thumbnail === 'string' ||
+                (typeof first?.enclosure?.link === 'string' &&
+                  first.enclosure.link.length > 0 &&
+                  typeof first?.enclosure?.type === 'string' &&
+                  first.enclosure.type.startsWith('image/')) ||
+                (typeof first?.thumbnail === 'string' && first.thumbnail.length > 0) ||
                 (typeof first?.description === 'string' && /<img\s/i.test(first.description))
               );
             } catch { shouldCache = false; }
