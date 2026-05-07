@@ -385,6 +385,12 @@ export function hydrateGreetingAndStreak(): void {
 // cards indefinitely because refreshBriefings was only wired to a manual click.
 const AUTO_REFRESH_SESSION_KEY = 'dg.briefings.auto-refresh-tried';
 
+// v3.19 T7 review fix (Important #1): hydrateBriefings는 hydrateHome(초기+탭 네비)
+// + scrap toggle + refreshBriefings end + auto-refresh path 4 site에서 호출됨.
+// 진단 신호는 첫 호출(initial load)만 의미 있음 → module-level guard로 1회만 fire.
+// SPA module 재초기화는 hard reload 시 발생 — 그게 reproduce scope과 일치.
+let diagLogged = false;
+
 function hydrateBriefings(): void {
   const list = loadBriefings();
   const scroll = document.getElementById('briefingScroll');
@@ -394,19 +400,22 @@ function hydrateBriefings(): void {
   const firstDate = list[0]?.date;
   const isStale = list.length === 0 || (firstDate !== undefined && firstDate !== today);
 
-  // v3.19 T7: 진단 정보 1회 출력 (파란 화면 #3 production reproduce 근거)
-  // sample은 sourceTitle + imageUrl 50자 prefix만 — PII 0건.
-  console.info('[dg.briefings.diag]', {
-    swState: navigator.serviceWorker?.controller ? 'controlled' : 'no-controller',
-    itemCount: list.length,
-    sample: list[0] ? {
-      source: list[0].sourceTitle,
-      hasImage: !!list[0].imageUrl,
-      imageUrlPrefix: list[0].imageUrl?.slice(0, 50),
-    } : null,
-    today,
-    isStale,
-  });
+  if (!diagLogged) {
+    diagLogged = true;
+    // v3.19 T7: 진단 정보 1회 출력 (파란 화면 #3 production reproduce 근거)
+    // sample은 sourceTitle + imageUrl 50자 prefix만 — PII 0건.
+    console.info('[dg.briefings.diag]', {
+      swState: navigator.serviceWorker?.controller ? 'controlled' : 'no-controller',
+      itemCount: list.length,
+      sample: list[0] ? {
+        source: list[0].sourceTitle,
+        hasImage: !!list[0].imageUrl,
+        imageUrlPrefix: list[0].imageUrl?.slice(0, 50),
+      } : null,
+      today,
+      isStale,
+    });
+  }
 
   if (isStale) {
     const user = getCachedUser();
