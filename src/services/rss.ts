@@ -22,6 +22,9 @@ export interface RawFeedItem {
   pubDate?: string;
   enclosure?: { link?: string; type?: string };
   thumbnail?: string;
+  // v3.20.1 H2: rss2json는 풍부 HTML body를 `content` 필드로 제공 (description은 plain text 또는 짧은 요약).
+  // Substack/WordPress 계열에서 hero image가 content 안에만 있는 경우가 있음.
+  content?: string;
 }
 
 function sanitizeHttpsUrl(candidate: string | undefined): string | undefined {
@@ -44,16 +47,23 @@ export function extractImage(raw: RawFeedItem): string | undefined {
   // Tier 2: thumbnail field
   const thumb = sanitizeHttpsUrl(raw.thumbnail);
   if (thumb) return thumb;
-  // Tier 3: DOMParser on description (safer than regex, browser-native)
-  if (raw.description) {
+  // Tier 3 (v3.20.1 H2): DOMParser on `content` (HTML body, 풍부) — 우선
+  // Tier 4 (v3.20.1 H2): DOMParser on `description` (text 또는 짧은 HTML) — fallback
+  // 각 source에서 lazy-load image (data-src) + 일반 src 둘 다 시도.
+  for (const html of [raw.content, raw.description]) {
+    if (!html) continue;
     try {
-      const doc = new DOMParser().parseFromString(raw.description, 'text/html');
-      const img = doc.querySelector('img');
-      const src = img?.getAttribute('src') ?? undefined;
-      const url = sanitizeHttpsUrl(src);
-      if (url) return url;
+      const doc = new DOMParser().parseFromString(html, 'text/html');
+      for (const img of Array.from(doc.querySelectorAll('img'))) {
+        const candidate =
+          img.getAttribute('data-src') ??
+          img.getAttribute('src') ??
+          undefined;
+        const url = sanitizeHttpsUrl(candidate ?? undefined);
+        if (url) return url;
+      }
     } catch {
-      // DOMParser errors are swallowed — fallback to no image
+      // DOMParser errors are swallowed — fallback to next tier
     }
   }
   return undefined;

@@ -27,7 +27,7 @@ export function renderArchive(container: HTMLElement): void {
           <option value="month">이번 달</option>
         </select>
         <div class="archive-filters" id="archiveFilters" style="margin-bottom:0;">
-          <button class="filter-chip active" data-filter="all" title="모든 답변 (스크랩은 ⭐ 칩 클릭)">전체</button>
+          <button class="filter-chip active" data-filter="all" title="답변 + 스크랩 모든 기록">전체</button>
           <button class="filter-chip" data-filter="분석" title="현상을 분석하고 원인을 파악하는 질문">🔍 분석형</button>
           <button class="filter-chip" data-filter="전환" title="기존 관점을 바꿔 새로운 시각으로 보는 질문">🔄 전환형</button>
           <button class="filter-chip" data-filter="실무" title="업무에 바로 적용할 수 있는 실천 중심 질문">🛠️ 실무형</button>

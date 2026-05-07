@@ -12,18 +12,13 @@ const archiveTabSource = readFileSync(
   'utf-8',
 );
 
-describe('v3.20 H5: archive 전체 chip title 정정', () => {
-  it('전체 chip title clarifies answers-only scope (스크랩 분리 명시)', () => {
-    expect(archiveTabSource).toMatch(/data-filter="all"\s+title="모든 답변/);
-    expect(archiveTabSource).toMatch(/스크랩은\s*⭐\s*칩/);
-  });
-
-  it('does not promise "답변 + 스크랩 모든 기록" (이전 mismatch 텍스트 재발 가드)', () => {
-    expect(archiveTabSource).not.toMatch(/title="답변\s*\+\s*스크랩\s*모든\s*기록"/);
+describe('v3.20.1 H4: archive 전체 chip — answers + scrapped 통합 렌더링 (사용자 의도)', () => {
+  it('전체 chip title promises answers + scrapped (UI/code 정합)', () => {
+    expect(archiveTabSource).toMatch(/data-filter="all"\s+title="답변\s*\+\s*스크랩\s*모든\s*기록"/);
   });
 
   it('스크랩 chip is still separate (data-filter="scrap")', () => {
-    // 사용자가 스크랩 보려면 분리된 ⭐ 스크랩 chip 사용 — 회귀 가드
+    // 사용자가 스크랩만 보려면 별도 ⭐ 스크랩 chip 사용 — 회귀 가드
     expect(archiveTabSource).toMatch(/data-filter="scrap"/);
   });
 });

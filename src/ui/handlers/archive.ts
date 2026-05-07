@@ -397,45 +397,78 @@ export function rerenderList(): void {
   const answers = loadAnswers();
   const briefings = loadBriefings();
 
+  // v3.20.1 H4: scrap 카드 렌더링 helper (idx-bound handler 제거 + ✕ 버튼 부착).
+  // 'scrap' 필터 + 'all' 필터(통합) 둘 다 사용.
+  function appendScrapCard(b: typeof briefings[number]): void {
+    const card = renderBriefingCard(b, 0);
+    card.classList.add('archive-card', 'archive-card--scrap');
+    // renderBriefingCard registers idx-based handlers (setRead/toggleScrap/openMemoModal) where
+    // idx indexes home's full briefings list. In archive's filtered subset, idx mismatches —
+    // strip card-actions + replace link to drop listeners.
+    card.querySelector('.card-actions')?.remove();
+    const oldLink = card.querySelector<HTMLAnchorElement>('.card-main');
+    if (oldLink) {
+      const newLink = oldLink.cloneNode(true) as HTMLAnchorElement;
+      oldLink.replaceWith(newLink);
+    }
+    const deleteBtn = document.createElement('button');
+    deleteBtn.className = 'archive-card-delete';
+    deleteBtn.type = 'button';
+    deleteBtn.setAttribute('aria-label', '스크랩 해제');
+    deleteBtn.textContent = '×';
+    card.append(deleteBtn);
+    list!.append(card);
+  }
+
   if (currentFilter === 'scrap') {
     const scrapped = briefings.filter((b) => b.scrapped);
     if (scrapped.length === 0) {
       list.textContent = '아직 스크랩한 기사가 없어요.';
       return;
     }
-    // v3.11 T5 — home renderBriefingCard 시각 재사용 (image/source/overlay 일치)
-    // archive-card / archive-card--scrap modifier + ✕ 버튼만 추가 부착
-    scrapped.forEach((b, idx) => {
-      const card = renderBriefingCard(b, idx);
-      card.classList.add('archive-card', 'archive-card--scrap');
-
-      // renderBriefingCard registers idx-based handlers (setRead/toggleScrap/openMemoModal) where
-      // idx indexes home's full briefings list. In archive's filtered scrap subset, idx
-      // mismatches → ♥/✎ would mutate the wrong briefing. Archive uses ✕ for unscrap, so
-      // strip card-actions + replace link to drop the setRead(idx) listener.
-      card.querySelector('.card-actions')?.remove();
-      const oldLink = card.querySelector<HTMLAnchorElement>('.card-main');
-      if (oldLink) {
-        const newLink = oldLink.cloneNode(true) as HTMLAnchorElement;
-        oldLink.replaceWith(newLink);
-      }
-
-      const deleteBtn = document.createElement('button');
-      deleteBtn.className = 'archive-card-delete';
-      deleteBtn.type = 'button';
-      deleteBtn.setAttribute('aria-label', '스크랩 해제');
-      deleteBtn.textContent = '×';
-      card.append(deleteBtn);
-
-      list.append(card);
-    });
+    scrapped.forEach((b) => appendScrapCard(b));
     return;
   }
 
-  let filtered = answers;
-  if (currentFilter !== 'all') {
-    filtered = filtered.filter((a) => (a.type ?? '').includes(currentFilter));
+  // v3.20.1 H4: '전체' 필터는 answers + scrapped briefings 통합 (사용자 의도).
+  // type 필터(분석/전환/실무/성장/트렌드)는 answers만 — briefing은 type 없음.
+  if (currentFilter === 'all') {
+    const scrapped = briefings.filter((b) => b.scrapped);
+    type Entry =
+      | { kind: 'answer'; answer: typeof answers[number]; sortKey: string }
+      | { kind: 'scrap'; briefing: typeof briefings[number]; sortKey: string };
+
+    let entries: Entry[] = [
+      ...answers.map((a) => ({ kind: 'answer' as const, answer: a, sortKey: a.createdAt })),
+      ...scrapped.map((b) => ({ kind: 'scrap' as const, briefing: b, sortKey: b.date })),
+    ];
+
+    if (currentQuery) {
+      entries = entries.filter((e) =>
+        e.kind === 'answer'
+          ? e.answer.text.toLowerCase().includes(currentQuery)
+          : (e.briefing.title?.toLowerCase().includes(currentQuery) ?? false) ||
+            (e.briefing.summary?.toLowerCase().includes(currentQuery) ?? false),
+      );
+    }
+
+    if (entries.length === 0) {
+      list.textContent = '아직 답변이나 스크랩한 기록이 없어요.';
+      return;
+    }
+
+    // newest first — ISO datetime + YYYY-MM-DD 둘 다 lexicographic 정렬 호환
+    entries.sort((x, y) => y.sortKey.localeCompare(x.sortKey));
+
+    for (const e of entries) {
+      if (e.kind === 'answer') list.append(renderAnswerCard(e.answer));
+      else appendScrapCard(e.briefing);
+    }
+    return;
   }
+
+  // type 분기 (분석/전환/실무/성장/트렌드) — answers만
+  let filtered = answers.filter((a) => (a.type ?? '').includes(currentFilter));
   if (currentQuery) {
     filtered = filtered.filter((a) => a.text.toLowerCase().includes(currentQuery));
   }
@@ -446,8 +479,6 @@ export function rerenderList(): void {
   }
 
   for (const a of filtered) {
-    // v3.11 T6 — renderAnswerCard 풍부 layout (헤더 + 질문 preview + 본문 line-clamp)
-    // 카드 클릭은 document-level 이벤트 위임(handleCardClick)이 처리
     list.append(renderAnswerCard(a));
   }
 }

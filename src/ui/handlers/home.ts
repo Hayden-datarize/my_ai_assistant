@@ -440,10 +440,25 @@ async function hydrateBriefings(): Promise<void> {
   enqueueEnglishTitleTranslations(list);
 }
 
+/**
+ * v3.20.1 H3: source name 기반 deterministic 그라디언트 variant 0~5.
+ * 같은 source는 항상 같은 색상 — image 없는 카드도 시각 다양성 확보.
+ */
+function bgVariant(source: string | undefined): string {
+  if (!source) return '0';
+  let hash = 0;
+  for (let i = 0; i < source.length; i++) {
+    hash = ((hash << 5) - hash + source.charCodeAt(i)) | 0;
+  }
+  return String(Math.abs(hash) % 6);
+}
+
 export function renderBriefingCard(b: Briefing, idx: number): HTMLElement {
   const card = document.createElement('article');
   card.className = 'briefing-card';
   card.dataset['read'] = b.read ? 'true' : 'false';
+  // v3.20.1 H3: source 기반 그라디언트 variant (image 없을 때 fallback UI 풍부화)
+  card.dataset['bg'] = bgVariant(b.sourceTitle);
   // v3.19 T7: tier-reason 진단 dataset (영구 자산화)
   if (b.imageUrl) {
     card.dataset['tier'] = '1';

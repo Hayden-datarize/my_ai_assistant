@@ -97,13 +97,37 @@
   font-family: var(--font-display);
   font-style: italic;
   font-size: 8rem;
-  color: rgba(255, 255, 255, 0.25);
+  /* v3.20.1 H3: 가독성 ↑ (0.25 → 0.45) + text-shadow soft glow */
+  color: rgba(255, 255, 255, 0.45);
+  text-shadow: 0 4px 24px rgba(0, 0, 0, 0.15);
   pointer-events: none;
 }
 
 .briefing-card[data-tier="2"] .card-thumb { display: none; }
 .briefing-card[data-tier="2"] .card-initial { display: flex; }
-.briefing-card[data-tier="2"] {
+
+/* v3.20.1 H3: image 없는 카드를 source 기반 6 variant 그라디언트로 다양화.
+   bgVariant() (home.ts) 가 sourceTitle hash → '0'~'5' 매핑. 같은 source는 항상 같은 색상. */
+.briefing-card[data-tier="2"][data-bg="0"] {
+  background: linear-gradient(135deg, #6366f1, #8b5cf6);
+}
+.briefing-card[data-tier="2"][data-bg="1"] {
+  background: linear-gradient(135deg, #06b6d4, #3b82f6);
+}
+.briefing-card[data-tier="2"][data-bg="2"] {
+  background: linear-gradient(135deg, #ec4899, #8b5cf6);
+}
+.briefing-card[data-tier="2"][data-bg="3"] {
+  background: linear-gradient(135deg, #f59e0b, #ef4444);
+}
+.briefing-card[data-tier="2"][data-bg="4"] {
+  background: linear-gradient(135deg, #10b981, #06b6d4);
+}
+.briefing-card[data-tier="2"][data-bg="5"] {
+  background: linear-gradient(135deg, #8b5cf6, #ec4899);
+}
+/* fallback when data-bg missing (defensive) */
+.briefing-card[data-tier="2"]:not([data-bg]) {
   background: linear-gradient(135deg, var(--primary), var(--primary-light));
 }
 
