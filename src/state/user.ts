@@ -208,7 +208,13 @@ export function updateStreakBanner(rootId = 'streakBanner'): void {
   const el = document.getElementById(rootId);
   const u = loadUserData();
   if (!el || !u) return;
-  el.textContent = u.streak > 0 ? `🔥 ${u.streak}일 연속 성장 중` : '오늘부터 다시 시작해봐요';
+  if (u.streak <= 0) {
+    el.textContent = '오늘부터 다시 시작해봐요';
+    return;
+  }
+  // v3.21 T4: count > 0일 때만 ❄️ N suffix (Duolingo 정석 — freeze 0이면 숨김).
+  const freezeSuffix = u.streakFreeze.count > 0 ? ` · ❄️ ${u.streakFreeze.count}` : '';
+  el.textContent = `🔥 ${u.streak}일 연속 성장 중${freezeSuffix}`;
 }
 
 /**
