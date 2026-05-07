@@ -61,9 +61,19 @@ export function extractImage(raw: RawFeedItem): string | undefined {
 
 // v3.18.1 H2 (#9): rss2json rate limit (429) 대응
 // translate.ts isRetryable 패턴 차용 — 429/503만 retry, max 2회 exponential backoff.
+// v3.20 T6 (B2): 보수적 시드 [200, 800] → [500, 1500] + jitter ±20%.
+// 외부 API(rss2json) 부담 ↓ + 429/503 회복력 ↑. timeout 5s 내 3 attempt 허용.
 const RETRYABLE_STATUSES = new Set([429, 503]);
 const MAX_RETRIES = 2;
-const BACKOFF_MS = [200, 800];
+const BACKOFF_MS = [500, 1500];
+const JITTER_RATIO = 0.2;
+
+/** @internal — exposed for unit test (Math.random mock + delay 범위 검증) */
+export function computeBackoffDelay(attempt: number, randomFn: () => number = Math.random): number {
+  const base = BACKOFF_MS[attempt] ?? 1500;
+  const jitter = base * JITTER_RATIO * (randomFn() * 2 - 1); // [-20%, +20%]
+  return Math.max(0, base + jitter);
+}
 
 export async function fetchFeed(
   feedUrl: string,
@@ -99,7 +109,7 @@ export async function fetchFeed(
         console.warn('[dg.rss.retry]', { feedUrl, status: r.status, attempt });
       }
       if (attempt < MAX_RETRIES) {
-        await new Promise((resolve) => setTimeout(resolve, BACKOFF_MS[attempt]));
+        await new Promise((resolve) => setTimeout(resolve, computeBackoffDelay(attempt)));
       }
     }
     return { items: [], sourceTitle: '' };
