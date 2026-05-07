@@ -1,18 +1,11 @@
 import { test, expect } from '@playwright/test';
+import { primeOnboardedUser } from '../helpers/seed';
 
 test.use({ serviceWorkers: 'block' });
 
 async function seedUser(page: import('@playwright/test').Page): Promise<void> {
+  await primeOnboardedUser(page, { name: 'TestUser', interests: ['recruiting', 'ai_ml'] });
   await page.addInitScript(() => {
-    localStorage.setItem(
-      'user',
-      JSON.stringify({
-        name: 'TestUser',
-        interests: ['recruiting', 'ai_ml'],
-        onboardedAt: '2026-04-01',
-        streak: 0, lastActiveDate: '', xp: 0, earnedBadges: {}, gamificationMigrated: true, schemaVersion: 2,
-      }),
-    );
     localStorage.removeItem('dg.briefings');
     localStorage.removeItem('dg-sidebar-last-state');
   });

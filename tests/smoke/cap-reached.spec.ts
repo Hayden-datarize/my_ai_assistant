@@ -1,5 +1,6 @@
 import { test, expect } from '@playwright/test';
 import { getDateStr } from '../../src/utils/dates';
+import { primeOnboardedUser } from '../helpers/seed';
 
 // Block service worker so cached assets don't interfere with seeded state.
 test.use({ serviceWorkers: 'block' });
@@ -22,19 +23,16 @@ test('cap 도달 시 토글 비활성 + aria-disabled', async ({ page }) => {
     });
   });
 
+  await primeOnboardedUser(page, { name: 'T', interests: ['ai_ml'], streak: 1 });
   await page.addInitScript((args) => {
-    localStorage.setItem(
-      'user',
-      JSON.stringify({
-        name: 'T',
-        interests: ['ai_ml'],
-        onboardedAt: args.today,
-        streak: 1,
-        lastActiveDate: args.today,
-        xp: 0,
-        earnedBadges: {}, gamificationMigrated: true, schemaVersion: 2,
-      }),
-    );
+    // primeOnboardedUser가 set한 user를 read-merge: lastActiveDate + onboardedAt를 today로 갱신
+    const raw = localStorage.getItem('user');
+    if (raw) {
+      const user = JSON.parse(raw);
+      user.lastActiveDate = args.today;
+      user.onboardedAt = args.today;
+      localStorage.setItem('user', JSON.stringify(user));
+    }
     localStorage.setItem('dg_gemini_key', 'TEST_KEY');
     sessionStorage.setItem('dg.briefings.auto-refresh-tried', '1');
     // Seed cap=30 and usage=30 for today → cap already reached.
