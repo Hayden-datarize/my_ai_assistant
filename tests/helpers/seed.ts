@@ -1,6 +1,58 @@
 import type { Page } from '@playwright/test';
 
 /**
+ * v3.19 T10: onboarded user localStorage seed (gardenIntroduced 기본 true).
+ *
+ * v3.18.1 lessons #1 graduation. inline seed (25 spec) → helper 통일을 위한 단일 source of truth.
+ *
+ * production read key: src/state/user.ts:36 `const KEY = 'user'`. 일부 spec의 `'dg_user'` set은
+ * 사실상 dead seed였음 (production은 `'user'` 키만 read).
+ *
+ * 다양한 spec의 inline seed 형태 호환:
+ * - 최소: `{ interests, gamificationMigrated, gardenIntroduced }` (archive-* 계열)
+ * - 표준: `{ ...최소, onboardedAt, streak, lastActiveDate, xp, earnedBadges, schemaVersion }` (heatmap 등)
+ * - +name/level (slack/card-translation 계열)
+ */
+export interface PrimeUserOpts {
+  gardenIntroduced?: boolean;
+  schemaVersion?: 2 | 3 | 4;
+  interests?: string[];
+  streak?: number;
+  xp?: number;
+  level?: number;
+  name?: string;
+}
+
+const PRIME_USER_DEFAULTS = {
+  gardenIntroduced: true,
+  schemaVersion: 2 as const,
+  interests: ['tech'],
+  streak: 0,
+  xp: 0,
+};
+
+export async function primeOnboardedUser(page: Page, opts: PrimeUserOpts = {}): Promise<void> {
+  const flags = { ...PRIME_USER_DEFAULTS, ...opts };
+  await page.addInitScript((f) => {
+    const user: Record<string, unknown> = {
+      onboardedAt: '2026-04-01',
+      interests: f.interests,
+      streak: f.streak,
+      lastActiveDate: '',
+      xp: f.xp,
+      earnedBadges: {},
+      gamificationMigrated: true,
+      gardenIntroduced: f.gardenIntroduced,
+      schemaVersion: f.schemaVersion,
+    };
+    if (f.name !== undefined) user.name = f.name;
+    if (f.level !== undefined) user.level = f.level;
+    // production read key (src/state/user.ts:36 `const KEY = 'user'`)
+    localStorage.setItem('user', JSON.stringify(user));
+  }, flags);
+}
+
+/**
  * v3.15 정원(garden) localStorage seed.
  * plantStateByInterest 포함 schemaVersion=4 사용자를 주입한다.
  *
