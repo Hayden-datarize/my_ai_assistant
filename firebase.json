@@ -3,7 +3,7 @@
     {
       "source": "functions",
       "codebase": "default",
-      "ignore": ["node_modules", ".git", ".env", "*.local", "lib"],
+      "ignore": ["node_modules", ".git", ".env", "*.local"],
       "predeploy": ["npm --prefix functions run build"]
     }
   ],
