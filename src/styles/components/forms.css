@@ -12,6 +12,16 @@
   margin: 0 auto;
 }
 .settings-section.show { display: block; }
+
+/* v3.20 H4 (F4): desktop 좌우 padding 대칭 — sidebar-toggle reach 52 + 28 breathing.
+   layout.css `#settingsTab { padding-left: 80px }`(layout layer)은 components layer에 의해
+   덮이므로 forms.css에서 명시적으로 desktop override (cascade layer priority). */
+@media (min-width: 768px) {
+  .settings-section {
+    padding-left: 80px;
+    padding-right: 80px;
+  }
+}
 .settings-group {
   background: var(--bg-card); border-radius: var(--radius-lg);
   border: 1px solid var(--border); margin-bottom: 16px; overflow: hidden;
