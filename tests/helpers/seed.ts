@@ -23,12 +23,16 @@ export interface PrimeUserOpts {
   name?: string;
 }
 
+// T10 review P1 fix: production isValidUserShape (src/state/user.ts:97)는 name: string 필수.
+// helper default에 name: 'tester' 포함 → getCachedUser corruption toast 발화 차단.
+// 25 spec 마이그레이션(T11) 후 home/stats/missions 의존 spec 모두 통과.
 const PRIME_USER_DEFAULTS = {
   gardenIntroduced: true,
   schemaVersion: 2 as const,
   interests: ['tech'],
   streak: 0,
   xp: 0,
+  name: 'tester',
 };
 
 export async function primeOnboardedUser(page: Page, opts: PrimeUserOpts = {}): Promise<void> {
