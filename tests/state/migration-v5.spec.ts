@@ -39,6 +39,18 @@ describe('migrateUserToV5', () => {
     expect(fixed.streakFreeze.lastEarnedAt).toMatch(/^\d{4}-\d{2}-\d{2}$/);
   });
 
+  // v3.23 T1 (P0-1 fix): v6 user → migrateUserToV5 early return (chain superset)
+  it('v6 user → migrateUserToV5 통과 시 streakFreeze / insights 보존 (same reference)', () => {
+    const v6 = {
+      schemaVersion: 6,
+      streakFreeze: { count: 1, lastEarnedAt: '2026-05-08' },
+      insights: [{ id: 'i1', text: '통찰', createdAt: '2026-05-08T09:00:00Z' }],
+    };
+    const out = migrateUserToV5(v6);
+    expect(out).toBe(v6);  // same reference — early return
+    expect((out as any).insights).toEqual(v6.insights);
+  });
+
   describe('v3.22 T2 — KST anchor (P0-2 boundary fixture)', () => {
     afterEach(() => { vi.useRealTimers(); });
 

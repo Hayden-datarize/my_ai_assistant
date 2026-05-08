@@ -58,7 +58,7 @@ export function migrateUnknown<T extends Record<string, unknown>>(raw: T): T & {
   return { ...raw, schemaVersion: CURRENT_SCHEMA_VERSION };
 }
 
-import type { User } from './user';
+import type { User, Insight } from './user';
 import type { MissionInstance } from './missionTypes';
 import type { PlantState } from './plantTypes';
 
@@ -181,7 +181,8 @@ export function migrateUserToV3(raw: unknown): User {
   // 모든 v3 필드 보존되어 안전.
   // v3.15 T16.1 (P0-1 fix): plant 필드는 그대로 두고, missions만 normalize.
   // v3.21 T1: v5도 v4의 superset (streakFreeze 추가)이므로 동일 분기 적용.
-  if (v?.schemaVersion === 4 || v?.schemaVersion === 5) {
+  // v3.23 T1 (P0-1 fix): v6도 v5의 superset (insights 추가)이므로 동일 분기 적용.
+  if (v?.schemaVersion === 4 || v?.schemaVersion === 5 || v?.schemaVersion === 6) {
     return {
       ...(v as User),
       missions: buildNormalizedMissions(v),
@@ -225,7 +226,8 @@ export function migrateUserToV4(u: unknown): User {
   };
 
   // v3.21 T1: v5 user도 v4의 superset이므로 plantStateByInterest 보존 위해 early return.
-  if (r.schemaVersion === 4 || r.schemaVersion === 5) return r as unknown as User;
+  // v3.23 T1 (P0-1 fix): v6도 v5의 superset이므로 동일 분기 적용.
+  if (r.schemaVersion === 4 || r.schemaVersion === 5 || r.schemaVersion === 6) return r as unknown as User;
 
   // v3 → v4 lazy: 빈 정원 + flag 0
   const migrated = {
@@ -257,7 +259,8 @@ export function migrateUserToV5(u: unknown): User {
     streakFreeze?: unknown;
   };
 
-  if (r.schemaVersion === 5) return r as unknown as User;
+  // v3.23 T1 (P0-1 fix): v6도 v5의 superset이므로 early return.
+  if (r.schemaVersion === 5 || r.schemaVersion === 6) return r as unknown as User;
 
   // v4 → v5 lazy: streakFreeze 신규 또는 손상 시 default.
   // v3.22 P2-2: 머신 TZ 무관하게 KST 자정 anchor (Intl.DateTimeFormat).
@@ -281,5 +284,39 @@ export function migrateUserToV5(u: unknown): User {
     ...r,
     schemaVersion: 5 as const,
     streakFreeze,
+  } as unknown as User;
+}
+
+/**
+ * v3.23 T1: schema v5 → v6 — Insight 필드 추가.
+ * - insights: Insight[] 신규 필드 (default []).
+ * - idempotent: 이미 v6이면 그대로 반환 (early return, same reference).
+ * - 손상된 insights (non-array) → default [] 복구.
+ *
+ * 위험:
+ *   - non-array insights (string/NaN/null 등) → isArray guard로 복구.
+ *   - chain superset: V3/V4/V5 early-return에 v6 guard 추가 (P0-1 fix).
+ */
+export function migrateUserToV6(u: unknown): User {
+  const r = u as Record<string, unknown> & {
+    schemaVersion?: number;
+    insights?: unknown;
+  };
+
+  if (r.schemaVersion === 6) return r as unknown as User;
+
+  // v5까지 lift (V5 early-return이 v6 guard됨 — 불필요 이중 lift 없음)
+  const v5 = migrateUserToV5(u);
+
+  // insights: 기존 배열 보존, 손상(non-array) → default []
+  const v5r = v5 as unknown as Record<string, unknown>;
+  const insights: Insight[] = Array.isArray(v5r.insights)
+    ? (v5r.insights as Insight[])
+    : [];
+
+  return {
+    ...v5,
+    schemaVersion: 6 as const,
+    insights,
   } as unknown as User;
 }

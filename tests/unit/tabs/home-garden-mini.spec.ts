@@ -52,7 +52,7 @@ describe('홈 #gardenMini integration', () => {
           unlockedAt: undefined,
         },
       },
-      schemaVersion: 5,
+      schemaVersion: 6,
       lastActiveDate: '2026-05-04',
       xp: 100,
       earnedBadges: {},
@@ -67,6 +67,7 @@ describe('홈 #gardenMini integration', () => {
       gardenIntroduced: true,
       gardenBackfilled: true,
       streakFreeze: { count: 2, lastEarnedAt: '2026-05-07' },
+      insights: [],
     };
 
     const root = c.querySelector('#gardenMini') as HTMLElement;

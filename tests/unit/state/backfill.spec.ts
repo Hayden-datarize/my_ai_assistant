@@ -12,13 +12,14 @@ function makeUser(briefings: unknown[], interests: string[] = ['ai_ml', 'pm']): 
   localStorage.setItem('briefings', JSON.stringify(briefings));
   return {
     name: 'h', interests, onboardedAt: '', streak: 0, lastActiveDate: '',
-    xp: 0, earnedBadges: {}, gamificationMigrated: true, schemaVersion: 5,
+    xp: 0, earnedBadges: {}, gamificationMigrated: true, schemaVersion: 6,
     missions: {
       active: [], cumulative: { dailyCount: 0, weeklyCount: 0, monthlyCount: 0 },
       lastDailySeed: '', currentWeekIso: '', currentMonthIso: '',
     },
     plantStateByInterest: {}, gardenIntroduced: false, gardenBackfilled: false,
     streakFreeze: { count: 2, lastEarnedAt: '2026-05-07' },
+    insights: [],
   };
 }
 
