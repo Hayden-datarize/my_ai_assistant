@@ -164,6 +164,10 @@ export function recordDailyAnswer(xpDelta: number): void {
   // detectEvents (T5/T9 guard) 가 새 instance + 즉시 완수 케이스를 정확히 처리한다.
   const prev = takeSnapshot();
 
+  // v3.21 T5 (Option B): consume 결과 캡처 → saveUser 성공 후 dispatch (false-fire 방지).
+  let freezeConsumed = 0;
+  let freezePreserved = true;
+
   if (u.lastActiveDate !== today) {
     // v3.21 T3: Duolingo 정석 — regen 먼저 → consume → streak update.
     // 1주+ 결석한 사용자가 진입 시 regen 안 하면 freeze cover 못 함 (사전 review R2).
@@ -178,8 +182,10 @@ export function recordDailyAnswer(xpDelta: number): void {
       const lastMs = Date.parse(u.lastActiveDate + 'T00:00:00+09:00');
       const todayMs = Date.parse(today + 'T00:00:00+09:00');
       const gap = Math.max(0, Math.round((todayMs - lastMs) / 86400_000) - 1);
-      const { preserved } = consumeFreezeForGap(u, gap);
-      u.streak = preserved ? u.streak + 1 : 1;
+      const result = consumeFreezeForGap(u, gap);
+      freezeConsumed = result.consumed;
+      freezePreserved = result.preserved;
+      u.streak = result.preserved ? u.streak + 1 : 1;
     }
   }
 
@@ -190,6 +196,15 @@ export function recordDailyAnswer(xpDelta: number): void {
   tickMissionProgress(u, 'answer', now);
 
   saveUser(u);  // single saveUser: xp/streak/missions 모두 커버. throws on Quota — sweep 안 함
+
+  // v3.21 T5 (사전 review P0-2 fix): saveUser 성공 후 caller-side direct dispatch.
+  // sweep 우회 — Snapshot.freezeCount delta는 regen+1/consume−1 시 net=0 false-negative.
+  // Option B: saveUser 이후에 dispatch → throw 시 dispatch 도달 안 함 (v3.12 false-fire invariant 정합).
+  if (freezeConsumed > 0 && freezePreserved) {
+    document.dispatchEvent(
+      new CustomEvent('dg:reward:streak-freeze-used', { detail: { days: freezeConsumed } }),
+    );
+  }
 
   const curr = takeSnapshot();
   runSweep(prev, curr);

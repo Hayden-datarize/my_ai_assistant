@@ -17,7 +17,9 @@ const MAX_VISIBLE = 3;
 // - levelup(4000): confetti 애니메이션(1100ms)과 함께 시각 가중 — corruption(4000)과
 //   동일 상한, "축하" 가독성 마진.
 // - mission(3500): 미션 progress text가 길어 streak/badge보다 약간 김.
-export const TOAST_DURATIONS = { badge: 3000, levelup: 4000, streak: 3000, mission: 3500, bloom: 4000 } as const;
+// - freeze(4000): "Streak Freeze로 N일 연속 유지!" 메시지 + ❄️ 아이콘 시각 가중 — levelup과
+//   동일 상한 (좌절 회복 UX → 가독성 마진 ↑). v3.21 T5.
+export const TOAST_DURATIONS = { badge: 3000, levelup: 4000, streak: 3000, mission: 3500, bloom: 4000, freeze: 4000 } as const;
 
 let mounted = false;
 let activeCount = 0;
@@ -35,7 +37,7 @@ function ensureContainer(): HTMLElement {
   return el;
 }
 
-function spawnToast(html: string, modifier: 'badge' | 'levelup' | 'streak' | 'mission' | 'bloom', durationMs: number): HTMLElement | null {
+function spawnToast(html: string, modifier: 'badge' | 'levelup' | 'streak' | 'mission' | 'bloom' | 'freeze', durationMs: number): HTMLElement | null {
   if (activeCount >= MAX_VISIBLE) return null;
   const container = ensureContainer();
   const el = document.createElement('div');
@@ -175,6 +177,17 @@ export function mountRewards(): void {
     `;
     spawnToast(html, 'streak', TOAST_DURATIONS.streak);
     sessionStorage.setItem('dg:streakPulsePending', String(days));
+  }));
+
+  // v3.21 T5: streak freeze 소비 toast (사전 review P0-2 fix — caller-side direct dispatch).
+  // dispatch 진원지: src/state/user.ts recordDailyAnswer (saveUser 성공 후, Option B).
+  disposers.push(on('dg:reward:streak-freeze-used', ({ days }) => {
+    const html = `
+      <span class="toast-icon">❄️</span>
+      <span class="toast-text">Streak Freeze로 <strong>${days}일</strong> 연속 유지!</span>
+      <button type="button" class="toast-close" aria-label="닫기">×</button>
+    `;
+    spawnToast(html, 'freeze', TOAST_DURATIONS.freeze);
   }));
 
   disposers.push(on('dg:reward:xp-float', ({ amount }) => {

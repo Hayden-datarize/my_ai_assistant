@@ -43,6 +43,9 @@ export interface EventMap {
   'dg:reward:mission-complete': { defId: string; period: 'daily' | 'weekly' | 'monthly'; rewardXp: number; at: number };
   // v3.15 T5 — plant stage-up (consumer in T14)
   'dg:reward:plant-stage-up': { interestId: string; newStage: 1 | 2 | 3 | 4 | 5; at: number };
+  // v3.21 T5 — streak freeze consumed (caller-side direct dispatch from recordDailyAnswer)
+  // 사전 review P0-2 fix: sweep delta(net=0 false-negative) 우회. Option B (saveUser-after).
+  'dg:reward:streak-freeze-used': { days: number };
 }
 
 type EventName = keyof EventMap;
@@ -74,6 +77,7 @@ export const EVENT_NAMES: readonly EventName[] = [
   'dg:reward:badge-unlock',
   'dg:reward:mission-complete',
   'dg:reward:plant-stage-up',
+  'dg:reward:streak-freeze-used',
 ] as const;
 
 /** Events deferred to v3.2 — handlers in v3.1 register a stub listener. */

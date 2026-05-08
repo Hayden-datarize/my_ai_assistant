@@ -56,7 +56,10 @@ export function regenerateFreeze(u: User, now: Date): void {
  * @param gap - 결석한 날짜 수 (today와 lastActiveDate 차이 - 1)
  * @returns consumed 실제 소비된 freeze 개수, preserved streak 보존 여부 (consumed === gap)
  *
- * Note: T5에서 dispatchEvent('dg:reward:streak-freeze-used') 추가 예정.
+ * Note (v3.21 T5): toast event dispatch는 caller(`recordDailyAnswer`)가 saveUser 성공
+ *   후 처리한다 (Option B). 본 함수에서 직접 dispatch하지 않음 — false-fire 방지
+ *   (saveUser throw 시 in-memory 변경만 되고 persist 실패 → toast 떴는데 데이터 없음 회피).
+ *   사전 review P0-2 fix: sweep delta는 regen+1/consume−1 시 net=0 false-negative.
  */
 export function consumeFreezeForGap(
   u: User,

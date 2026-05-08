@@ -34,9 +34,10 @@ describe('events', () => {
     off();
   });
 
-  it('EVENT_NAMES covers all 23 wired events (16 tab-dispatched + 1 nav + 6 reward)', () => {
-    expect(EVENT_NAMES).toHaveLength(23);
-    expect(new Set(EVENT_NAMES).size).toBe(23);
+  it('EVENT_NAMES covers all 24 wired events (16 tab-dispatched + 1 nav + 7 reward)', () => {
+    // v3.21 T5: +1 reward event (`dg:reward:streak-freeze-used` — caller-side direct dispatch)
+    expect(EVENT_NAMES).toHaveLength(24);
+    expect(new Set(EVENT_NAMES).size).toBe(24);
   });
 
   it('V32_DEFERRED_EVENTS lists the 6 v3.2 stubs', () => {
