@@ -72,6 +72,10 @@ export async function openStatsRangeModal(opts: StatsRangeModalOpts): Promise<vo
     // 캐시 hit — Gemini 호출 없이 반환
     const raw = opts.range === 7 ? (cached.highlight ?? '') : (cached.narrative ?? '');
     highlightText = raw || deterministicHighlight(r, opts.range);
+  } else if (!getApiKey()) {
+    // T6 mid-pass P1-1 fix: 빈 apiKey → Gemini call 차단 + cap 소비 차단
+    highlightText = deterministicHighlight(r, opts.range);
+    showToast('Gemini API 키가 필요해요. 설정에서 등록해 주세요');
   } else if (!checkAndIncrementGemini()) {
     // Quota 초과
     highlightText = deterministicHighlight(r, opts.range);
