@@ -48,12 +48,12 @@ export function renderGardenGrid(root: HTMLElement, user: User): void {
     const wiltClass = wilting ? ' wilting' : '';
     const bloomClass = plant.stage === 5 ? ' bloomed' : '';
     return `
-      <div class="garden-card${wiltClass}${bloomClass}" data-interest-id="${escapeHtml(id)}">
+      <button type="button" class="garden-card${wiltClass}${bloomClass}" data-interest-id="${escapeHtml(id)}" aria-label="${label} 정원 정보">
         <span class="garden-emoji">${icon}</span>
         <span class="garden-name">${label}${trophy}</span>
         <span class="garden-stage-label">${stageLabel}</span>
         <span class="garden-cum-count">${cumCount}회</span>
-      </div>`;
+      </button>`;
   }).join('');
   // eslint-disable-next-line no-restricted-syntax -- 위에서 escapeHtml 전처리 완료
   root.innerHTML = `<div class="garden-grid">${cards}</div>`;

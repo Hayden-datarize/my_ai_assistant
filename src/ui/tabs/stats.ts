@@ -3,6 +3,7 @@
  * 인라인 핸들러 없이 CustomEvent를 dispatch하여 Task 18에서 연결한다.
  */
 import { loadAnswers } from '../../state/persistence';
+import { openPlantDetailModal } from '../modals/plant-detail';
 
 export function renderStats(container: HTMLElement): void {
   // eslint-disable-next-line no-restricted-syntax -- trusted static template, no interpolation
@@ -80,6 +81,26 @@ export function renderStats(container: HTMLElement): void {
   if (breakdown) breakdown.textContent = `누적 답변 ${total}개`;
 
   bindHandlers(container);
+
+  // v3.21 T9: garden-grid card click → plant-detail modal (delegation, idempotent).
+  wireGardenGridClicks(container);
+}
+
+/**
+ * stats 탭 mount 시 1회 호출 — garden card click delegation.
+ * `dataset.gridWired` flag로 중복 등록 가드 (idempotency).
+ *
+ * @param rootEl stats 탭 컨테이너 (또는 garden card를 포함하는 ancestor).
+ */
+export function wireGardenGridClicks(rootEl: HTMLElement): void {
+  if (rootEl.dataset['gridWired'] === 'true') return;
+  rootEl.dataset['gridWired'] = 'true';
+  rootEl.addEventListener('click', (e) => {
+    const target = (e.target as HTMLElement).closest<HTMLButtonElement>('.garden-card[data-interest-id]');
+    if (!target) return;
+    const id = target.dataset['interestId'];
+    if (id) openPlantDetailModal(id);
+  });
 }
 
 /** CustomEvent 핸들러를 등록한다. Task 18에서 실제 로직으로 교체 예정. */
