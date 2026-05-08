@@ -1,11 +1,17 @@
 import { openModal } from './shared';
 import { loadUserData } from '../../state/user';
 import { INTEREST_LABEL } from '../components/garden-grid';
+import { getPlantIcon, STAGE_LABEL, STAGE_THRESHOLDS, TROPHY_MARK } from '../../state/plantCatalog';
+import { checkWilting } from '../../state/plantEngine';
+import { escapeHtml } from '../../utils/escapeHtml';
+import { getAnswerCountByInterest, getScrapCountByInterest } from '../../utils/interestCounts';
+import type { User } from '../../state/user';
+import type { PlantState } from '../../state/plantTypes';
 
 /**
  * Plant detail modal — stats 탭 garden card 클릭 시 표시.
  * shared.openModal이 Esc/focus-trap/aria-modal 처리 (R5).
- * T7 = shell only. T8에서 Standard 6 항목 (stage/progress/unlockedAt/lastEngagedAt/wilting/counts) bodyHtml 채움.
+ * T8: Standard 6 항목 (stage/progress/unlockedAt/lastEngagedAt/wilting/counts) bodyHtml render.
  */
 export function openPlantDetailModal(interestId: string): void {
   const u = loadUserData();
@@ -14,11 +20,66 @@ export function openPlantDetailModal(interestId: string): void {
   if (!plant) return;
 
   const title = INTEREST_LABEL[interestId] ?? interestId;
-  // T8 placeholder — renderBody는 다음 task에서 추가.
-  const bodyHtml = '';
+  const bodyHtml = renderBody(u, interestId, plant);
 
   openModal({
     title: `${title} 정원`,
     bodyHtml: `<div class="plant-detail-modal">${bodyHtml}</div>`,
   });
+}
+
+function renderBody(_u: User, interestId: string, plant: PlantState): string {
+  const icon = escapeHtml(getPlantIcon(interestId, plant.stage));
+  const stageLabel = escapeHtml(STAGE_LABEL[plant.stage]);
+  const cum = Number.isFinite(plant.cumulativeActivity) ? Math.floor(plant.cumulativeActivity) : 0;
+
+  // 1. Stage badge — emoji + STAGE_LABEL
+  const stageHtml = `
+    <div class="plant-detail-stage">
+      <span class="plant-detail-emoji">${icon}</span>
+      <span class="plant-detail-stage-label">${stageLabel}</span>
+    </div>`;
+
+  // 2. Progress — cum / nextThreshold (stage 5 = 만개 ✨)
+  const progressHtml = plant.stage === 5
+    ? `<div class="plant-detail-progress">만개 ${escapeHtml(TROPHY_MARK)}</div>`
+    : `<div class="plant-detail-progress">${cum} / ${STAGE_THRESHOLDS[plant.stage - 1]}</div>`;
+
+  // 3. Unlocked — unlockedAt 있으면 한국 날짜, 없으면 hide
+  const unlockedHtml = plant.unlockedAt
+    ? `<div class="plant-detail-unlocked">✨ ${escapeHtml(formatKoreanDate(plant.unlockedAt))} 도달</div>`
+    : '';
+
+  // 4. Last engaged — 상대 시간, 없으면 "활동 기록 없음"
+  const engagedHtml = plant.lastEngagedAt
+    ? `<div class="plant-detail-engaged">마지막 활동 ${escapeHtml(formatRelative(plant.lastEngagedAt))}</div>`
+    : `<div class="plant-detail-engaged">활동 기록 없음</div>`;
+
+  // 5. Wilting — checkWilting true 시 표시
+  const wilting = checkWilting(plant, new Date());
+  const wiltingHtml = wilting
+    ? `<div class="plant-detail-wilting">🥀 7일 이상 활동이 없어요. 다시 가꿔주세요</div>`
+    : '';
+
+  // 6. Counts — answers / scraps
+  const answers = getAnswerCountByInterest(interestId);
+  const scraps = getScrapCountByInterest(interestId);
+  const countsHtml = `<div class="plant-detail-counts">${answers}개 답변 · ${scraps}개 스크랩</div>`;
+
+  return stageHtml + progressHtml + unlockedHtml + engagedHtml + wiltingHtml + countsHtml;
+}
+
+/** ISO → "YYYY년 M월 D일" (한국 사용자 가정, local TZ). */
+function formatKoreanDate(iso: string): string {
+  const d = new Date(iso);
+  return `${d.getFullYear()}년 ${d.getMonth() + 1}월 ${d.getDate()}일`;
+}
+
+/** ISO → "오늘" / "어제" / "N일 전". 음수 ms는 v3.22+ backlog (P2-1). */
+function formatRelative(iso: string): string {
+  const ms = Date.now() - new Date(iso).getTime();
+  const days = Math.floor(ms / 86400_000);
+  if (days === 0) return '오늘';
+  if (days === 1) return '어제';
+  return `${days}일 전`;
 }

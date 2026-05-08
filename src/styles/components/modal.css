@@ -1,9 +1,37 @@
-/* v3.21 T7: Plant detail modal — shell-only style.
-   T8에서 Standard 6 항목 detail rule 추가 예정. */
+/* v3.21 T7: Plant detail modal — shell.
+   v3.21 T8: Standard 6 항목 (stage/progress/unlockedAt/engaged/wilting/counts) detail rule 추가.
+   --space-md / --space-sm / --color-warning / --bg-warning-soft 토큰 미정의 → fallback 표기. */
 
 .plant-detail-modal {
   display: flex;
   flex-direction: column;
-  gap: var(--space-md);
-  padding: var(--space-md) 0;
+  gap: var(--space-3, 12px);
+  padding: var(--space-3, 12px) 0;
+}
+
+/* 1. Stage badge — emoji + 라벨 */
+.plant-detail-stage {
+  display: flex;
+  align-items: center;
+  gap: var(--space-2, 8px);
+  font-size: var(--font-size-lg);
+}
+.plant-detail-emoji {
+  font-size: 2rem;
+}
+
+/* 2~4, 6. 보조 정보 — secondary 톤 */
+.plant-detail-progress,
+.plant-detail-unlocked,
+.plant-detail-engaged,
+.plant-detail-counts {
+  color: var(--text-secondary);
+}
+
+/* 5. Wilting — accent (warning) 톤 + soft 배경 */
+.plant-detail-wilting {
+  color: var(--accent);
+  background: var(--accent-light);
+  padding: var(--space-2, 8px);
+  border-radius: var(--radius-sm);
 }
