@@ -293,9 +293,15 @@ export function migrateUserToV5(u: unknown): User {
  * - idempotent: 이미 v6이면 그대로 반환 (early return, same reference).
  * - 손상된 insights (non-array) → default [] 복구.
  *
- * 위험:
+ * @internal Caller invariant — 본 함수는 input이 ≥ v4 (또는 getCachedUser chain
+ *   통과 후) 라고 가정하고 inner `migrateUserToV5(u)`만 호출한다. v3 user를
+ *   직접 전달하면 `plantStateByInterest` / `gardenIntroduced` / `gardenBackfilled`
+ *   default가 누락되어 `isValidUserShape`가 reject. production path는
+ *   `getCachedUser`가 V3→V4→V5→V6 순서대로 호출하므로 안전.
+ *
+ * 정합성:
  *   - non-array insights (string/NaN/null 등) → isArray guard로 복구.
- *   - chain superset: V3/V4/V5 early-return에 v6 guard 추가 (P0-1 fix).
+ *   - chain superset (P0-1 fix): V3/V4/V5 early-return에 v6 guard 추가됨.
  */
 export function migrateUserToV6(u: unknown): User {
   const r = u as Record<string, unknown> & {

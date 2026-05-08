@@ -9,10 +9,16 @@ import { backfillGarden } from './backfillGarden';
 import { regenerateFreeze, consumeFreezeForGap } from './freezeEngine';
 import { dispatch } from '../ui/events';
 
-/** v3.23 NEW: Gemini 기반 통찰 항목 */
+/**
+ * v3.23 NEW: Gemini 기반 통찰 항목.
+ *
+ * @invariant caller 책임 — `isValidUserShape`는 `Array.isArray(insights)`만 검증한다.
+ * - `text`: caller가 max 200자 trim 의무. UI render 시점에 escapeHtml 의무.
+ * - storage layer는 entry-level shape 검증 없음 (T1 scope 외, v3.24+ 강화 후보).
+ */
 export interface Insight {
   id: string;        // crypto.randomUUID()
-  text: string;      // Gemini 통찰 (max 200자, escapeHtml 적용 후 저장은 caller 책임)
+  text: string;      // Gemini 통찰 (caller invariant — 위 @invariant 참조)
   createdAt: string; // ISO 8601
 }
 
