@@ -287,4 +287,10 @@
   .bar-fill { display: block; height: 100%; background: var(--primary); }
   .bar-count { text-align: right; color: var(--text-secondary); }
   .stats-highlight { margin-top: 16px; font-style: italic; color: var(--text-secondary); font-size: 0.9rem; }
+
+  /* v3.23 T7: chat preview bubble (대화 정리 / 인사이트 공유 미리보기) */
+  .chat-preview-bubble { background: var(--bg-card); border: 1px dashed var(--primary); padding: 12px; border-radius: var(--radius-md); margin: 8px 0; }
+  .chat-preview-text { white-space: pre-wrap; font-size: 0.95rem; line-height: 1.5; }
+  .chat-preview-actions { display: flex; gap: 8px; margin-top: 8px; }
+  .chat-preview-actions .btn { flex: 1; }
 }
