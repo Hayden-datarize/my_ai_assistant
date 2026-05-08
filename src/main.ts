@@ -4,6 +4,7 @@ import { mountHomeHandlers } from './ui/handlers/home';
 import { mountArchiveHandlers } from './ui/handlers/archive';
 import { mountStatsHandlers } from './ui/handlers/stats';
 import { mountMissionsHandlers } from './ui/handlers/missions';
+import { mountInsightsHandlers } from './ui/tabs/insights';
 import { mountRewards } from './ui/rewards';
 import { renderOnboarding } from './ui/onboarding';
 import { maybeShowWelcomeGarden } from './ui/modals/welcome-garden';
@@ -25,6 +26,7 @@ function bootMainApp(): void {
   mountArchiveHandlers();
   mountStatsHandlers();
   mountMissionsHandlers();
+  mountInsightsHandlers();  // v3.23 T8: dg:insights:* placeholder listener (T9 wiring 대기)
   mountNav();
   mountSidebar();
   mountRewards();

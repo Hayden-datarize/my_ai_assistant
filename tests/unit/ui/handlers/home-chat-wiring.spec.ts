@@ -369,6 +369,69 @@ describe('handleGenerateInsight (v3.23 T8)', () => {
     expect(firstEvent!.detail.id).toMatch(/^[0-9a-f-]{36}$/);
   });
 
+  // T8 review fix C2: saveUser throw → in-memory rollback + getSaveErrorMessage 토스트
+  it('insight: saveUser throw → User.insights[] pop rollback + 토스트, dispatch 미발생', async () => {
+    mockLoadChatHistory.mockReturnValue([
+      { role: 'user', text: '안녕', at: 1 },
+      { role: 'ai', text: '반가워요', at: 2 },
+    ]);
+    mockGetApiKey.mockReturnValue('test-key');
+    mockGenerateText.mockResolvedValue('핵심 통찰 문장');
+
+    const insightsArr: { id: string; text: string; createdAt: string }[] = [];
+    mockGetCachedUser.mockReturnValue({ schemaVersion: 6, insights: insightsArr } as unknown as FakeUser);
+    mockSaveUser.mockImplementation(() => { throw new Error('Quota exceeded'); });
+
+    let capturedOpts: ChatPreviewBubbleOpts | null = null;
+    mockRenderChatPreviewBubble.mockImplementation((opts: ChatPreviewBubbleOpts) => {
+      capturedOpts = opts;
+      return document.createElement('div');
+    });
+
+    const dispatchedEvents: CustomEvent[] = [];
+    document.addEventListener('dg:insights:added', (e) => dispatchedEvents.push(e as CustomEvent));
+
+    const { handleGenerateInsight } = await import('../../../../src/ui/handlers/home');
+    await handleGenerateInsight();
+
+    expect(capturedOpts).not.toBeNull();
+    capturedOpts!.onPrimary();
+
+    // saveUser 호출됨 (throw)
+    expect(mockSaveUser).toHaveBeenCalledOnce();
+    // rollback: insights 배열 비어 있음 (pop()으로 push 직후 되돌림)
+    expect(insightsArr).toHaveLength(0);
+    // dispatch 도달 안 함
+    expect(dispatchedEvents).toHaveLength(0);
+    // getSaveErrorMessage 토스트
+    expect(mockShowToast).toHaveBeenCalled();
+  });
+
+  it('summarize: appendAnswer throw → getSaveErrorMessage 토스트', async () => {
+    mockLoadChatHistory.mockReturnValue([
+      { role: 'user', text: '안녕', at: 1 },
+      { role: 'ai', text: '반가워요', at: 2 },
+    ]);
+    mockGetApiKey.mockReturnValue('test-key');
+    mockGenerateText.mockResolvedValue('대화 요약 결과');
+    mockAppendAnswer.mockImplementation(() => { throw new Error('Quota exceeded'); });
+
+    let capturedOpts: ChatPreviewBubbleOpts | null = null;
+    mockRenderChatPreviewBubble.mockImplementation((opts: ChatPreviewBubbleOpts) => {
+      capturedOpts = opts;
+      return document.createElement('div');
+    });
+
+    const { handleSummarizeChat } = await import('../../../../src/ui/handlers/home');
+    await handleSummarizeChat();
+
+    expect(capturedOpts).not.toBeNull();
+    capturedOpts!.onPrimary();
+
+    expect(mockAppendAnswer).toHaveBeenCalledOnce();
+    expect(mockShowToast).toHaveBeenCalled();
+  });
+
   it('getCachedUser null → "사용자 정보" 토스트, saveUser 미호출', async () => {
     mockLoadChatHistory.mockReturnValue([
       { role: 'user', text: '안녕', at: 1 },

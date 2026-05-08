@@ -34,14 +34,17 @@ describe('events', () => {
     off();
   });
 
-  it('EVENT_NAMES covers all 24 wired events (16 tab-dispatched + 1 nav + 7 reward)', () => {
+  it('EVENT_NAMES covers all 25 wired events (24 baseline + v3.23 T8: insights:added)', () => {
     // v3.21 T5: +1 reward event (`dg:reward:streak-freeze-used` — caller-side direct dispatch)
-    expect(EVENT_NAMES).toHaveLength(24);
-    expect(new Set(EVENT_NAMES).size).toBe(24);
+    // v3.23 T8: +1 insights event (`dg:insights:added`). `:removed`는 T9에서 추가.
+    expect(EVENT_NAMES).toHaveLength(25);
+    expect(new Set(EVENT_NAMES).size).toBe(25);
   });
 
-  it('V32_DEFERRED_EVENTS lists the 6 v3.2 stubs', () => {
-    expect(V32_DEFERRED_EVENTS).toHaveLength(6);
+  it('V32_DEFERRED_EVENTS lists the 2 잔존 stubs (v3.23 T8 graduated 4건 제거)', () => {
+    // v3.23 T8: summarize-chat / generate-insight-card / weekly-report / growth-analysis 4건
+    // 실구현 graduate. dismiss-backup / archive:period-change 2건만 잔존.
+    expect(V32_DEFERRED_EVENTS).toHaveLength(2);
     for (const e of V32_DEFERRED_EVENTS) expect(EVENT_NAMES).toContain(e);
   });
 });

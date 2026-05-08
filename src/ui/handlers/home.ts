@@ -1060,14 +1060,19 @@ export async function handleSummarizeChat(): Promise<void> {
       primaryLabel: '답변으로 저장',
       secondaryLabel: '닫기',
       onPrimary: () => {
-        const answer = makeAnswer({
-          id: crypto.randomUUID(),
-          questionId: 'chat-summary',
-          text: trimmed,
-          authorId: 'self',
-        });
-        appendAnswer(answer);
-        showToast('요약을 답변으로 저장했어요');
+        // T8 review fix C2: appendAnswer (saveAnswers throw on Quota) try/catch + getSaveErrorMessage 토스트 (v3.7 정책)
+        try {
+          const answer = makeAnswer({
+            id: crypto.randomUUID(),
+            questionId: 'chat-summary',
+            text: trimmed,
+            authorId: 'self',
+          });
+          appendAnswer(answer);
+          showToast('요약을 답변으로 저장했어요');
+        } catch (e) {
+          showToast(getSaveErrorMessage(e));
+        }
       },
       onSecondary: () => {},
     });
@@ -1121,10 +1126,16 @@ export async function handleGenerateInsight(): Promise<void> {
           text: insightText,
           createdAt: new Date().toISOString(),
         };
+        // T8 review fix C2: saveUser throw on Quota → in-memory pop rollback (v3.7 정책 + v3.10 atomic single-write idiom).
         u.insights.push(insight);
-        saveUser(u);
-        dispatch('dg:insights:added', { id: insight.id });
-        showToast('인사이트 카드 1장 추가');
+        try {
+          saveUser(u);
+          dispatch('dg:insights:added', { id: insight.id });
+          showToast('인사이트 카드 1장 추가');
+        } catch (e) {
+          u.insights.pop();  // rollback in-memory mutate
+          showToast(getSaveErrorMessage(e));
+        }
       },
       onSecondary: () => {},
     });
