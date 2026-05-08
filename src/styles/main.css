@@ -274,10 +274,11 @@
   }
 
   /* v3.23 T5: stats range modal (주간 리포트 / 성장 분석 공유) */
+  /* T5 review fix #1: nested selector (.stat-label / .stat-value는 pages/stats.css 기존 룰 — 충돌 차단) */
   .stats-stat-grid { display: grid; grid-template-columns: repeat(2, 1fr); gap: 8px; margin: 12px 0; }
   .stats-stat-card { background: var(--bg-input); padding: 12px; border-radius: var(--radius-md); display: flex; flex-direction: column; gap: 4px; }
-  .stat-label { font-size: 0.85rem; color: var(--text-secondary); }
-  .stat-value { font-size: 1.25rem; font-weight: 600; color: var(--text-primary); }
+  .stats-stat-card .stat-label { font-size: 0.85rem; color: var(--text-secondary); }
+  .stats-stat-card .stat-value { font-size: 1.25rem; font-weight: 600; color: var(--text-primary); }
   .stats-sparkline { display: flex; align-items: flex-end; gap: 2px; height: 60px; margin: 12px 0; }
   .stats-sparkline-bar { flex: 1; background: var(--primary); border-radius: 2px 2px 0 0; min-height: 2px; }
   .stats-interest-bars { list-style: none; padding: 0; display: flex; flex-direction: column; gap: 6px; margin: 12px 0; }

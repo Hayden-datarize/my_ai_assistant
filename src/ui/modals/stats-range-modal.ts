@@ -86,11 +86,16 @@ export async function openStatsRangeModal(opts: StatsRangeModalOpts): Promise<vo
         maxOutputTokens: tmpl.maxOutputTokens, // codex P1-3 fix
       });
       highlightText = escapeHtml(out.trim());
-      setStatsCache(
-        opts.range,
-        fp,
-        opts.range === 7 ? { highlight: highlightText } : { narrative: highlightText },
-      );
+      // T5 review fix #2: cache write 실패는 silent — Gemini 결과는 이미 받았으니 사용자 표시 우선
+      try {
+        setStatsCache(
+          opts.range,
+          fp,
+          opts.range === 7 ? { highlight: highlightText } : { narrative: highlightText },
+        );
+      } catch {
+        /* cache 저장 실패 (Quota 등)는 derived data — silent OK */
+      }
     } catch {
       highlightText = deterministicHighlight(r, opts.range);
       showToast('AI 분석에 실패했어요');
