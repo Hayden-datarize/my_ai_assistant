@@ -44,7 +44,6 @@ vi.mock('../../../../src/ui/modals/insight-detail', () => ({
 // import (mock 선언 후)
 // ---------------------------------------------------------------------------
 import { renderInsights } from '../../../../src/ui/tabs/insights';
-import { openInsightDetailModal } from '../../../../src/ui/modals/insight-detail';
 
 // mkUser fixture
 import { mkUser } from '../../state/userFixture';

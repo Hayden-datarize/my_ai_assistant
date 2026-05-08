@@ -296,7 +296,8 @@
 
   /* v3.23 T9: insights tab grid + detail modal */
   .insights-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(160px, 1fr)); gap: 12px; }
-  .insight-card { display: flex; flex-direction: column; gap: 6px; padding: 12px; background: var(--bg-card); border: 1px solid var(--border); border-radius: var(--radius-md); text-align: left; cursor: pointer; width: 100%; }
+  /* T9 review I1: <button> reset (font/color inherit) — v3.21 .garden-card precedent */
+  .insight-card { display: flex; flex-direction: column; gap: 6px; padding: 12px; background: var(--bg-card); border: 1px solid var(--border); border-radius: var(--radius-md); text-align: left; cursor: pointer; width: 100%; font: inherit; color: inherit; }
   @media (hover: hover) { .insight-card:hover { border-color: var(--primary); } }
   .insight-text { font-size: 0.9rem; line-height: 1.4; display: -webkit-box; -webkit-line-clamp: 3; -webkit-box-orient: vertical; overflow: hidden; }
   .insight-date { font-size: 0.75rem; color: var(--text-secondary); }
