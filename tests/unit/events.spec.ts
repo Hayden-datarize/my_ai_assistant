@@ -34,11 +34,12 @@ describe('events', () => {
     off();
   });
 
-  it('EVENT_NAMES covers all 25 wired events (24 baseline + v3.23 T8: insights:added)', () => {
+  it('EVENT_NAMES covers all 26 wired events (24 baseline + v3.23 T8: insights:added + T9: insights:removed)', () => {
     // v3.21 T5: +1 reward event (`dg:reward:streak-freeze-used` — caller-side direct dispatch)
-    // v3.23 T8: +1 insights event (`dg:insights:added`). `:removed`는 T9에서 추가.
-    expect(EVENT_NAMES).toHaveLength(25);
-    expect(new Set(EVENT_NAMES).size).toBe(25);
+    // v3.23 T8: +1 insights event (`dg:insights:added`).
+    // v3.23 T9: +1 insights event (`dg:insights:removed`).
+    expect(EVENT_NAMES).toHaveLength(26);
+    expect(new Set(EVENT_NAMES).size).toBe(26);
   });
 
   it('V32_DEFERRED_EVENTS lists the 2 잔존 stubs (v3.23 T8 graduated 4건 제거)', () => {
