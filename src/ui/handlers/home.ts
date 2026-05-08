@@ -35,8 +35,8 @@ import { getActiveMissions, getKSTDateIso } from '../../state/missionEngine';
 import { renderMissionsSection } from '../missions-section';
 import { fireBriefingViewTrigger, fireCrossInterestTrigger } from './missions-triggers';
 import { interestKeywords, matchKeyword } from '../../utils/interestKeywords';
+import { getApiKey } from '../../utils/apiKey';
 
-const API_KEY_STORAGE = 'dg_gemini_key';
 const THEME_STORAGE = 'theme';
 const TODAY_QUESTION_PREFIX = 'dg.todayQuestion.';
 
@@ -87,10 +87,6 @@ export function applyAnswerActivity(): void {
  */
 export function getInitialLetter(sourceTitle: string | undefined): string {
   return ([...(sourceTitle ?? '?')][0] ?? '?').toUpperCase();
-}
-
-function getApiKey(): string {
-  return localStorage.getItem(API_KEY_STORAGE) ?? '';
 }
 
 function ensureDetectedLang(briefing: Briefing): 'en' | 'ko' | 'unknown' {

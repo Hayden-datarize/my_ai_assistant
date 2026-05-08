@@ -5,18 +5,25 @@ const ENDPOINT = 'https://generativelanguage.googleapis.com/v1beta/models/gemini
 export interface GenerateTextInput {
   apiKey: string;
   prompt: string;
+  maxOutputTokens?: number; // v3.23 신규 (optional, 기존 caller 영향 0)
 }
 
 interface GeminiResponse {
   candidates?: Array<{ content?: { parts?: Array<{ text?: string }> } }>;
 }
 
-export async function generateText({ apiKey, prompt }: GenerateTextInput): Promise<string> {
+export async function generateText({ apiKey, prompt, maxOutputTokens }: GenerateTextInput): Promise<string> {
   if (!apiKey) throw new Error('Gemini api key missing');
+  const body: { contents: unknown[]; generationConfig?: { maxOutputTokens: number } } = {
+    contents: [{ parts: [{ text: prompt }] }],
+  };
+  if (typeof maxOutputTokens === 'number' && maxOutputTokens > 0) {
+    body.generationConfig = { maxOutputTokens };
+  }
   const res = await fetch(`${ENDPOINT}?key=${encodeURIComponent(apiKey)}`, {
     method: 'POST',
     headers: { 'content-type': 'application/json' },
-    body: JSON.stringify({ contents: [{ parts: [{ text: prompt }] }] }),
+    body: JSON.stringify(body),
   });
   if (!res.ok) throw new Error(`Gemini ${res.status}`);
   const data = (await res.json()) as GeminiResponse;
