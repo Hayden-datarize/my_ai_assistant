@@ -10,7 +10,7 @@ import { loadAnswers } from '../../state/persistence';
 import { loadBriefings } from '../../state/briefings';
 import { openModal } from '../modals/shared';
 import { escapeHtml } from '../../utils/escapeHtml';
-import { showToast } from '../../utils/toast';
+import { openStatsRangeModal } from '../modals/stats-range-modal';
 import { toKoType } from '../../utils/typeLabel';
 import { getKstDateStr } from '../../utils/dates';
 import { getCachedUser } from '../../state/user';
@@ -49,8 +49,9 @@ function setDefaultInfo(info: HTMLElement, total: number, streak: number): void 
 }
 
 export function mountStatsHandlers(): void {
-  on('dg:stats:weekly-report', () => showToast('주간 리포트는 v3.2에서 준비 중입니다'));
-  on('dg:stats:growth-analysis', () => showToast('성장 분석은 v3.2에서 준비 중입니다'));
+  // v3.23 T6: stub 교체 — openStatsRangeModal (range prop)
+  on('dg:stats:weekly-report', () => { void openStatsRangeModal({ range: 7 }); });
+  on('dg:stats:growth-analysis', () => { void openStatsRangeModal({ range: 30 }); });
 
   on('dg:nav:tab-changed', ({ tab }) => {
     if (tab === 'stats') hydrateStats();
