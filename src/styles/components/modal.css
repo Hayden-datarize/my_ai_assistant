@@ -1,0 +1,9 @@
+/* v3.21 T7: Plant detail modal — shell-only style.
+   T8에서 Standard 6 항목 detail rule 추가 예정. */
+
+.plant-detail-modal {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-md);
+  padding: var(--space-md) 0;
+}

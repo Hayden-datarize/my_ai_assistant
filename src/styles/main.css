@@ -15,6 +15,7 @@
 @import './components/garden.css' layer(components);
 @import './components/shared.css' layer(components);
 @import './components/welcome-garden.css' layer(components);
+@import './components/modal.css' layer(components);
 @import './pages/home.css' layer(components);
 @import './pages/archive.css' layer(components);
 @import './pages/stats.css' layer(components);
