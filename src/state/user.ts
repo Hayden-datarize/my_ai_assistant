@@ -7,6 +7,7 @@ import { getActiveMissions, tickMissionProgress } from './missionEngine';
 import type { PlantState } from './plantTypes';
 import { backfillGarden } from './backfillGarden';
 import { regenerateFreeze, consumeFreezeForGap } from './freezeEngine';
+import { dispatch } from '../ui/events';
 
 export interface User {
   name: string;
@@ -201,9 +202,7 @@ export function recordDailyAnswer(xpDelta: number): void {
   // sweep 우회 — Snapshot.freezeCount delta는 regen+1/consume−1 시 net=0 false-negative.
   // Option B: saveUser 이후에 dispatch → throw 시 dispatch 도달 안 함 (v3.12 false-fire invariant 정합).
   if (freezeConsumed > 0 && freezePreserved) {
-    document.dispatchEvent(
-      new CustomEvent('dg:reward:streak-freeze-used', { detail: { days: freezeConsumed } }),
-    );
+    dispatch('dg:reward:streak-freeze-used', { days: freezeConsumed });
   }
 
   const curr = takeSnapshot();
