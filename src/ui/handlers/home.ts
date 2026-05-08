@@ -7,15 +7,15 @@
  * gets fresh data.
  */
 
-import { on, V32_DEFERRED_EVENTS } from '../events';
+import { on, dispatch, V32_DEFERRED_EVENTS } from '../events';
 import { switchTab } from '../nav';
 import { toKoType } from '../../utils/typeLabel';
 import { appendAnswer, aggregateAnswerStats, setAnswerEvaluation } from '../../state/persistence';
 import { makeAnswer } from '../../state/schema';
 import { loadBriefings, saveBriefings, toggleScrap, setRead, setTranslation, type Briefing } from '../../state/briefings';
-import { loadChatHistory, appendChatMessage } from '../../state/chat';
+import { loadChatHistory, appendChatMessage, type ChatMessage } from '../../state/chat';
 import { fetchFeed, type FeedItem, type FeedResult } from '../../services/rss';
-import { generateQuestion, chat, evaluateAnswer } from '../../services/gemini';
+import { generateQuestion, chat, evaluateAnswer, generateText } from '../../services/gemini';
 import { autoSendAnswer } from '../../services/slack';
 import { summarizeOrTranslateBody, translateTitle, isSessionBlocked } from '../../services/translate';
 import { TranslateQueue } from '../translateQueue';
@@ -26,7 +26,7 @@ import { openMemoModal } from '../modals/memo';
 import { createLangToggle, type LangToggleEl, type LangState } from '../components/cardLangToggle';
 import { checkAndIncrement, getCap, getTodayCount } from '../../state/usage';
 import { showCapToast, showTranslateError, showPartialTranslateFail } from '../translateToast';
-import { getCachedUser, getSaveErrorMessage, recordDailyAnswer, saveUser } from '../../state/user';
+import { getCachedUser, getSaveErrorMessage, recordDailyAnswer, saveUser, type Insight } from '../../state/user';
 import { renderGardenMini } from '../components/garden-grid';
 import { scrollToGardenSection } from './stats';
 import { loadActiveSeenUrls, recordSeen, purgeExpiredSeen } from '../../state/seen';
@@ -36,6 +36,9 @@ import { renderMissionsSection } from '../missions-section';
 import { fireBriefingViewTrigger, fireCrossInterestTrigger } from './missions-triggers';
 import { interestKeywords, matchKeyword } from '../../utils/interestKeywords';
 import { getApiKey } from '../../utils/apiKey';
+import { checkAndIncrementGemini } from '../../state/geminiUsage';
+import { PROMPTS } from '../../services/prompts';
+import { renderChatPreviewBubble } from '../chat-bubble';
 
 const THEME_STORAGE = 'theme';
 const TODAY_QUESTION_PREFIX = 'dg.todayQuestion.';
@@ -282,10 +285,9 @@ export function mountHomeHandlers(): void {
     void sendChatMessage();
   });
 
-  // v3.2 deferred — register no-op stubs so gap-detector sees a listener.
-  const stubToast = (label: string) => () => showToast(`${label} 기능은 v3.2에서 준비 중입니다`);
-  on('dg:home:summarize-chat', stubToast('대화 요약'));
-  on('dg:home:generate-insight-card', stubToast('인사이트 카드'));
+  // v3.23 T8 — 대화 정리 / 인사이트 카드 (v3.2 deferred → 실 구현)
+  on('dg:home:summarize-chat', () => { void handleSummarizeChat(); });
+  on('dg:home:generate-insight-card', () => { void handleGenerateInsight(); });
 
   // Re-hydrate home whenever the user navigates back to it.
   on('dg:nav:tab-changed', ({ tab }) => {
@@ -1008,4 +1010,125 @@ async function exportData(): Promise<void> {
   a.remove();
   URL.revokeObjectURL(url);
   showToast('백업 파일을 다운로드했어요');
+}
+
+// ---------------------------------------------------------------------------
+// v3.23 T8: 대화 정리 / 인사이트 카드 helpers
+// ---------------------------------------------------------------------------
+
+/**
+ * P1-5 fix: history.length >= 2 만으로는 user 메시지 2개(AI 0) 통과 위험.
+ * user role 과 ai role 이 각 1개 이상 있어야 실제 대화가 있는 것으로 판정.
+ * @internal — unit test 직접 호출용
+ */
+export function hasUserAndAiPair(history: ChatMessage[]): boolean {
+  return history.some(m => m.role === 'user') && history.some(m => m.role === 'ai');
+}
+
+/** 대화 정리: Gemini로 chat history 요약 → bubble → 답변 저장
+ * @internal — unit test 직접 호출용
+ */
+export async function handleSummarizeChat(): Promise<void> {
+  const today = getKstDateStr();
+  const history = loadChatHistory(today);
+  if (!hasUserAndAiPair(history)) {
+    showToast('대화를 먼저 나눠보세요');
+    return;
+  }
+  if (!getApiKey()) {
+    showToast('Gemini API 키가 필요해요. 설정에서 등록해 주세요');
+    return;
+  }
+  if (!checkAndIncrementGemini()) {
+    showToast('오늘 AI 분석 quota 소진, 내일 다시');
+    return;
+  }
+  try {
+    const tmpl = PROMPTS.conversationSummary;
+    const text = await generateText({
+      apiKey: getApiKey()!,
+      prompt: tmpl.build({ chatTurns: history.map(m => ({ role: m.role, text: m.text })) }),
+      maxOutputTokens: tmpl.maxOutputTokens,
+    });
+    const trimmed = text.trim();
+    if (!trimmed) {
+      showToast('AI 분석에 실패했어요');
+      return;
+    }
+    renderChatPreviewBubble({
+      text: trimmed,
+      primaryLabel: '답변으로 저장',
+      secondaryLabel: '닫기',
+      onPrimary: () => {
+        const answer = makeAnswer({
+          id: crypto.randomUUID(),
+          questionId: 'chat-summary',
+          text: trimmed,
+          authorId: 'self',
+        });
+        appendAnswer(answer);
+        showToast('요약을 답변으로 저장했어요');
+      },
+      onSecondary: () => {},
+    });
+  } catch {
+    showToast('AI 분석에 실패했어요');
+  }
+}
+
+/** 인사이트 카드 생성: Gemini로 통찰 추출 → bubble → User.insights[] 저장
+ * @internal — unit test 직접 호출용
+ */
+export async function handleGenerateInsight(): Promise<void> {
+  const today = getKstDateStr();
+  const history = loadChatHistory(today);
+  if (!hasUserAndAiPair(history)) {
+    showToast('대화를 먼저 나눠보세요');
+    return;
+  }
+  if (!getApiKey()) {
+    showToast('Gemini API 키가 필요해요. 설정에서 등록해 주세요');
+    return;
+  }
+  if (!checkAndIncrementGemini()) {
+    showToast('오늘 AI 분석 quota 소진, 내일 다시');
+    return;
+  }
+  try {
+    const tmpl = PROMPTS.insight;
+    const text = await generateText({
+      apiKey: getApiKey()!,
+      prompt: tmpl.build({ chatTurns: history.map(m => ({ role: m.role, text: m.text })) }),
+      maxOutputTokens: tmpl.maxOutputTokens,
+    });
+    const insightText = text.trim().slice(0, 200);
+    if (!insightText) {
+      showToast('AI 분석에 실패했어요');
+      return;
+    }
+    renderChatPreviewBubble({
+      text: insightText,
+      primaryLabel: '저장',
+      secondaryLabel: '폐기',
+      onPrimary: () => {
+        const u = getCachedUser();
+        if (!u) {
+          showToast('사용자 정보를 불러올 수 없어요');
+          return;
+        }
+        const insight: Insight = {
+          id: crypto.randomUUID(),
+          text: insightText,
+          createdAt: new Date().toISOString(),
+        };
+        u.insights.push(insight);
+        saveUser(u);
+        dispatch('dg:insights:added', { id: insight.id });
+        showToast('인사이트 카드 1장 추가');
+      },
+      onSecondary: () => {},
+    });
+  } catch {
+    showToast('AI 분석에 실패했어요');
+  }
 }

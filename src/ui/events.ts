@@ -46,6 +46,9 @@ export interface EventMap {
   // v3.21 T5 — streak freeze consumed (caller-side direct dispatch from recordDailyAnswer)
   // 사전 review P0-2 fix: sweep delta(net=0 false-negative) 우회. Option B (saveUser-after).
   'dg:reward:streak-freeze-used': { days: number };
+  // v3.23 T8 — insight 카드 추가/삭제 (T8 dispatch / T9 listener)
+  'dg:insights:added': { id: string };
+  'dg:insights:removed': { id: string };
 }
 
 type EventName = keyof EventMap;
@@ -78,6 +81,8 @@ export const EVENT_NAMES: readonly EventName[] = [
   'dg:reward:mission-complete',
   'dg:reward:plant-stage-up',
   'dg:reward:streak-freeze-used',
+  'dg:insights:added',
+  'dg:insights:removed',
 ] as const;
 
 /** Events deferred to v3.2 — handlers in v3.1 register a stub listener. */
