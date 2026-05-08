@@ -1,9 +1,9 @@
 import { test, expect, type Page } from '@playwright/test';
-import { getDateStr } from '../../src/utils/dates';
+import { getKstDateStr } from '../../src/utils/dates';
 import { primeOnboardedUser } from '../helpers/seed';
 
 async function seedUserAndAnswer(page: Page): Promise<void> {
-  const today = getDateStr();
+  const today = getKstDateStr();
   // v3.18.1 H1: gardenIntroduced=true (helper default) → welcome-garden 모달 억제
   await primeOnboardedUser(page, { interests: ['ai_ml'] });
   await page.addInitScript((args: { today: string }) => {

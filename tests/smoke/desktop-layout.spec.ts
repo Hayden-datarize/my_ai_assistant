@@ -1,5 +1,5 @@
 import { test, expect } from '@playwright/test';
-import { getDateStr } from '../../src/utils/dates';
+import { getKstDateStr } from '../../src/utils/dates';
 import { primeOnboardedUser } from '../helpers/seed';
 
 test.use({ serviceWorkers: 'block' });
@@ -7,10 +7,10 @@ test.use({ serviceWorkers: 'block' });
 // 브리핑 카드가 localStorage에 미리 저장된 상태로 시작 → RSS fetch 없이 렌더링
 // v3.3.4.3: date는 오늘로 seed한다. hydrateBriefings가 stale(date != 오늘)을 감지하면
 // 자동 refresh를 트리거해서 고정 픽스처를 RSS 응답으로 덮어쓰기 때문.
-// v3.14.4 T3: today를 Node-side getDateStr()로 계산해 args로 전달 (cardnews.spec.ts 선례).
+// v3.14.4 T3: today를 Node-side getKstDateStr()로 계산해 args로 전달 (cardnews.spec.ts 선례).
 //   browser-context의 toISOString()은 UTC라 KST 새벽엔 1일 어긋남 → fixture refresh로 덮임.
 async function seedAll(page: import('@playwright/test').Page): Promise<void> {
-  const today = getDateStr();
+  const today = getKstDateStr();
   await primeOnboardedUser(page, { interests: ['growth'] });
   await page.addInitScript((args: { today: string }) => {
     localStorage.setItem(

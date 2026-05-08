@@ -1,5 +1,5 @@
 import { test, expect } from '@playwright/test';
-import { getDateStr } from '../../src/utils/dates';
+import { getKstDateStr } from '../../src/utils/dates';
 import { primeOnboardedUser } from '../helpers/seed';
 
 test.use({ serviceWorkers: 'block' });
@@ -25,7 +25,7 @@ test('일일 한도 슬라이더 변경 → 즉시 반영 + persist', async ({ p
 });
 
 test('캐시 초기화 버튼: confirm 후 *Ko 필드 삭제 (브리핑 본문 유지)', async ({ page }) => {
-  const today = getDateStr();
+  const today = getKstDateStr();
   await primeOnboardedUser(page, { interests: ['AI'], streak: 1 });
   await page.addInitScript((args) => {
     localStorage.setItem('dg_gemini_key', 'TEST_KEY');

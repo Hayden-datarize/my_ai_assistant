@@ -1,4 +1,4 @@
-import { getDateStr } from '../utils/dates';
+import { getKstDateStr } from '../utils/dates';
 
 const USAGE_KEY = 'dg_translate_usage';
 const CAP_KEY = 'dg_translate_cap';
@@ -26,7 +26,7 @@ export function setCap(n: number): void {
 }
 
 function load(): Usage {
-  const today = getDateStr();
+  const today = getKstDateStr();
   try {
     const raw = localStorage.getItem(USAGE_KEY);
     if (!raw) return { date: today, count: 0 };

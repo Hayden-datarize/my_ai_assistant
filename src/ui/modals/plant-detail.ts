@@ -5,6 +5,7 @@ import { getPlantIcon, STAGE_LABEL, STAGE_THRESHOLDS, TROPHY_MARK } from '../../
 import { checkWilting } from '../../state/plantEngine';
 import { escapeHtml } from '../../utils/escapeHtml';
 import { getAnswerCountByInterest, getScrapCountByInterest } from '../../utils/interestCounts';
+import { getKstDateStr } from '../../utils/dates';
 import type { User } from '../../state/user';
 import type { PlantState } from '../../state/plantTypes';
 
@@ -69,15 +70,24 @@ function renderBody(_u: User, interestId: string, plant: PlantState): string {
   return stageHtml + progressHtml + unlockedHtml + engagedHtml + wiltingHtml + countsHtml;
 }
 
-/** ISO → "YYYY년 M월 D일" (한국 사용자 가정, local TZ). */
-function formatKoreanDate(iso: string): string {
-  const d = new Date(iso);
-  return `${d.getFullYear()}년 ${d.getMonth() + 1}월 ${d.getDate()}일`;
+/**
+ * ISO → "YYYY년 M월 D일" (KST anchor).
+ * v3.22 T4 (P2-4): 머신 TZ 무관 — getKstDateStr (Intl Asia/Seoul) 재사용.
+ * @internal — spec 직접 호출용 export.
+ */
+export function formatKoreanDate(iso: string): string {
+  const [y, m, d] = getKstDateStr(new Date(iso)).split('-');
+  return `${y}년 ${Number(m)}월 ${Number(d)}일`;
 }
 
-/** ISO → "오늘" / "어제" / "N일 전". 음수 ms는 v3.22+ backlog (P2-1). */
-function formatRelative(iso: string): string {
+/**
+ * ISO → "오늘" / "어제" / "N일 전".
+ * 음수 ms (시계 역행 / 미래 ISO)는 '오늘'으로 가드 (v3.22 T1).
+ * @internal — spec 직접 호출용 export. plant-detail 외부에서 사용 금지.
+ */
+export function formatRelative(iso: string): string {
   const ms = Date.now() - new Date(iso).getTime();
+  if (ms < 0) return '오늘';
   const days = Math.floor(ms / 86400_000);
   if (days === 0) return '오늘';
   if (days === 1) return '어제';

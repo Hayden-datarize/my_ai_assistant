@@ -1,3 +1,8 @@
+/**
+ * @deprecated v3.22 — 머신 TZ 기반 'YYYY-MM-DD' 반환. KST anchor 필요 시 `getKstDateStr` 사용.
+ * v3.23+ 삭제 예정. 신규 caller는 ESLint `no-restricted-imports`로 차단.
+ * 기존 caller는 v3.22 T5에서 모두 `getKstDateStr`로 마이그레이션 완료.
+ */
 export function getDateStr(date: Date = new Date()): string {
   const y = date.getFullYear();
   const m = String(date.getMonth() + 1).padStart(2, '0');

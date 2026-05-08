@@ -1,5 +1,5 @@
 import { test, expect } from '@playwright/test';
-import { getDateStr } from '../../src/utils/dates';
+import { getKstDateStr } from '../../src/utils/dates';
 import { primeOnboardedUser } from '../helpers/seed';
 
 test.use({ serviceWorkers: 'block' });
@@ -17,14 +17,14 @@ type SeedBriefing = {
   imageUrl?: string;
 };
 
-// v3.14.4 T3: today를 Node-side getDateStr()로 계산해 args로 전달 (cardnews.spec.ts 선례).
-// src/utils/dates.ts getDateStr()와 1:1 일치시켜야 hydrateBriefings의 stale 판정을 우회.
+// v3.14.4 T3: today를 Node-side getKstDateStr()로 계산해 args로 전달 (cardnews.spec.ts 선례).
+// src/utils/dates.ts getKstDateStr()와 1:1 일치시켜야 hydrateBriefings의 stale 판정을 우회.
 // browser-context의 toISOString()은 UTC라 KST 새벽엔 1일 어긋나 fixture가 refresh로 덮여쓰임.
 async function seedOneBriefing(
   page: import('@playwright/test').Page,
   imageUrl: string,
 ): Promise<void> {
-  const today = getDateStr();
+  const today = getKstDateStr();
   const briefing: SeedBriefing = {
     id: 'tier-test',
     date: today,

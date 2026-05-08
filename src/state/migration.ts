@@ -1,5 +1,5 @@
 import { CURRENT_SCHEMA_VERSION, isVersioned, type Answer, type UserSettings } from './schema';
-import { getDateStr } from '../utils/dates';
+import { getKstDateStr } from '../utils/dates';
 
 /**
  * Normalize a raw value into a Phase B Answer.
@@ -259,8 +259,9 @@ export function migrateUserToV5(u: unknown): User {
 
   if (r.schemaVersion === 5) return r as unknown as User;
 
-  // v4 → v5 lazy: streakFreeze 신규 또는 손상 시 default
-  const today = getDateStr();
+  // v4 → v5 lazy: streakFreeze 신규 또는 손상 시 default.
+  // v3.22 P2-2: 머신 TZ 무관하게 KST 자정 anchor (Intl.DateTimeFormat).
+  const today = getKstDateStr();
   const sf = r.streakFreeze as { count?: unknown; lastEarnedAt?: unknown } | undefined | null;
 
   const validCount =

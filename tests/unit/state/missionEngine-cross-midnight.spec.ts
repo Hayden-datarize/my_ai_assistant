@@ -52,8 +52,10 @@ describe('getActiveMissions — cross-midnight paired-call (v3.13.2 P2-1)', () =
     // M1 (KST cross-midnight 주석): JS Date local TZ를 KST로 가정.
     // 23:59:50 → 00:00:10 (10초 경과)에 별도 Date 인스턴스 사용 — caller invariant 위반 케이스
     // 시뮬레이션. `lastDailySeed`가 새 dateIso로 갱신되어 daily set regen + dirty=true 검증.
-    const before = new Date(2026, 4, 2, 23, 59, 50);
-    const after  = new Date(2026, 4, 3, 0,  0,  10);
+    // v3.22 T6: 명시 KST instant 사용 — `new Date(year, month, ...)`은 머신 TZ 의존이라
+    // NY 머신에서 KST cross-midnight 미발생. ISO+09:00 suffix로 머신 무관.
+    const before = new Date('2026-05-02T23:59:50+09:00');
+    const after  = new Date('2026-05-03T00:00:10+09:00');
     const prev = getActiveMissions(before, u);
     const dailyBefore = prev.active.filter(m => m.period === 'daily').map(m => m.defId);
     expect(dailyBefore.length).toBeGreaterThan(0);

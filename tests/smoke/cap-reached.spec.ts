@@ -1,12 +1,12 @@
 import { test, expect } from '@playwright/test';
-import { getDateStr } from '../../src/utils/dates';
+import { getKstDateStr } from '../../src/utils/dates';
 import { primeOnboardedUser } from '../helpers/seed';
 
 // Block service worker so cached assets don't interfere with seeded state.
 test.use({ serviceWorkers: 'block' });
 
 test('cap 도달 시 토글 비활성 + aria-disabled', async ({ page }) => {
-  const today = getDateStr();
+  const today = getKstDateStr();
 
   // Block any RSS refresh so the seeded card isn't replaced.
   await page.route('**/api.rss2json.com/**', (route) => route.abort());

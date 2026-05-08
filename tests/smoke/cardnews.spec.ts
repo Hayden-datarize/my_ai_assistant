@@ -1,5 +1,5 @@
 import { test, expect } from '@playwright/test';
-import { getDateStr } from '../../src/utils/dates';
+import { getKstDateStr } from '../../src/utils/dates';
 import { primeOnboardedUser } from '../helpers/seed';
 
 // Block service worker so tests don't hit stale caches and image-load
@@ -33,7 +33,7 @@ async function seedBriefings(
 }
 
 function mkCards(count: number, withImage: boolean): SeedBriefing[] {
-  const today = getDateStr();
+  const today = getKstDateStr();
   return Array.from({ length: count }, (_, i) => ({
     id: `b${i}`,
     date: today,
@@ -94,7 +94,7 @@ test('tier 1 → tier 2 transition on image load error', async ({ page }) => {
     route.abort(),
   );
 
-  const today = getDateStr();
+  const today = getKstDateStr();
   await seedBriefings(page, [
     {
       id: 'bad',
@@ -157,7 +157,7 @@ test('memo modal: cancel does not persist', async ({ page }) => {
   await seedBriefings(page, [
     {
       id: 'b0',
-      date: getDateStr(),
+      date: getKstDateStr(),
       url: 'https://x.com',
       title: 't',
       summary: 's',

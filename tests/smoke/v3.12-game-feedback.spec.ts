@@ -1,5 +1,5 @@
 import { test, expect } from '@playwright/test';
-import { getDateStr } from '../../src/utils/dates';
+import { getKstDateStr } from '../../src/utils/dates';
 import { primeOnboardedUser } from '../helpers/seed';
 
 // v3.12 game-feedback + badges end-to-end smoke. Two paths the unit tests
@@ -21,7 +21,7 @@ import { primeOnboardedUser } from '../helpers/seed';
 
 test.describe('v3.12 Game Feedback + Badges', () => {
   test.beforeEach(async ({ page }) => {
-    const today = getDateStr();
+    const today = getKstDateStr();
     await primeOnboardedUser(page, { interests: ['ai_ml'] });
     await page.addInitScript((args: { today: string }) => {
       // Seed today's question so hydrateQuestion does not need an API key.

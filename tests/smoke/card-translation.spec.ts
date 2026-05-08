@@ -1,5 +1,5 @@
 import { test, expect } from '@playwright/test';
-import { getDateStr } from '../../src/utils/dates';
+import { getKstDateStr } from '../../src/utils/dates';
 import { primeOnboardedUser } from '../helpers/seed';
 
 // Block service worker so tests don't hit stale caches.
@@ -21,7 +21,7 @@ test('영문 카드 토글: 한글 ↔ 영문 swap', async ({ page }) => {
     });
   });
 
-  const today = getDateStr();
+  const today = getKstDateStr();
   await primeOnboardedUser(page, { interests: ['ai_ml'], streak: 1 });
   await page.addInitScript((args: { today: string }) => {
     localStorage.setItem('dg_gemini_key', 'TEST_KEY');
@@ -56,7 +56,7 @@ test('영문 카드 토글: 한글 ↔ 영문 swap', async ({ page }) => {
 });
 
 test('한글 카드는 토글 노출 안 됨', async ({ page }) => {
-  const today = getDateStr();
+  const today = getKstDateStr();
   await primeOnboardedUser(page, { interests: ['ai_ml'], streak: 1 });
   await page.addInitScript((args: { today: string }) => {
     localStorage.setItem('dg_gemini_key', 'TEST_KEY');
@@ -73,7 +73,7 @@ test('한글 카드는 토글 노출 안 됨', async ({ page }) => {
 });
 
 test('API key 없으면 토글 비노출', async ({ page }) => {
-  const today = getDateStr();
+  const today = getKstDateStr();
   await primeOnboardedUser(page, { interests: ['ai_ml'], streak: 1 });
   await page.addInitScript((args: { today: string }) => {
     localStorage.removeItem('dg_gemini_key');
@@ -104,7 +104,7 @@ test('background queue: 영문 제목이 자동으로 한글로 swap된다', asy
     });
   });
 
-  const today = getDateStr();
+  const today = getKstDateStr();
   await primeOnboardedUser(page, { interests: ['ai_ml'], streak: 1 });
   await page.addInitScript((args: { today: string }) => {
     sessionStorage.setItem('dg.briefings.auto-refresh-tried', '1');

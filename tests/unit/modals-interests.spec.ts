@@ -1,5 +1,5 @@
 import { describe, it, expect, beforeEach, afterEach, vi } from 'vitest';
-import { getDateStr } from '../../src/utils/dates';
+import { getKstDateStr } from '../../src/utils/dates';
 
 describe('openInterestsModal', () => {
   beforeEach(() => {
@@ -16,7 +16,7 @@ describe('openInterestsModal', () => {
       interests: ['recruiting', 'onboarding'],
       onboardedAt: new Date().toISOString(),
       streak: 0,
-      lastActiveDate: getDateStr(),
+      lastActiveDate: getKstDateStr(),
       xp: 0,
       level: 1,
     }));

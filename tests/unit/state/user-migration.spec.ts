@@ -1,4 +1,4 @@
-import { describe, it, expect, beforeEach } from 'vitest';
+import { describe, it, expect, beforeEach, afterEach, vi } from 'vitest';
 import { loadUserData, saveUser, getCachedUser } from '../../../src/state/user';
 import { migrateUserToV2, migrateUserToV3 } from '../../../src/state/migration';
 import { mkUser } from './userFixture';
@@ -135,6 +135,22 @@ describe('user schema v2 migration', () => {
       const u = getCachedUser();
       expect(u).not.toBeNull();
       expect(u!.interests).toEqual(['hr_system', 'self_dev']);
+    });
+  });
+
+  describe('v3.22 T2 — lazy persist ripple (KST anchor)', () => {
+    afterEach(() => { vi.useRealTimers(); });
+
+    it('loadUserData lazy migrate v1→v5: lastEarnedAt KST anchor', () => {
+      vi.useFakeTimers();
+      // KST 2026-05-08T00:30 (자정 직후) — 머신 NY여도 KST 기준
+      vi.setSystemTime(new Date('2026-05-08T00:30:00+09:00'));
+      localStorage.setItem('user', JSON.stringify({
+        name: '하든', interests: [], onboardedAt: '2026-01-01',
+        streak: 0, lastActiveDate: '', xp: 0, level: 1,
+      }));
+      const u = loadUserData()!;
+      expect(u.streakFreeze.lastEarnedAt).toBe('2026-05-08');
     });
   });
 

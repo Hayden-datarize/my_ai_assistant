@@ -38,13 +38,13 @@ describe('hydrateHeatmap column alignment', () => {
   });
 
   const weekdays: Array<[string, string]> = [
-    ['Mon', '2026-04-20T03:00:00Z'],
-    ['Tue', '2026-04-21T03:00:00Z'],
-    ['Wed', '2026-04-22T03:00:00Z'],
-    ['Thu', '2026-04-23T03:00:00Z'],
-    ['Fri', '2026-04-24T03:00:00Z'],
-    ['Sat', '2026-04-25T03:00:00Z'],
-    ['Sun', '2026-04-26T03:00:00Z'],
+    ['Mon', '2026-04-20T09:00:00Z'],
+    ['Tue', '2026-04-21T09:00:00Z'],
+    ['Wed', '2026-04-22T09:00:00Z'],
+    ['Thu', '2026-04-23T09:00:00Z'],
+    ['Fri', '2026-04-24T09:00:00Z'],
+    ['Sat', '2026-04-25T09:00:00Z'],
+    ['Sun', '2026-04-26T09:00:00Z'],
   ];
 
   // v3.3.4.2: window is a Mon-Sun 4×7 rectangle anchored on the current week's
@@ -70,7 +70,7 @@ describe('hydrateHeatmap column alignment', () => {
   }
 
   it('data cells have no is-weekend class (removed in v3.3.2)', async () => {
-    vi.setSystemTime(new Date('2026-04-22T03:00:00Z'));
+    vi.setSystemTime(new Date('2026-04-22T09:00:00Z'));
     const mod = await import('../../src/ui/handlers/stats');
     mod.hydrateStats();
     const grid = document.getElementById('heatmapGrid')!;
@@ -96,7 +96,7 @@ describe('hydrateHeatmap cell semantics', () => {
   });
 
   it('marks today cell with .is-today', async () => {
-    vi.setSystemTime(new Date('2026-04-22T03:00:00Z'));
+    vi.setSystemTime(new Date('2026-04-22T09:00:00Z'));
     const mod = await import('../../src/ui/handlers/stats');
     mod.hydrateStats();
     const todayCells = document.querySelectorAll('.heatmap-cell.is-today');
@@ -104,8 +104,28 @@ describe('hydrateHeatmap cell semantics', () => {
     expect((todayCells[0] as HTMLButtonElement).dataset['date']).toBe('2026-04-22');
   });
 
+  it('v3.22 T7 (codex P1) — legacy answer (date 없음, createdAt만): heatmap counts와 day-detail filter가 같은 KST date로 분류', async () => {
+    vi.setSystemTime(new Date('2026-04-22T09:00:00Z'));
+    // legacy answer: date 필드 없음, createdAt UTC만 (KST 4/20 새벽 시각)
+    // KST 4/20 00:30 = UTC 4/19 15:30
+    localStorage.setItem('dg.answers', JSON.stringify([
+      { id: 'legacy1', text: 'legacy', createdAt: '2026-04-19T15:30:00Z' },
+    ]));
+    const mod = await import('../../src/ui/handlers/stats');
+    mod.hydrateStats();
+    // heatmap fallback (line 155): KST 4/20 cell에 1개 count
+    const cell = document.querySelector<HTMLButtonElement>('.heatmap-cell[data-date="2026-04-20"]');
+    expect(cell).not.toBeNull();
+    expect(cell!.getAttribute('aria-label')).toMatch(/1개 달성/);
+    // day-detail filter (line 438): KST 4/20 클릭 시 같은 legacy 답변 1건 매칭
+    cell!.dispatchEvent(new MouseEvent('click', { bubbles: true }));
+    const modal = document.querySelector('.dg-modal');
+    expect(modal).not.toBeNull();
+    expect(modal!.textContent).toContain('legacy');
+  });
+
   it('gives each data cell aria-label "M월 D일 (요일), N개 달성"', async () => {
-    vi.setSystemTime(new Date('2026-04-22T03:00:00Z'));
+    vi.setSystemTime(new Date('2026-04-22T09:00:00Z'));
     localStorage.setItem('dg.answers', JSON.stringify([
       { date: '2026-04-20', text: 'a', type: '감정' },
       { date: '2026-04-20', text: 'b', type: '감정' },
@@ -118,7 +138,7 @@ describe('hydrateHeatmap cell semantics', () => {
   });
 
   it('gives 0-count cell aria-label "M월 D일 (요일), 기록 없음"', async () => {
-    vi.setSystemTime(new Date('2026-04-22T03:00:00Z'));
+    vi.setSystemTime(new Date('2026-04-22T09:00:00Z'));
     const mod = await import('../../src/ui/handlers/stats');
     mod.hydrateStats();
     // Pick any empty day in the window, e.g., 2026-04-15
@@ -141,7 +161,7 @@ describe('hydrateHeatmap inline info', () => {
   });
 
   it('shows empty state message when no answers in 28-day window', async () => {
-    vi.setSystemTime(new Date('2026-04-22T03:00:00Z'));
+    vi.setSystemTime(new Date('2026-04-22T09:00:00Z'));
     const mod = await import('../../src/ui/handlers/stats');
     mod.hydrateStats();
     const info = document.getElementById('heatmapInfo');
@@ -149,7 +169,7 @@ describe('hydrateHeatmap inline info', () => {
   });
 
   it('shows summary with total + streak when there are answers', async () => {
-    vi.setSystemTime(new Date('2026-04-22T03:00:00Z'));
+    vi.setSystemTime(new Date('2026-04-22T09:00:00Z'));
     localStorage.setItem('dg.answers', JSON.stringify([
       { date: '2026-04-21', text: 'a', type: '감정' },
       { date: '2026-04-22', text: 'b', type: '감정' },
@@ -162,7 +182,7 @@ describe('hydrateHeatmap inline info', () => {
   });
 
   it('updates info on cell mouseenter: "M월 D일 (요일) · N개 달성"', async () => {
-    vi.setSystemTime(new Date('2026-04-22T03:00:00Z'));
+    vi.setSystemTime(new Date('2026-04-22T09:00:00Z'));
     localStorage.setItem('dg.answers', JSON.stringify([
       { date: '2026-04-20', text: 'a', type: '감정' },
     ]));
@@ -175,7 +195,7 @@ describe('hydrateHeatmap inline info', () => {
   });
 
   it('updates info on empty cell mouseenter: "기록 없음"', async () => {
-    vi.setSystemTime(new Date('2026-04-22T03:00:00Z'));
+    vi.setSystemTime(new Date('2026-04-22T09:00:00Z'));
     const mod = await import('../../src/ui/handlers/stats');
     mod.hydrateStats();
     const cell = document.querySelector<HTMLButtonElement>('.heatmap-cell[data-date="2026-04-15"]')!;
@@ -185,7 +205,7 @@ describe('hydrateHeatmap inline info', () => {
   });
 
   it('resets info to default on mouseleave', async () => {
-    vi.setSystemTime(new Date('2026-04-22T03:00:00Z'));
+    vi.setSystemTime(new Date('2026-04-22T09:00:00Z'));
     localStorage.setItem('dg.answers', JSON.stringify([
       { date: '2026-04-22', text: 'a', type: '감정' },
     ]));
@@ -205,7 +225,7 @@ describe('hydrateHeatmap roving tabindex + keyboard nav', () => {
     sessionStorage.clear();
     mountHeatmapDom();
     vi.useFakeTimers();
-    vi.setSystemTime(new Date('2026-04-22T03:00:00Z'));
+    vi.setSystemTime(new Date('2026-04-22T09:00:00Z'));
   });
   afterEach(() => {
     vi.useRealTimers();
@@ -289,7 +309,7 @@ describe('hydrateHeatmap entrance animation', () => {
     sessionStorage.clear();
     mountHeatmapDom();
     vi.useFakeTimers();
-    vi.setSystemTime(new Date('2026-04-22T03:00:00Z'));
+    vi.setSystemTime(new Date('2026-04-22T09:00:00Z'));
   });
   afterEach(() => {
     vi.useRealTimers();
@@ -329,10 +349,10 @@ describe('hydrateHeatmap timezone safety (v3.3.4.1 regression)', () => {
   });
 
   it('answer stored with local date key appears on matching cell even when toISOString returns a TZ-shifted string', async () => {
-    // Regression: 답변은 getDateStr(local)로 저장되는데 히트맵은 toISOString().slice(0,10)(UTC)로
+    // Regression: 답변은 getKstDateStr(local)로 저장되는데 히트맵은 toISOString().slice(0,10)(UTC)로
     // 조회해서, non-UTC 사용자가 하루 경계 근처에 있을 때 오늘 셀에 안 맞거나 엉뚱한 셀로 밀림.
-    // 수정: stats.ts가 read/write 양쪽 모두 getDateStr 사용.
-    vi.setSystemTime(new Date('2026-04-22T03:00:00Z'));
+    // 수정: stats.ts가 read/write 양쪽 모두 getKstDateStr 사용.
+    vi.setSystemTime(new Date('2026-04-22T09:00:00Z'));
 
     const originalToISOString = Date.prototype.toISOString;
     vi.spyOn(Date.prototype, 'toISOString').mockImplementation(function (this: Date) {
@@ -340,9 +360,9 @@ describe('hydrateHeatmap timezone safety (v3.3.4.1 regression)', () => {
       return originalToISOString.call(shifted);
     });
 
-    const { getDateStr } = await import('../../src/utils/dates');
+    const { getKstDateStr } = await import('../../src/utils/dates');
     const today = new Date();
-    const todayLocal = getDateStr(today);
+    const todayLocal = getKstDateStr(today);
 
     localStorage.setItem('dg.answers', JSON.stringify([
       { date: todayLocal, text: 'x', type: '감정' },
@@ -395,7 +415,7 @@ describe('hydrateHeatmap future guard (v3.3.4.3)', () => {
 
   it('future cells (within current week, past today) get .is-future + aria-disabled + dataset.future', async () => {
     // Today = 2026-04-22 Wed → Thu/Fri/Sat/Sun of current week are future
-    vi.setSystemTime(new Date('2026-04-22T03:00:00Z'));
+    vi.setSystemTime(new Date('2026-04-22T09:00:00Z'));
     const mod = await import('../../src/ui/handlers/stats');
     mod.hydrateStats();
     const futureKeys = ['2026-04-23', '2026-04-24', '2026-04-25', '2026-04-26'];
@@ -410,7 +430,7 @@ describe('hydrateHeatmap future guard (v3.3.4.3)', () => {
   });
 
   it('past and today cells are not .is-future and not aria-disabled', async () => {
-    vi.setSystemTime(new Date('2026-04-22T03:00:00Z'));
+    vi.setSystemTime(new Date('2026-04-22T09:00:00Z'));
     const mod = await import('../../src/ui/handlers/stats');
     mod.hydrateStats();
     const past = document.querySelector<HTMLButtonElement>('.heatmap-cell[data-date="2026-04-20"]')!;
@@ -423,14 +443,14 @@ describe('hydrateHeatmap future guard (v3.3.4.3)', () => {
   });
 
   it('when today is Sunday, no future cells in window', async () => {
-    vi.setSystemTime(new Date('2026-04-26T03:00:00Z')); // Sun
+    vi.setSystemTime(new Date('2026-04-26T09:00:00Z')); // Sun
     const mod = await import('../../src/ui/handlers/stats');
     mod.hydrateStats();
     expect(document.querySelectorAll('.heatmap-cell.is-future').length).toBe(0);
   });
 
   it('mouseenter on future cell updates info to "아직 오지 않은 날짜"', async () => {
-    vi.setSystemTime(new Date('2026-04-22T03:00:00Z'));
+    vi.setSystemTime(new Date('2026-04-22T09:00:00Z'));
     const mod = await import('../../src/ui/handlers/stats');
     mod.hydrateStats();
     const future = document.querySelector<HTMLButtonElement>('.heatmap-cell[data-date="2026-04-23"]')!;
@@ -440,7 +460,7 @@ describe('hydrateHeatmap future guard (v3.3.4.3)', () => {
   });
 
   it('click on future cell does not open the day-detail modal', async () => {
-    vi.setSystemTime(new Date('2026-04-22T03:00:00Z'));
+    vi.setSystemTime(new Date('2026-04-22T09:00:00Z'));
     const mod = await import('../../src/ui/handlers/stats');
     mod.hydrateStats();
     const future = document.querySelector<HTMLButtonElement>('.heatmap-cell[data-date="2026-04-23"]')!;
@@ -452,7 +472,7 @@ describe('hydrateHeatmap future guard (v3.3.4.3)', () => {
     // Today Wed (2026-04-22) is in last column row 2 (Mon=0, Tue=1, Wed=2).
     // Rows 3~6 (Thu,Fri,Sat,Sun) in last column are all future cells.
     // ArrowDown iterates +1 and must skip all future → no valid target → stay.
-    vi.setSystemTime(new Date('2026-04-22T03:00:00Z'));
+    vi.setSystemTime(new Date('2026-04-22T09:00:00Z'));
     const mod = await import('../../src/ui/handlers/stats');
     mod.hydrateStats();
     const today = document.querySelector<HTMLButtonElement>('.heatmap-cell.is-today')!;

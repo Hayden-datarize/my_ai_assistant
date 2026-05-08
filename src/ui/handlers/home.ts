@@ -19,7 +19,7 @@ import { generateQuestion, chat, evaluateAnswer } from '../../services/gemini';
 import { autoSendAnswer } from '../../services/slack';
 import { summarizeOrTranslateBody, translateTitle, isSessionBlocked } from '../../services/translate';
 import { TranslateQueue } from '../translateQueue';
-import { getDateStr } from '../../utils/dates';
+import { getKstDateStr } from '../../utils/dates';
 import { showToast } from '../../utils/toast';
 import { detectLanguage } from '../../utils/lang';
 import { openMemoModal } from '../modals/memo';
@@ -396,7 +396,7 @@ async function hydrateBriefings(): Promise<void> {
   const scroll = document.getElementById('briefingScroll');
   if (!scroll) return;
 
-  const today = getDateStr();
+  const today = getKstDateStr();
   const firstDate = list[0]?.date;
   const isStale = list.length === 0 || (firstDate !== undefined && firstDate !== today);
 
@@ -653,7 +653,7 @@ async function refreshBriefings(): Promise<void> {
     chosen = pickBriefings(fetched, 5);
   }
 
-  const today = getDateStr();
+  const today = getKstDateStr();
   const stored: Briefing[] = chosen.map(({ item, sourceTitle }, i) => ({
     id: `b_${Date.now()}_${i}`,
     date: today,
@@ -747,7 +747,7 @@ async function hydrateQuestion(): Promise<void> {
   const content = document.getElementById('questionContent');
   if (!content) return;
 
-  const today = getDateStr();
+  const today = getKstDateStr();
   const cacheKey = `${TODAY_QUESTION_PREFIX}${today}`;
   const cached = localStorage.getItem(cacheKey);
   if (cached) {
@@ -816,7 +816,7 @@ function hydrateChatHistory(): void {
   const msgs = document.getElementById('chatMessages');
   if (!msgs) return;
   msgs.replaceChildren();
-  const today = getDateStr();
+  const today = getKstDateStr();
   const history = loadChatHistory(today);
   for (const m of history) addBubble(m.role, m.text);
   updateTurnCounter(history.length);
@@ -903,7 +903,7 @@ async function submitAnswer(): Promise<void> {
     questionText: questionText || undefined, // v3.11: persist question text alongside answer
     authorId: 'self',
     type: questionType,
-    date: getDateStr(),
+    date: getKstDateStr(),
   });
   const id = appendAnswer(answer);
 
@@ -919,7 +919,7 @@ async function submitAnswer(): Promise<void> {
   // Always surface the user's answer as a chat bubble so it is not "lost"
   // after the textarea is cleared. This runs before API-key gating below.
   addBubble('user', text);
-  appendChatMessage(getDateStr(), { role: 'user', text, at: Date.now() });
+  appendChatMessage(getKstDateStr(), { role: 'user', text, at: Date.now() });
   document.getElementById('chatContainer')?.scrollIntoView({ behavior: 'smooth', block: 'start' });
   showToast(MSG.ANSWER_SAVED);
 
@@ -930,7 +930,7 @@ async function submitAnswer(): Promise<void> {
       label: '⚙ 설정 열기',
       onClick: openSettingsWithFocus,
     });
-    updateTurnCounter(loadChatHistory(getDateStr()).length);
+    updateTurnCounter(loadChatHistory(getKstDateStr()).length);
     return;
   }
 
@@ -942,7 +942,7 @@ async function submitAnswer(): Promise<void> {
       ],
     });
     addBubble('ai', reply);
-    appendChatMessage(getDateStr(), { role: 'ai', text: reply, at: Date.now() });
+    appendChatMessage(getKstDateStr(), { role: 'ai', text: reply, at: Date.now() });
   } catch {
     addBubble('ai', MSG.AI_RESPONSE_FAIL);
   }
@@ -958,7 +958,7 @@ async function submitAnswer(): Promise<void> {
       void autoSendAnswer({ question: questionText, answer: text });
     });
 
-  updateTurnCounter(loadChatHistory(getDateStr()).length);
+  updateTurnCounter(loadChatHistory(getKstDateStr()).length);
 }
 
 async function sendChatMessage(): Promise<void> {
@@ -969,7 +969,7 @@ async function sendChatMessage(): Promise<void> {
   input.value = '';
 
   addBubble('user', text);
-  appendChatMessage(getDateStr(), { role: 'user', text, at: Date.now() });
+  appendChatMessage(getKstDateStr(), { role: 'user', text, at: Date.now() });
 
   const key = getApiKey();
   if (!key) {
@@ -977,20 +977,20 @@ async function sendChatMessage(): Promise<void> {
       label: '⚙ 설정 열기',
       onClick: openSettingsWithFocus,
     });
-    updateTurnCounter(loadChatHistory(getDateStr()).length);
+    updateTurnCounter(loadChatHistory(getKstDateStr()).length);
     return;
   }
 
-  const history = loadChatHistory(getDateStr()).map((m) => ({ role: m.role, text: m.text }));
+  const history = loadChatHistory(getKstDateStr()).map((m) => ({ role: m.role, text: m.text }));
   try {
     const reply = await chat({ apiKey: key, turns: history });
     addBubble('ai', reply);
-    appendChatMessage(getDateStr(), { role: 'ai', text: reply, at: Date.now() });
+    appendChatMessage(getKstDateStr(), { role: 'ai', text: reply, at: Date.now() });
   } catch {
     addBubble('ai', MSG.AI_RESPONSE_FAIL);
   }
 
-  updateTurnCounter(loadChatHistory(getDateStr()).length);
+  updateTurnCounter(loadChatHistory(getKstDateStr()).length);
 }
 
 async function exportData(): Promise<void> {
@@ -1006,7 +1006,7 @@ async function exportData(): Promise<void> {
   const url = URL.createObjectURL(blob);
   const a = document.createElement('a');
   a.href = url;
-  a.download = `dg-backup-${getDateStr()}.json`;
+  a.download = `dg-backup-${getKstDateStr()}.json`;
   document.body.append(a);
   a.click();
   a.remove();

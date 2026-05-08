@@ -43,4 +43,21 @@ describe('interestCounts', () => {
     ] as any);
     expect(getAnswerCountByInterest('user_custom_interest')).toBe(0);
   });
+
+  describe('v3.22 T3 — INTERESTS.find guard (P2-3)', () => {
+    it('catalog 외 id가 답변 텍스트에 우연 매칭되어도 count 0', () => {
+      // text에 'leadership_v2' 우연 포함 — guard 없으면 keywords=['leadership_v2']로 매칭 가능
+      saveAnswers([
+        { id: '1', text: 'leadership_v2 spec 검토', schemaVersion: 1, questionId: 'q1', authorId: 'self', createdAt: '2026-05-08T00:00:00Z' },
+      ] as any);
+      expect(getAnswerCountByInterest('leadership_v2')).toBe(0);
+    });
+
+    it('catalog 외 id 스크랩 — title/summary 매칭되어도 count 0', () => {
+      saveBriefings([
+        { id: 'b1', date: '2026-05-08', url: 'https://x.com/1', title: 'custom_topic 동향', summary: 'custom_topic update', scrapped: true, read: false, memo: '' },
+      ] as any);
+      expect(getScrapCountByInterest('custom_topic')).toBe(0);
+    });
+  });
 });

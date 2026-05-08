@@ -32,6 +32,21 @@ module.exports = {
     // Migration trade-off: tabs/services often need `any` shims while porting from
     // legacy untyped code. Re-tighten to 'error' once migration stabilizes (Task 22+).
     '@typescript-eslint/no-explicit-any': 'warn',
+    // v3.22 T5: getDateStr deprecated (머신 TZ). KST anchor 필요 시 getKstDateStr 사용.
+    // dates.ts와 dates.spec.ts는 helper 정의/검증이라 overrides에서 제외.
+    'no-restricted-imports': ['error', {
+      patterns: [{
+        group: ['**/utils/dates'],
+        importNames: ['getDateStr'],
+        message: 'getDateStr is deprecated (v3.22). Use getKstDateStr for KST anchor (Asia/Seoul).',
+      }],
+    }],
   },
+  overrides: [
+    {
+      files: ['src/utils/dates.ts', 'tests/unit/dates.spec.ts'],
+      rules: { 'no-restricted-imports': 'off' },
+    },
+  ],
   ignorePatterns: ['dist/', 'node_modules/', 'daily-growth.html'],
 };

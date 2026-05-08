@@ -1,5 +1,5 @@
 import { test, expect } from '@playwright/test';
-import { getDateStr } from '../../src/utils/dates';
+import { getKstDateStr } from '../../src/utils/dates';
 import { primeOnboardedUser } from '../helpers/seed';
 
 // Block service worker so stats-tab navigation / seeded answers are not
@@ -23,7 +23,7 @@ test.use({ serviceWorkers: 'block' });
 async function seedAndGoto(page: import('@playwright/test').Page): Promise<void> {
   // v3.14.5 T1 (Codex IR-1): KST today를 Node-side에서 계산해 args로 전달.
   // browser-context의 toISOString()은 UTC라 KST 새벽엔 1일 어긋나 .is-today cell 0개로 false-green.
-  const today = getDateStr();
+  const today = getKstDateStr();
   await primeOnboardedUser(page, { interests: ['growth'], streak: 1, xp: 10 });
   await page.addInitScript((args: { today: string }) => {
     localStorage.setItem('dg.answers', JSON.stringify([
@@ -85,9 +85,9 @@ test.describe('heatmap visual + interaction', () => {
     await seedAndGoto(page);
     const todayCell = page.locator('.heatmap-cell.is-today');
     await expect(todayCell).toHaveCount(1);
-    // v3.14.5 T1 (Codex IR-1): cell의 [data-date]가 Node-side getDateStr()과 일치하는지
+    // v3.14.5 T1 (Codex IR-1): cell의 [data-date]가 Node-side getKstDateStr()과 일치하는지
     // 명시 검증 — KST-shifted host에서 false-green 차단.
-    await expect(todayCell).toHaveAttribute('data-date', getDateStr());
+    await expect(todayCell).toHaveAttribute('data-date', getKstDateStr());
   });
 
   test('keyboard: focus first data cell, ArrowRight moves 7 days', async ({ page }) => {

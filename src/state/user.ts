@@ -1,4 +1,4 @@
-import { getDateStr } from '../utils/dates';
+import { getKstDateStr } from '../utils/dates';
 import { MSG } from '../ui/messages';
 import { migrateUserToV2, migrateUserToV3, migrateUserToV4, migrateUserToV5 } from './migration';
 import { takeSnapshot, runSweep } from './achievements';
@@ -156,7 +156,7 @@ export function recordDailyAnswer(xpDelta: number): void {
   const u = loadUserData();
   if (!u) return;
   const now = new Date();                                                         // single now capture (v3.13.1 T14 / codex P1-1)
-  const today = getDateStr();
+  const today = getKstDateStr();
 
   // lazy regen (in-memory only — saveUser 는 caller 책임, 아래 단일 호출)
   getActiveMissions(now, u);

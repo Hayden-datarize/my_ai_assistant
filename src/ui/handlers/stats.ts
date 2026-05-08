@@ -12,7 +12,7 @@ import { openModal } from '../modals/shared';
 import { escapeHtml } from '../../utils/escapeHtml';
 import { showToast } from '../../utils/toast';
 import { toKoType } from '../../utils/typeLabel';
-import { getDateStr } from '../../utils/dates';
+import { getKstDateStr } from '../../utils/dates';
 import { getCachedUser } from '../../state/user';
 import { TIERS, getCurrentTier } from '../../state/leveling';
 import { BADGE_CATALOG, type BadgeDef } from '../../state/badgeCatalog';
@@ -27,7 +27,7 @@ function computeTotalAndStreak(counts: Map<string, number>, firstDay: Date, days
   for (let i = 0; i < days; i++) {
     const d = new Date(firstDay);
     d.setDate(firstDay.getDate() + i);
-    const n = counts.get(getDateStr(d)) ?? 0;
+    const n = counts.get(getKstDateStr(d)) ?? 0;
     total += n;
     if (n > 0) { streak += 1; if (streak > longest) longest = streak; }
     else { streak = 0; }
@@ -149,10 +149,10 @@ export function hydrateHeatmap(): void {
   const answers = loadAnswers();
   const counts = new Map<string, number>();
   for (const a of answers) {
-    // a.date is always local (via getDateStr in home.ts). Fallback: parse the
-    // UTC createdAt timestamp back into a Date and format it in local TZ so
-    // legacy answers without .date still align with the heatmap cell keys.
-    const key = a.date ?? (a.createdAt ? getDateStr(new Date(a.createdAt)) : '');
+    // a.date is always KST (via getKstDateStr in home.ts, v3.22 T5 sweep). Fallback:
+    // parse the UTC createdAt timestamp into a Date and format in KST so legacy
+    // answers without .date still align with the heatmap cell keys.
+    const key = a.date ?? (a.createdAt ? getKstDateStr(new Date(a.createdAt)) : '');
     if (!key) continue;
     counts.set(key, (counts.get(key) ?? 0) + 1);
   }
@@ -170,7 +170,7 @@ export function hydrateHeatmap(): void {
   currentWeekMonday.setDate(today.getDate() - daysFromMonday);
   const firstDay = new Date(currentWeekMonday);
   firstDay.setDate(currentWeekMonday.getDate() - 21);
-  const todayKey = getDateStr(today);
+  const todayKey = getKstDateStr(today);
 
   const { total, streak } = computeTotalAndStreak(counts, firstDay, DAYS);
   if (info) setDefaultInfo(info, total, streak);
@@ -183,7 +183,7 @@ export function hydrateHeatmap(): void {
   for (let i = 0; i < DAYS; i++) {
     const d = new Date(firstDay);
     d.setDate(firstDay.getDate() + i);
-    const key = getDateStr(d);
+    const key = getKstDateStr(d);
     const n = counts.get(key) ?? 0;
     const level = Math.min(3, n);
     // v3.3.4.3: YYYY-MM-DD ISO string lexicographic order === chronological order
@@ -435,7 +435,9 @@ function hydrateGrowthSummary(): void {
 }
 
 function showDayDetail(date: string, onClose?: () => void): void {
-  const answers = loadAnswers().filter((a) => (a.date ?? (a.createdAt?.slice(0, 10) ?? '')) === date);
+  // v3.22 T7 (codex P1): heatmap counts (line 155)와 동일 KST fallback 사용 — legacy
+  // answer (date 누락 + createdAt만)가 두 view에서 같은 KST date로 분류되도록 보장.
+  const answers = loadAnswers().filter((a) => (a.date ?? (a.createdAt ? getKstDateStr(new Date(a.createdAt)) : '')) === date);
   if (answers.length === 0) {
     openModal({ title: date, bodyHtml: `<p>이 날은 기록이 없어요.</p>`, onClose });
     return;

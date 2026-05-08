@@ -1,4 +1,4 @@
-import { describe, it, expect } from 'vitest';
+import { describe, it, expect, afterEach, vi } from 'vitest';
 import { migrateUserToV5 } from '../../src/state/migration';
 
 describe('migrateUserToV5', () => {
@@ -37,5 +37,18 @@ describe('migrateUserToV5', () => {
     expect(fixed.streakFreeze.count).toBe(2);
     expect(fixed.streakFreeze.lastEarnedAt).not.toBe('2026-05-01');
     expect(fixed.streakFreeze.lastEarnedAt).toMatch(/^\d{4}-\d{2}-\d{2}$/);
+  });
+
+  describe('v3.22 T2 — KST anchor (P0-2 boundary fixture)', () => {
+    afterEach(() => { vi.useRealTimers(); });
+
+    it('KST 자정 직후 instant — 머신 TZ 무관하게 KST date 반환', () => {
+      vi.useFakeTimers();
+      // KST 2026-05-08T00:30 = NY 2026-05-07T11:30 → 머신이 NY여도 KST 기준 2026-05-08
+      vi.setSystemTime(new Date('2026-05-08T00:30:00+09:00'));
+      const v4 = { schemaVersion: 4, streak: 5, lastActiveDate: '2026-05-06' };
+      const v5 = migrateUserToV5(v4);
+      expect(v5.streakFreeze.lastEarnedAt).toBe('2026-05-08');
+    });
   });
 });
