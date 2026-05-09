@@ -15,8 +15,8 @@ export function parseJsonText<T>(text: string): T {
  */
 const INTEREST_LABEL_ALIAS = new Map<string, string>(
   INTERESTS.flatMap(i => [
-    [i.label, i.id] as [string, string],                                    // emoji prefix 포함 ('🎯 채용')
-    [i.label.replace(/^[\p{Emoji}\s]+/u, ''), i.id] as [string, string],    // emoji prefix 제거 ('채용')
+    [i.label, i.id] as [string, string],                                                          // emoji prefix 포함 ('🎯 채용')
+    [i.label.replace(/^[\p{Emoji}\p{Emoji_Component}\s]+/u, ''), i.id] as [string, string],       // emoji prefix 제거 ('채용'). Emoji_Component는 VS-16(U+FE0F)/ZWJ 등 포함 — '⚖️ 노무/법률'(labor_law) 케이스 fix (T3 review C1)
   ]),
 );
 

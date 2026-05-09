@@ -94,4 +94,31 @@ describe('parseInsightResponse (v3.25 T3)', () => {
     const r = parseInsightResponse('통찰|🎯 채용');
     expect(r.interestId).toBe('recruiting');
   });
+
+  // T3 review C1 fix: VS-16 (variation selector U+FE0F) 포함 emoji prefix 매칭
+  it("id 한국어 label (노무/법률, VS-16 포함 ⚖️ prefix) — alias 매칭 (C1 fix)", () => {
+    const r = parseInsightResponse('통찰|노무/법률');
+    expect(r.interestId).toBe('labor_law');
+  });
+
+  it("id emoji label (⚖️ 노무/법률) — VS-16 포함 raw prefix 매칭", () => {
+    const r = parseInsightResponse('통찰|⚖️ 노무/법률');
+    expect(r.interestId).toBe('labor_law');
+  });
+});
+
+// T3 review I1 fix: catalog-driven parametrized 회귀 spec — INTERESTS 15개 전체 cover
+import { INTERESTS } from '../../src/utils/categories';
+
+describe('parseInsightResponse alias map — catalog 전체 회귀 (T3 review I1)', () => {
+  it.each(INTERESTS)('$id label `$label` emoji prefix 제거 후 alias 매칭', ({ id, label }) => {
+    const stripped = label.replace(/^[\p{Emoji}\p{Emoji_Component}\s]+/u, '');
+    const r = parseInsightResponse(`통찰|${stripped}`);
+    expect(r.interestId).toBe(id);
+  });
+
+  it.each(INTERESTS)('$id raw label `$label` (emoji prefix 포함) alias 매칭', ({ id, label }) => {
+    const r = parseInsightResponse(`통찰|${label}`);
+    expect(r.interestId).toBe(id);
+  });
 });
