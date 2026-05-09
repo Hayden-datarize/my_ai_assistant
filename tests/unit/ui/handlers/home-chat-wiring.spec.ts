@@ -44,6 +44,16 @@ vi.mock('../../../../src/state/user', () => ({
     if (trimmed.length === 0) throw new Error('Insight text empty');
     return trimmed.slice(0, 200);
   },
+  // v3.25 T4: gemini-parse.ts (real impl) imports validateInterestId from state/user.
+  // home.ts → parseInsightResponse → validateInterestId 체인 — passthrough whitelist 매칭.
+  validateInterestId: (id: string): string => {
+    const ids = new Set([
+      'recruiting', 'onboarding', 'culture', 'hr_system', 'labor_law',
+      'leadership', 'pm', 'ai_ml', 'data', 'startup', 'marketing',
+      'productivity', 'career', 'communication', 'self_dev',
+    ]);
+    return ids.has(id) ? id : 'unknown';
+  },
 }));
 vi.mock('../../../../src/utils/apiKey', () => ({
   getApiKey: (...a: unknown[]) => mockGetApiKey(...a),
@@ -460,5 +470,101 @@ describe('handleGenerateInsight (v3.23 T8)', () => {
 
     expect(mockSaveUser).not.toHaveBeenCalled();
     expect(mockShowToast).toHaveBeenCalledWith(expect.stringContaining('사용자 정보'));
+  });
+});
+
+// ---------------------------------------------------------------------------
+// v3.25 T4: parseInsightResponse wiring — Insight.interestId 자동 분류
+// ---------------------------------------------------------------------------
+describe('handleGenerateInsight × parseInsightResponse wiring (v3.25 T4)', () => {
+  beforeEach(() => {
+    vi.clearAllMocks();
+    // 이전 describe 의 mockSaveUser.mockImplementation(throw) 잔존 차단 (vi.clearAllMocks 는 history 만 clear).
+    mockSaveUser.mockReset();
+    setupChatContainer();
+    mockLoadChatHistory.mockReturnValue([
+      { role: 'user', text: '안녕', at: 1 },
+      { role: 'ai', text: '반가워요', at: 2 },
+    ]);
+    mockGetApiKey.mockReturnValue('test-key');
+    mockCheckAndIncrementGemini.mockReturnValue(true);
+    mockRenderChatPreviewBubble.mockReturnValue(document.createElement('div'));
+    mockGetCachedUser.mockReturnValue(makeUser());
+  });
+
+  it('정상 응답 (text|id) → Insight.interestId가 parseInsightResponse 결과 (whitelist id)', async () => {
+    mockGenerateText.mockResolvedValue('통찰 한 문장|recruiting');
+
+    const fakeUser = makeUser();
+    mockGetCachedUser.mockReturnValue(fakeUser);
+
+    let capturedOpts: ChatPreviewBubbleOpts | null = null;
+    mockRenderChatPreviewBubble.mockImplementation((opts: ChatPreviewBubbleOpts) => {
+      capturedOpts = opts;
+      return document.createElement('div');
+    });
+
+    const { handleGenerateInsight } = await import('../../../../src/ui/handlers/home');
+    await handleGenerateInsight();
+
+    expect(capturedOpts).not.toBeNull();
+    expect(capturedOpts!.text).toBe('통찰 한 문장');  // text/id split 후 text만 bubble에 표시
+    capturedOpts!.onPrimary();
+
+    expect(mockSaveUser).toHaveBeenCalledOnce();
+    const savedUser = mockSaveUser.mock.calls[0][0] as FakeUser & { insights: { interestId: string }[] };
+    expect(savedUser.insights).toHaveLength(1);
+    expect(savedUser.insights[0]!.text).toBe('통찰 한 문장');
+    expect(savedUser.insights[0]!.interestId).toBe('recruiting');
+  });
+
+  it("형식 깨짐 (| 없음) → interestId='unknown' 저장 (text는 정상 저장)", async () => {
+    mockGenerateText.mockResolvedValue('통찰만 있는 응답');
+
+    const fakeUser = makeUser();
+    mockGetCachedUser.mockReturnValue(fakeUser);
+
+    let capturedOpts: ChatPreviewBubbleOpts | null = null;
+    mockRenderChatPreviewBubble.mockImplementation((opts: ChatPreviewBubbleOpts) => {
+      capturedOpts = opts;
+      return document.createElement('div');
+    });
+
+    const { handleGenerateInsight } = await import('../../../../src/ui/handlers/home');
+    await handleGenerateInsight();
+
+    expect(capturedOpts).not.toBeNull();
+    capturedOpts!.onPrimary();
+
+    expect(mockSaveUser).toHaveBeenCalledOnce();
+    const savedUser = mockSaveUser.mock.calls[0][0] as FakeUser & { insights: { interestId: string }[] };
+    expect(savedUser.insights).toHaveLength(1);
+    expect(savedUser.insights[0]!.text).toBe('통찰만 있는 응답');
+    expect(savedUser.insights[0]!.interestId).toBe('unknown');
+  });
+
+  it("Gemini가 한국어 label 반환 ('|채용') → alias map 매칭 → interestId='recruiting' 저장", async () => {
+    mockGenerateText.mockResolvedValue('통찰 한 문장|채용');
+
+    const fakeUser = makeUser();
+    mockGetCachedUser.mockReturnValue(fakeUser);
+
+    let capturedOpts: ChatPreviewBubbleOpts | null = null;
+    mockRenderChatPreviewBubble.mockImplementation((opts: ChatPreviewBubbleOpts) => {
+      capturedOpts = opts;
+      return document.createElement('div');
+    });
+
+    const { handleGenerateInsight } = await import('../../../../src/ui/handlers/home');
+    await handleGenerateInsight();
+
+    expect(capturedOpts).not.toBeNull();
+    capturedOpts!.onPrimary();
+
+    expect(mockSaveUser).toHaveBeenCalledOnce();
+    const savedUser = mockSaveUser.mock.calls[0][0] as FakeUser & { insights: { interestId: string }[] };
+    expect(savedUser.insights).toHaveLength(1);
+    expect(savedUser.insights[0]!.text).toBe('통찰 한 문장');
+    expect(savedUser.insights[0]!.interestId).toBe('recruiting');
   });
 });

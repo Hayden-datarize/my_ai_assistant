@@ -26,7 +26,8 @@ import { openMemoModal } from '../modals/memo';
 import { createLangToggle, type LangToggleEl, type LangState } from '../components/cardLangToggle';
 import { checkAndIncrement, getCap, getTodayCount } from '../../state/usage';
 import { showCapToast, showTranslateError, showPartialTranslateFail } from '../translateToast';
-import { getCachedUser, getSaveErrorMessage, recordDailyAnswer, saveUser, validateInsightText, type Insight } from '../../state/user';
+import { getCachedUser, getSaveErrorMessage, recordDailyAnswer, saveUser, type Insight } from '../../state/user';
+import { parseInsightResponse } from '../../utils/gemini-parse';
 import { renderGardenMini } from '../components/garden-grid';
 import { scrollToGardenSection } from './stats';
 import { loadActiveSeenUrls, recordSeen, purgeExpiredSeen } from '../../state/seen';
@@ -1101,19 +1102,22 @@ export async function handleGenerateInsight(): Promise<void> {
   }
   try {
     const tmpl = PROMPTS.insight;
-    const text = await generateText({
+    const raw = await generateText({
       apiKey: getApiKey()!,
       prompt: tmpl.build({ chatTurns: history.map(m => ({ role: m.role, text: m.text })) }),
       maxOutputTokens: tmpl.maxOutputTokens,
     });
-    // v3.24 T5 (B1): entry guard — `validateInsightText`로 trim + non-empty + max-200 cap 일원화.
-    let insightText: string;
+    // v3.25 T4: parseInsightResponse로 text + interestId 함께 추출 (T1 임시 'unknown' 교체).
+    // 내부적으로 validateInsightText 호출 (trim + non-empty + max-200 cap 일원화 — v3.24 T5 정책 유지).
+    let parsed: { text: string; interestId: string };
     try {
-      insightText = validateInsightText(text);
+      parsed = parseInsightResponse(raw);
     } catch {
       showToast('AI 분석에 실패했어요');
       return;
     }
+    const insightText = parsed.text;
+    const insightInterestId = parsed.interestId;
     renderChatPreviewBubble({
       text: insightText,
       primaryLabel: '저장',
@@ -1127,7 +1131,7 @@ export async function handleGenerateInsight(): Promise<void> {
         const insight: Insight = {
           id: crypto.randomUUID(),
           text: insightText,
-          interestId: 'unknown',  // v3.25 T1: 임시 — T4에서 parseInsightResponse 결과로 교체
+          interestId: insightInterestId,  // v3.25 T4: parseInsightResponse 결과 (Gemini 분류 또는 'unknown' 폴백)
           createdAt: new Date().toISOString(),
         };
         // T8 review fix C2: saveUser throw on Quota → in-memory pop rollback (v3.7 정책 + v3.10 atomic single-write idiom).
