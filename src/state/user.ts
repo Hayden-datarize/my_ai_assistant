@@ -8,6 +8,7 @@ import type { PlantState } from './plantTypes';
 import { backfillGarden } from './backfillGarden';
 import { regenerateFreeze, consumeFreezeForGap } from './freezeEngine';
 import { dispatch } from '../ui/events';
+import { showToast } from '../utils/toast';
 
 /**
  * v3.23 NEW: Gemini 기반 통찰 항목.
@@ -47,9 +48,6 @@ export interface User {
   insights: Insight[];                                 // v3.23 NEW
 }
 
-/** home.ts / stats.ts 레거시 호환 alias */
-export type LegacyUser = User;
-
 const KEY = 'user';
 
 function notifyCorruption(): void {
@@ -57,10 +55,8 @@ function notifyCorruption(): void {
   // v3.14.3 T6 (P2-1): HR/GA 친화 텍스트 + 행동 가이드. 4000ms 유지(메시지 길이 + 행동 시간).
   // v3.14.3 T10 (P3-toast-const): 4000ms — default 2500ms보다 길게.
   //   메시지(~25자) + 행동("새로고침") 시간 확보. levelup(TOAST_DURATIONS.levelup=4000)과 동일 톤.
-  // dynamic import to avoid circular (toast → user는 없으나 안전).
-  void import('../utils/toast').then(({ showToast }) => {
-    showToast('저장된 데이터를 다시 불러오지 못했어요. 새로고침해 주세요.', 4000);
-  }).catch(() => { /* toast import 자체 실패는 production 환경 외 발생 안 함 */ });
+  // v3.24 T3: dynamic import → static (toast.ts 0 import, circular 0 — Vite split miss 회피).
+  showToast('저장된 데이터를 다시 불러오지 못했어요. 새로고침해 주세요.', 4000);
 }
 
 export function getCachedUser(): User | null {
@@ -89,9 +85,8 @@ export function getCachedUser(): User | null {
       // best-effort: getCachedUser는 boot path이므로 throw 금지, 다음 진입 시 gardenBackfilled=false로 재시도.
       try { localStorage.setItem(KEY, JSON.stringify(user)); }
       catch (err) {
-        void import('../utils/toast').then(({ showToast }) => {
-          showToast(getSaveErrorMessage(err));
-        }).catch(() => { /* toast import 실패는 production 외 발생 안 함 */ });
+        // v3.24 T3: dynamic → static (위 notifyCorruption과 동일).
+        showToast(getSaveErrorMessage(err));
       }
     } else if (parsed?.schemaVersion !== 6) {
       // lazy migrate v1/v2/v3/v4/v5 → v6 (정상 데이터만 persist; 손상 데이터는 위에서 null)
@@ -230,15 +225,6 @@ export function recordDailyAnswer(xpDelta: number): void {
 
   const curr = takeSnapshot();
   runSweep(prev, curr);
-}
-
-export function updateGreeting(rootId = 'greeting'): void {
-  const el = document.getElementById(rootId);
-  const u = loadUserData();
-  if (!el || !u) return;
-  const h = new Date().getHours();
-  const period = h < 5 ? '늦은 밤' : h < 12 ? '좋은 아침' : h < 18 ? '좋은 오후' : '좋은 저녁';
-  el.textContent = `${period}, ${u.name}`;
 }
 
 export function updateStreakBanner(rootId = 'streakBanner'): void {

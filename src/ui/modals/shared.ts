@@ -37,17 +37,9 @@ export function openModal(cfg: ModalConfig): HTMLDivElement {
   const titleId = `dg-modal-title-${crypto.randomUUID()}`;
   wrap.setAttribute('aria-labelledby', titleId);
 
+  // v3.24 T3: indent 압축 (production-safe).
   // eslint-disable-next-line no-restricted-syntax -- 정적 셸; title uses textContent, body uses caller-escaped innerHTML per ModalConfig contract
-  wrap.innerHTML = `
-    <div class="dg-modal-backdrop"></div>
-    <div class="dg-modal-card">
-      <header class="dg-modal-header">
-        <h3 class="dg-modal-title" id="${titleId}"></h3>
-        <button type="button" class="dg-modal-close" aria-label="닫기">×</button>
-      </header>
-      <div class="dg-modal-body"></div>
-    </div>
-  `;
+  wrap.innerHTML = `<div class="dg-modal-backdrop"></div><div class="dg-modal-card"><header class="dg-modal-header"><h3 class="dg-modal-title" id="${titleId}"></h3><button type="button" class="dg-modal-close" aria-label="닫기">×</button></header><div class="dg-modal-body"></div></div>`;
 
   const titleEl = wrap.querySelector<HTMLHeadingElement>('.dg-modal-title');
   if (titleEl) titleEl.textContent = cfg.title;

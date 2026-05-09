@@ -47,13 +47,8 @@ export function renderGardenGrid(root: HTMLElement, user: User): void {
       : 0;
     const wiltClass = wilting ? ' wilting' : '';
     const bloomClass = plant.stage === 5 ? ' bloomed' : '';
-    return `
-      <button type="button" class="garden-card${wiltClass}${bloomClass}" data-interest-id="${escapeHtml(id)}" aria-label="${label} 정원 정보">
-        <span class="garden-emoji">${icon}</span>
-        <span class="garden-name">${label}${trophy}</span>
-        <span class="garden-stage-label">${stageLabel}</span>
-        <span class="garden-cum-count">${cumCount}회</span>
-      </button>`;
+    // v3.24 T3: indent 압축 (production-safe).
+    return `<button type="button" class="garden-card${wiltClass}${bloomClass}" data-interest-id="${escapeHtml(id)}" aria-label="${label} 정원 정보"><span class="garden-emoji">${icon}</span><span class="garden-name">${label}${trophy}</span><span class="garden-stage-label">${stageLabel}</span><span class="garden-cum-count">${cumCount}회</span></button>`;
   }).join('');
   // eslint-disable-next-line no-restricted-syntax -- 위에서 escapeHtml 전처리 완료
   root.innerHTML = `<div class="garden-grid">${cards}</div>`;
@@ -80,12 +75,8 @@ export function renderGardenMini(root: HTMLElement, user: User): void {
     const miniLabel = escapeHtml(shortLabel(id, false));
     const icon = escapeHtml(getPlantIcon(id, plant.stage));
     const wiltClass = wilting ? ' wilting' : '';
-    return `
-      <button type="button" class="garden-mini-cell${wiltClass}" data-interest-id="${escapeHtml(id)}" aria-label="${fullLabel} 정원">
-        <span class="garden-mini-emoji">${icon}</span>
-        ${trophy}
-        <span class="garden-mini-label">${miniLabel}</span>
-      </button>`;
+    // v3.24 T3: indent 압축 (production-safe).
+    return `<button type="button" class="garden-mini-cell${wiltClass}" data-interest-id="${escapeHtml(id)}" aria-label="${fullLabel} 정원"><span class="garden-mini-emoji">${icon}</span>${trophy}<span class="garden-mini-label">${miniLabel}</span></button>`;
   }).join('');
   // eslint-disable-next-line no-restricted-syntax -- 위에서 escapeHtml 전처리 완료
   root.innerHTML = `<div class="garden-mini-row">${cells}</div>`;

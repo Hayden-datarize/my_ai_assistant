@@ -12,13 +12,7 @@ export function openBadgeDetail(badgeId: string): void {
     ? `${new Date(unlockedAt).toISOString().slice(0, 10)} 획득`
     : `달성 조건: ${escapeHtml(def.description)}`;
 
-  const bodyHtml = `
-    <div class="badge-modal">
-      <div class="badge-modal-icon">${escapeHtml(def.icon)}</div>
-      <div class="badge-modal-name">${escapeHtml(def.name)}</div>
-      <div class="badge-modal-desc">${escapeHtml(def.description)}</div>
-      <div class="badge-modal-date">${dateText}</div>
-    </div>
-  `;
+  // v3.24 T3: indent 압축 (production-safe).
+  const bodyHtml = `<div class="badge-modal"><div class="badge-modal-icon">${escapeHtml(def.icon)}</div><div class="badge-modal-name">${escapeHtml(def.name)}</div><div class="badge-modal-desc">${escapeHtml(def.description)}</div><div class="badge-modal-date">${dateText}</div></div>`;
   openModal({ title: '뱃지', bodyHtml });
 }

@@ -18,14 +18,9 @@ export function openInsightDetailModal(id: string): void {
   const insight = user?.insights.find(i => i.id === id);
   if (!user || !insight) return;
 
+  // v3.24 T3: indent 압축 (production-safe).
   // eslint-disable-next-line no-restricted-syntax -- escapeHtml applied to all dynamic strings
-  const bodyHtml = `
-    <div class="insight-detail">
-      <p class="insight-detail-text">${escapeHtml(insight.text)}</p>
-      <p class="insight-detail-date">${escapeHtml(insight.createdAt.slice(0, 10))}</p>
-      <button type="button" class="btn btn-danger insight-delete-btn">삭제</button>
-    </div>
-  `;
+  const bodyHtml = `<div class="insight-detail"><p class="insight-detail-text">${escapeHtml(insight.text)}</p><p class="insight-detail-date">${escapeHtml(insight.createdAt.slice(0, 10))}</p><button type="button" class="btn btn-danger insight-delete-btn">삭제</button></div>`;
   const modal = openModal({ title: '인사이트', bodyHtml });
 
   modal.querySelector('.insight-delete-btn')?.addEventListener('click', () => {

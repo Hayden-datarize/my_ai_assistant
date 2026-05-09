@@ -18,30 +18,15 @@ export function renderInsights(container: HTMLElement): void {
   );
 
   if (insights.length === 0) {
+    // v3.24 T3: indent 압축 (production-safe).
     // eslint-disable-next-line no-restricted-syntax -- trusted static template, no interpolation
-    container.innerHTML = `
-      <div class="insights-section" id="insightsTab">
-        <h2 style="margin-bottom:16px;">💡 인사이트</h2>
-        <div id="insightContent" style="color:var(--text-secondary);font-size:0.9rem;line-height:1.6;">아직 인사이트가 없어요. 대화를 나누고 인사이트 카드를 만들어보세요.</div>
-      </div>
-    `;
+    container.innerHTML = `<div class="insights-section" id="insightsTab"><h2 style="margin-bottom:16px;">💡 인사이트</h2><div id="insightContent" style="color:var(--text-secondary);font-size:0.9rem;line-height:1.6;">아직 인사이트가 없어요. 대화를 나누고 인사이트 카드를 만들어보세요.</div></div>`;
     return;
   }
 
+  // v3.24 T3: indent 압축 (production-safe).
   // eslint-disable-next-line no-restricted-syntax -- escapeHtml applied to all dynamic strings
-  container.innerHTML = `
-    <div class="insights-section" id="insightsTab">
-      <h2 style="margin-bottom:16px;">💡 인사이트</h2>
-      <div class="insights-grid">
-        ${insights.map(i => `
-          <button type="button" class="insight-card" data-insight-id="${escapeHtml(i.id)}">
-            <span class="insight-text">${escapeHtml(i.text)}</span>
-            <span class="insight-date">${escapeHtml(formatRelative(i.createdAt))}</span>
-          </button>
-        `).join('')}
-      </div>
-    </div>
-  `;
+  container.innerHTML = `<div class="insights-section" id="insightsTab"><h2 style="margin-bottom:16px;">💡 인사이트</h2><div class="insights-grid">${insights.map(i => `<button type="button" class="insight-card" data-insight-id="${escapeHtml(i.id)}"><span class="insight-text">${escapeHtml(i.text)}</span><span class="insight-date">${escapeHtml(formatRelative(i.createdAt))}</span></button>`).join('')}</div></div>`;
 
   container.querySelectorAll<HTMLButtonElement>('.insight-card').forEach(btn => {
     btn.addEventListener('click', () => {

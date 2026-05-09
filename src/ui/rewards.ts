@@ -141,12 +141,8 @@ export function mountRewards(): void {
   disposers.push(on('dg:reward:badge-unlock', ({ badgeId }) => {
     const def = findBadge(badgeId);
     if (!def) return;
-    const html = `
-      <span class="toast-icon">${escapeHtml(def.icon)}</span>
-      <span class="toast-text">🎯 <strong>${escapeHtml(def.name)}</strong> 뱃지 획득!</span>
-      <button type="button" class="toast-detail" data-badge-id="${escapeHtml(def.id)}">자세히</button>
-      <button type="button" class="toast-close" aria-label="닫기">×</button>
-    `;
+    // v3.24 T3: indent 압축 (production-safe).
+    const html = `<span class="toast-icon">${escapeHtml(def.icon)}</span><span class="toast-text">🎯 <strong>${escapeHtml(def.name)}</strong> 뱃지 획득!</span><button type="button" class="toast-detail" data-badge-id="${escapeHtml(def.id)}">자세히</button><button type="button" class="toast-close" aria-label="닫기">×</button>`;
     const el = spawnToast(html, 'badge', TOAST_DURATIONS.badge);
     // T10에서 .toast-detail 핸들러 wiring (lazy import modal)
     if (el) {
@@ -160,21 +156,15 @@ export function mountRewards(): void {
   disposers.push(on('dg:reward:level-up', ({ tierId }) => {
     const tier = TIERS.find(t => t.id === tierId);
     if (!tier) return;
-    const html = `
-      <span class="toast-icon">${escapeHtml(tier.icon)}</span>
-      <span class="toast-text"><strong>${escapeHtml(tier.name)}</strong> 레벨 달성!</span>
-      <button type="button" class="toast-close" aria-label="닫기">×</button>
-    `;
+    // v3.24 T3: indent 압축 (production-safe).
+    const html = `<span class="toast-icon">${escapeHtml(tier.icon)}</span><span class="toast-text"><strong>${escapeHtml(tier.name)}</strong> 레벨 달성!</span><button type="button" class="toast-close" aria-label="닫기">×</button>`;
     spawnToast(html, 'levelup', TOAST_DURATIONS.levelup);
     playConfetti();
   }));
 
   disposers.push(on('dg:reward:streak-milestone', ({ days }) => {
-    const html = `
-      <span class="toast-icon">🔥</span>
-      <span class="toast-text"><strong>${days}일</strong> 스트릭!</span>
-      <button type="button" class="toast-close" aria-label="닫기">×</button>
-    `;
+    // v3.24 T3: indent 압축 (production-safe).
+    const html = `<span class="toast-icon">🔥</span><span class="toast-text"><strong>${days}일</strong> 스트릭!</span><button type="button" class="toast-close" aria-label="닫기">×</button>`;
     spawnToast(html, 'streak', TOAST_DURATIONS.streak);
     sessionStorage.setItem('dg:streakPulsePending', String(days));
   }));
@@ -182,11 +172,8 @@ export function mountRewards(): void {
   // v3.21 T5: streak freeze 소비 toast (사전 review P0-2 fix — caller-side direct dispatch).
   // dispatch 진원지: src/state/user.ts recordDailyAnswer (saveUser 성공 후, Option B).
   disposers.push(on('dg:reward:streak-freeze-used', ({ days }) => {
-    const html = `
-      <span class="toast-icon">❄️</span>
-      <span class="toast-text">Streak Freeze로 <strong>${days}일</strong> 연속 유지!</span>
-      <button type="button" class="toast-close" aria-label="닫기">×</button>
-    `;
+    // v3.24 T3: indent 압축 (production-safe).
+    const html = `<span class="toast-icon">❄️</span><span class="toast-text">Streak Freeze로 <strong>${days}일</strong> 연속 유지!</span><button type="button" class="toast-close" aria-label="닫기">×</button>`;
     spawnToast(html, 'freeze', TOAST_DURATIONS.freeze);
   }));
 

@@ -52,20 +52,10 @@ export async function maybeShowWelcomeGamification(): Promise<void> {
   const miniGrid = backfilledIds
     .map(id => findBadge(id))
     .filter((b): b is NonNullable<ReturnType<typeof findBadge>> => !!b)
-    .map(def => `
-      <button type="button" class="badge badge--earned" aria-label="${escapeHtml(def.name)}">
-        <span class="badge-icon">${escapeHtml(def.icon)}</span>
-        <span class="badge-name">${escapeHtml(def.name)}</span>
-      </button>
-    `).join('');
+    .map(def => `<button type="button" class="badge badge--earned" aria-label="${escapeHtml(def.name)}"><span class="badge-icon">${escapeHtml(def.icon)}</span><span class="badge-name">${escapeHtml(def.name)}</span></button>`).join('');
 
-  const bodyHtml = `
-    <div class="welcome-game">
-      <p>이미 달성한 <strong>${N}개</strong> 뱃지가 컬렉션에 추가되었어요!</p>
-      <div class="badges-grid">${miniGrid}</div>
-      <button type="button" class="btn btn-primary" id="goStatsBtn">stats 탭에서 보기</button>
-    </div>
-  `;
+  // v3.24 T3: indent 압축 (production-safe).
+  const bodyHtml = `<div class="welcome-game"><p>이미 달성한 <strong>${N}개</strong> 뱃지가 컬렉션에 추가되었어요!</p><div class="badges-grid">${miniGrid}</div><button type="button" class="btn btn-primary" id="goStatsBtn">stats 탭에서 보기</button></div>`;
 
   const wrap = openModal({
     title: '🎉 새 게임화 기능',
@@ -83,6 +73,7 @@ export async function maybeShowWelcomeGamification(): Promise<void> {
   // "stats에서 보기" 버튼 — wrap reference로 query (v3.14.2 T14 / P2-NEW-6: nested modal 도입 시도 invariant 유지).
   wrap.querySelector<HTMLButtonElement>('#goStatsBtn')
     ?.addEventListener('click', async () => {
+      // v3.24 T3: dynamic 유지 — `vi.doMock(..ui/nav)` 패턴이 spec에서 lazy-load 가정 (welcome-gamification.spec.ts:80,98).
       const { closeModal } = await import('./shared');
       const { switchTab } = await import('../nav');
       closeModal();           // fires onClose → gamificationMigrated set + focus restore

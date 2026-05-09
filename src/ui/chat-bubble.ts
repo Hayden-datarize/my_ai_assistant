@@ -1,5 +1,3 @@
-import { escapeHtml } from '../utils/escapeHtml';
-
 export interface ChatPreviewBubbleOpts {
   text: string;          // Gemini 출력 raw — 내부에서 escapeHtml 적용
   primaryLabel: string;
@@ -55,9 +53,3 @@ export function renderChatPreviewBubble(opts: ChatPreviewBubbleOpts): HTMLDivEle
   return bubble;
 }
 
-/**
- * XSS 방어용 escapeHtml 래퍼 — 외부에서 text를 HTML 문자열로 삽입할 경우 사용.
- * renderChatPreviewBubble 내부에서는 textContent를 사용하므로 불필요하지만,
- * 호출자가 직접 HTML을 조합할 때를 위해 re-export.
- */
-export { escapeHtml };

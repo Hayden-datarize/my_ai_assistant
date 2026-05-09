@@ -46,16 +46,8 @@ export function maybeShowWelcomeGarden(): void {
     highlightHtml = `<p class="welcome-garden-newcomer">${escapeHtml(MSG.GARDEN_NEWCOMER)}</p>`;
   }
 
-  const bodyHtml = `
-    <div class="welcome-garden-modal">
-      <p>${escapeHtml(MSG.GARDEN_INTRODUCE_BODY).replace(/\n/g, '<br>')}</p>
-      ${highlightHtml}
-      <div class="modal-actions">
-        <button type="button" class="btn-primary" id="welcomeGardenViewBtn">${escapeHtml(MSG.GARDEN_CTA_VIEW)}</button>
-        <button type="button" class="btn-secondary" id="welcomeGardenCloseBtn">${escapeHtml(MSG.GARDEN_CTA_CLOSE)}</button>
-      </div>
-    </div>
-  `;
+  // v3.24 T3: indent 압축 (production-safe).
+  const bodyHtml = `<div class="welcome-garden-modal"><p>${escapeHtml(MSG.GARDEN_INTRODUCE_BODY).replace(/\n/g, '<br>')}</p>${highlightHtml}<div class="modal-actions"><button type="button" class="btn-primary" id="welcomeGardenViewBtn">${escapeHtml(MSG.GARDEN_CTA_VIEW)}</button><button type="button" class="btn-secondary" id="welcomeGardenCloseBtn">${escapeHtml(MSG.GARDEN_CTA_CLOSE)}</button></div></div>`;
 
   const wrap = openModal({
     title: MSG.GARDEN_INTRODUCE_TITLE,

@@ -53,25 +53,13 @@ export function openInterestsModal(): void {
 
   const checkboxesHtml = INTERESTS.map((c) => {
     const checked = current.has(c.id) ? 'checked' : '';
-    return `
-      <label class="dg-modal-checkbox-card">
-        <input type="checkbox" value="${escapeHtml(c.id)}" ${checked} />
-        <span>${escapeHtml(c.label)}</span>
-      </label>
-    `;
+    return `<label class="dg-modal-checkbox-card"><input type="checkbox" value="${escapeHtml(c.id)}" ${checked} /><span>${escapeHtml(c.label)}</span></label>`;
   }).join('');
 
   const wrap = openModal({
     title: '관심 분야 수정',
-    bodyHtml: `
-      <div class="dg-modal-grid-2col">
-        ${checkboxesHtml}
-      </div>
-      <div class="dg-modal-footer">
-        <button type="button" id="cancelInterestsBtn" class="btn btn-outline">취소</button>
-        <button type="button" id="saveInterestsBtn" class="btn btn-primary">저장</button>
-      </div>
-    `,
+    // v3.24 T3: indent 압축 (production-safe).
+    bodyHtml: `<div class="dg-modal-grid-2col">${checkboxesHtml}</div><div class="dg-modal-footer"><button type="button" id="cancelInterestsBtn" class="btn btn-outline">취소</button><button type="button" id="saveInterestsBtn" class="btn btn-primary">저장</button></div>`,
   });
 
   // v3.14.3 T7 (P2-2 / v3.14.2 P2-NEW-7): wrap-scoped queries — nested modal 안전.

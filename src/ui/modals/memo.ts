@@ -26,13 +26,8 @@ export function openMemoModal(index: number): void {
 
   const wrap = openModal({
     title: '메모',
-    bodyHtml: `
-      <textarea id="memoInput" class="dg-modal-textarea" rows="6">${escaped}</textarea>
-      <div class="dg-modal-footer">
-        <button type="button" id="cancelMemoBtn" class="btn btn-outline">취소</button>
-        <button type="button" id="saveMemoBtn" class="btn btn-primary">저장</button>
-      </div>
-    `,
+    // v3.24 T3: indent 압축 (production-safe — textarea 내부 ${escaped}는 보존).
+    bodyHtml: `<textarea id="memoInput" class="dg-modal-textarea" rows="6">${escaped}</textarea><div class="dg-modal-footer"><button type="button" id="cancelMemoBtn" class="btn btn-outline">취소</button><button type="button" id="saveMemoBtn" class="btn btn-primary">저장</button></div>`,
   });
 
   // v3.14.3 T7 (P2-2 / v3.14.2 P2-NEW-7): wrap-scoped queries — nested modal 안전.
