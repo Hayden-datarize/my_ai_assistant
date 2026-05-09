@@ -76,7 +76,7 @@ describe('openInsightDetailModal — delete flow (v3.23 T9)', () => {
     window.confirm = vi.fn().mockReturnValue(true);
 
     const user = mkUser({
-      insights: [{ id: 'i1', text: '통찰', createdAt: '2026-05-09T10:00:00Z' }],
+      insights: [{ id: 'i1', text: '통찰', interestId: 'unknown', createdAt: '2026-05-09T10:00:00Z' }],
     });
     mockGetCachedUser.mockReturnValue(user);
     mockSaveUser.mockImplementation(() => undefined);
@@ -96,7 +96,7 @@ describe('openInsightDetailModal — delete flow (v3.23 T9)', () => {
     window.confirm = vi.fn().mockReturnValue(false);
 
     const user = mkUser({
-      insights: [{ id: 'i1', text: '통찰', createdAt: '2026-05-09T10:00:00Z' }],
+      insights: [{ id: 'i1', text: '통찰', interestId: 'unknown', createdAt: '2026-05-09T10:00:00Z' }],
     });
     mockGetCachedUser.mockReturnValue(user);
 
@@ -113,7 +113,7 @@ describe('openInsightDetailModal — delete flow (v3.23 T9)', () => {
     window.confirm = vi.fn().mockReturnValue(true);
 
     const user = mkUser({
-      insights: [{ id: 'i1', text: '통찰', createdAt: '2026-05-09T10:00:00Z' }],
+      insights: [{ id: 'i1', text: '통찰', interestId: 'unknown', createdAt: '2026-05-09T10:00:00Z' }],
     });
     mockGetCachedUser.mockReturnValue(user);
     mockSaveUser.mockImplementation(() => { throw new Error('quota'); });

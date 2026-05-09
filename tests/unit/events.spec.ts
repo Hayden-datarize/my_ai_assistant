@@ -34,12 +34,13 @@ describe('events', () => {
     off();
   });
 
-  it('EVENT_NAMES covers all 26 wired events (24 baseline + v3.23 T8: insights:added + T9: insights:removed)', () => {
+  it('EVENT_NAMES covers all 27 wired events (24 baseline + v3.23 T8: insights:added + T9: insights:removed + v3.25 T1: insights:updated)', () => {
     // v3.21 T5: +1 reward event (`dg:reward:streak-freeze-used` — caller-side direct dispatch)
     // v3.23 T8: +1 insights event (`dg:insights:added`).
     // v3.23 T9: +1 insights event (`dg:insights:removed`).
-    expect(EVENT_NAMES).toHaveLength(26);
-    expect(new Set(EVENT_NAMES).size).toBe(26);
+    // v3.25 T1: +1 insights event (`dg:insights:updated` — interestId 분야 chip 수동 정정).
+    expect(EVENT_NAMES).toHaveLength(27);
+    expect(new Set(EVENT_NAMES).size).toBe(27);
   });
 
   it('V32_DEFERRED_EVENTS lists the 2 잔존 stubs (v3.23 T8 graduated 4건 제거)', () => {

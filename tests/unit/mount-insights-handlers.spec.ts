@@ -63,8 +63,8 @@ describe('mountInsightsHandlers refresh path (v3.24 T5 / B4)', () => {
   it('renderInsights 후 dg:insights:added dispatch 시 grid 재렌더 (카드 수 동일 mock 유지)', () => {
     const user = mkUser({
       insights: [
-        { id: 'a', text: 'first', createdAt: '2026-05-01T00:00:00Z' },
-        { id: 'b', text: 'second', createdAt: '2026-05-02T00:00:00Z' },
+        { id: 'a', text: 'first', interestId: 'unknown', createdAt: '2026-05-01T00:00:00Z' },
+        { id: 'b', text: 'second', interestId: 'unknown', createdAt: '2026-05-02T00:00:00Z' },
       ],
     });
     mockGetCachedUser.mockReturnValue(user);
@@ -90,7 +90,7 @@ describe('mountInsightsHandlers refresh path (v3.24 T5 / B4)', () => {
 
   it('dg:insights:removed dispatch도 동일한 refresh 트리거 (no error)', () => {
     const user = mkUser({
-      insights: [{ id: 'a', text: 'first', createdAt: '2026-05-01T00:00:00Z' }],
+      insights: [{ id: 'a', text: 'first', interestId: 'unknown', createdAt: '2026-05-01T00:00:00Z' }],
     });
     mockGetCachedUser.mockReturnValue(user);
 

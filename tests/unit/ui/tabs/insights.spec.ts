@@ -79,8 +79,8 @@ describe('insights tab — renderInsights (v3.23 T9)', () => {
   it('insights 있을 때 grid 렌더 (카드 수 일치)', () => {
     const user = mkUser({
       insights: [
-        { id: 'i1', text: '첫 번째 인사이트', createdAt: '2026-05-09T10:00:00Z' },
-        { id: 'i2', text: '두 번째 인사이트', createdAt: '2026-05-08T10:00:00Z' },
+        { id: 'i1', text: '첫 번째 인사이트', interestId: 'unknown', createdAt: '2026-05-09T10:00:00Z' },
+        { id: 'i2', text: '두 번째 인사이트', interestId: 'unknown', createdAt: '2026-05-08T10:00:00Z' },
       ],
     });
     mockGetCachedUser.mockReturnValue(user);
@@ -92,8 +92,8 @@ describe('insights tab — renderInsights (v3.23 T9)', () => {
   it('작성일 desc 정렬 — 신규(최근) 카드가 먼저', () => {
     const user = mkUser({
       insights: [
-        { id: 'old', text: '오래된', createdAt: '2026-05-01T10:00:00Z' },
-        { id: 'new', text: '신규', createdAt: '2026-05-09T10:00:00Z' },
+        { id: 'old', text: '오래된', interestId: 'unknown', createdAt: '2026-05-01T10:00:00Z' },
+        { id: 'new', text: '신규', interestId: 'unknown', createdAt: '2026-05-09T10:00:00Z' },
       ],
     });
     mockGetCachedUser.mockReturnValue(user);
@@ -105,7 +105,7 @@ describe('insights tab — renderInsights (v3.23 T9)', () => {
 
   it('카드 클릭 → openInsightDetailModal 호출', () => {
     const user = mkUser({
-      insights: [{ id: 'i1', text: '통찰', createdAt: '2026-05-09T10:00:00Z' }],
+      insights: [{ id: 'i1', text: '통찰', interestId: 'unknown', createdAt: '2026-05-09T10:00:00Z' }],
     });
     mockGetCachedUser.mockReturnValue(user);
     renderInsights(container);
@@ -116,7 +116,7 @@ describe('insights tab — renderInsights (v3.23 T9)', () => {
 
   it('escapeHtml: insight.text 안 <script> escape', () => {
     const user = mkUser({
-      insights: [{ id: 'xss', text: '<script>alert(1)</script>', createdAt: '2026-05-09T10:00:00Z' }],
+      insights: [{ id: 'xss', text: '<script>alert(1)</script>', interestId: 'unknown', createdAt: '2026-05-09T10:00:00Z' }],
     });
     mockGetCachedUser.mockReturnValue(user);
     renderInsights(container);

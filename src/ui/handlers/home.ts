@@ -1127,6 +1127,7 @@ export async function handleGenerateInsight(): Promise<void> {
         const insight: Insight = {
           id: crypto.randomUUID(),
           text: insightText,
+          interestId: 'unknown',  // v3.25 T1: 임시 — T4에서 parseInsightResponse 결과로 교체
           createdAt: new Date().toISOString(),
         };
         // T8 review fix C2: saveUser throw on Quota → in-memory pop rollback (v3.7 정책 + v3.10 atomic single-write idiom).

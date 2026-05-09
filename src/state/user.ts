@@ -9,6 +9,7 @@ import { backfillGarden } from './backfillGarden';
 import { regenerateFreeze, consumeFreezeForGap } from './freezeEngine';
 import { dispatch } from '../ui/events';
 import { showToast } from '../utils/toast';
+import { INTERESTS } from '../utils/categories';
 
 /**
  * v3.23 NEW: Gemini 기반 통찰 항목.
@@ -18,10 +19,17 @@ import { showToast } from '../utils/toast';
  *   UI render 시점에 escapeHtml 의무.
  * - `isValidUserShape`는 `Array.isArray(insights)`만 검증 — entry-level shape 검증 없음.
  *   `validateInsightText` 호출 책임은 caller (Gemini 빈 응답 등 raw 텍스트 진입점).
+ *
+ * v3.25 T1 NEW: `interestId` 분야 메타.
+ * - INTERESTS 15개 whitelist + 'unknown' sentinel 중 하나.
+ * - default 'unknown' (caller 책임 — T1 임시, T4에서 parseInsightResponse 결과로 교체).
+ * - entry guard via `validateInterestId` (T3+T4 wiring).
+ * - shape 강화는 T2 migration 끝난 후 (T1은 v6 user 데이터 손실 방지 위해 강화 X).
  */
 export interface Insight {
   id: string;        // crypto.randomUUID()
   text: string;      // Gemini 통찰 (caller invariant — 위 @invariant 참조)
+  interestId: string; // v3.25 T1: INTERESTS id 또는 'unknown' (validateInterestId 통과 의무)
   createdAt: string; // ISO 8601
 }
 
@@ -37,6 +45,16 @@ export function validateInsightText(text: string): string {
   const trimmed = text.trim();
   if (trimmed.length === 0) throw new Error('Insight text empty (빈 또는 공백 only)');
   return trimmed.slice(0, 200);
+}
+
+/**
+ * v3.25 T1: Insight.interestId entry-level guard.
+ * - INTERESTS 15개 whitelist 매칭 → 그대로 반환
+ * - 매칭 실패 또는 'unknown' sentinel → 'unknown'
+ * - trim은 caller 책임 (parseInsightResponse가 처리)
+ */
+export function validateInterestId(id: string): string {
+  return INTERESTS.some(i => i.id === id) ? id : 'unknown';
 }
 
 export interface User {

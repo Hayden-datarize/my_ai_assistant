@@ -50,6 +50,9 @@ export interface EventMap {
   // v3.23 T9 — insight 카드 삭제 (dispatch + listener 함께 추가)
   'dg:insights:added': { id: string };
   'dg:insights:removed': { id: string };
+  // v3.25 T1 — insight 분야 chip 수동 정정 (dispatch from interest-edit dropdown,
+  //   listener: insights tab refresh — T5+T6에서 wiring)
+  'dg:insights:updated': { id: string };
 }
 
 type EventName = keyof EventMap;
@@ -84,6 +87,7 @@ export const EVENT_NAMES: readonly EventName[] = [
   'dg:reward:streak-freeze-used',
   'dg:insights:added',
   'dg:insights:removed',
+  'dg:insights:updated',
 ] as const;
 
 /**
