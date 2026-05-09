@@ -102,4 +102,53 @@ describe('mountInsightsHandlers refresh path (v3.24 T5 / B4)', () => {
     // mock 동일 반환 — count 유지.
     expect(wrapper.querySelectorAll('.insight-card').length).toBe(1);
   });
+
+  // -------------------------------------------------------------------------
+  // v3.25 T5 — dg:insights:updated wiring + active filter '전체' reset
+  // -------------------------------------------------------------------------
+  it("dg:insights:updated dispatch 시 grid refresh (no error)", () => {
+    const user = mkUser({
+      insights: [{ id: 'a', text: 'first', interestId: 'unknown', createdAt: '2026-05-01T00:00:00Z' }],
+    });
+    mockGetCachedUser.mockReturnValue(user);
+
+    const wrapper = makeTabWrapper();
+    renderInsights(wrapper);
+    mountInsightsHandlers();
+
+    expect(() => dispatch('dg:insights:updated', { id: 'a' })).not.toThrow();
+    expect(wrapper.querySelectorAll('.insight-card').length).toBe(1);
+  });
+
+  it("dg:insights:added/updated 시 active 필터 '전체'(빈 dataset.interestId)로 reset", () => {
+    // 6+ insights → filter row 렌더 + 클릭 시 active 이동, 이벤트 후 reset
+    const insights = [
+      { id: 'r1', text: 'r1', interestId: 'recruiting', createdAt: '2026-05-09T10:00:00Z' },
+      { id: 'r2', text: 'r2', interestId: 'recruiting', createdAt: '2026-05-08T10:00:00Z' },
+      { id: 'a1', text: 'a1', interestId: 'ai_ml',      createdAt: '2026-05-07T10:00:00Z' },
+      { id: 'a2', text: 'a2', interestId: 'ai_ml',      createdAt: '2026-05-06T10:00:00Z' },
+      { id: 'u1', text: 'u1', interestId: 'unknown',    createdAt: '2026-05-05T10:00:00Z' },
+      { id: 'u2', text: 'u2', interestId: 'unknown',    createdAt: '2026-05-04T10:00:00Z' },
+    ];
+    mockGetCachedUser.mockReturnValue(mkUser({ insights }));
+
+    const wrapper = makeTabWrapper();
+    renderInsights(wrapper);
+    mountInsightsHandlers();
+
+    // recruiting chip 클릭 → active 이동
+    const recChip = wrapper.querySelector<HTMLButtonElement>(
+      '.filter-chip[data-interest-id="recruiting"]',
+    );
+    recChip!.click();
+    expect(wrapper.querySelector('.filter-chip.active')?.getAttribute('data-interest-id'))
+      .toBe('recruiting');
+
+    // dg:insights:updated dispatch → '전체' reset
+    dispatch('dg:insights:updated', { id: 'r1' });
+    const activeAfter = wrapper.querySelector('.filter-chip.active');
+    expect(activeAfter?.getAttribute('data-interest-id')).toBe('');
+    // 모든 카드(6개) 다시 보임
+    expect(wrapper.querySelectorAll('.insight-card').length).toBe(6);
+  });
 });

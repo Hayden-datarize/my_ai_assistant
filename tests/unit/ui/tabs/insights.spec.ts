@@ -135,3 +135,149 @@ describe('insights tab — renderInsights (v3.23 T9)', () => {
 
 // openInsightDetailModal mock 호출 검증 (카드 클릭 wiring 테스트에서 이미 포함 — 별도 describe 불필요)
 // delete flow 상세 테스트는 tests/unit/ui/modals/insight-detail.spec.ts 참조.
+
+// ---------------------------------------------------------------------------
+// v3.25 T5 — insights tab chip filter + 카드 chip
+// ---------------------------------------------------------------------------
+describe('insights chip filter (v3.25 T5)', () => {
+  let container: HTMLElement;
+
+  beforeEach(() => {
+    document.body.replaceChildren();
+    container = makeContainer();
+    vi.clearAllMocks();
+  });
+
+  it('insights.length < 6 — filter row 미노출, 카드 chip 노출', () => {
+    const user = mkUser({
+      insights: [
+        { id: 'i1', text: 'a', interestId: 'recruiting', createdAt: '2026-05-09T10:00:00Z' },
+        { id: 'i2', text: 'b', interestId: 'ai_ml',      createdAt: '2026-05-08T10:00:00Z' },
+        { id: 'i3', text: 'c', interestId: 'culture',    createdAt: '2026-05-07T10:00:00Z' },
+        { id: 'i4', text: 'd', interestId: 'data',       createdAt: '2026-05-06T10:00:00Z' },
+        { id: 'i5', text: 'e', interestId: 'recruiting', createdAt: '2026-05-05T10:00:00Z' },
+      ],
+    });
+    mockGetCachedUser.mockReturnValue(user);
+    renderInsights(container);
+
+    expect(container.querySelector('.insight-filter-row')).toBeNull();
+    const cards = container.querySelectorAll('.insight-card');
+    expect(cards).toHaveLength(5);
+    // 첫 카드 (newest = recruiting): chip text = '🎯 채용'
+    const firstChip = cards[0]?.querySelector('.insight-chip');
+    expect(firstChip).not.toBeNull();
+    expect(firstChip?.textContent).toBe('🎯 채용');
+  });
+
+  it('insights.length >= 6 — filter row 노출 + chip 정렬 (전체 → INTERESTS 순서 → 미분류)', () => {
+    const user = mkUser({
+      insights: [
+        { id: 'i1', text: 'a', interestId: 'ai_ml',      createdAt: '2026-05-09T10:00:00Z' },
+        { id: 'i2', text: 'b', interestId: 'recruiting', createdAt: '2026-05-08T10:00:00Z' },
+        { id: 'i3', text: 'c', interestId: 'unknown',    createdAt: '2026-05-07T10:00:00Z' },
+        { id: 'i4', text: 'd', interestId: 'recruiting', createdAt: '2026-05-06T10:00:00Z' },
+        { id: 'i5', text: 'e', interestId: 'ai_ml',      createdAt: '2026-05-05T10:00:00Z' },
+        { id: 'i6', text: 'f', interestId: 'recruiting', createdAt: '2026-05-04T10:00:00Z' },
+      ],
+    });
+    mockGetCachedUser.mockReturnValue(user);
+    renderInsights(container);
+
+    const row = container.querySelector('.insight-filter-row');
+    expect(row).not.toBeNull();
+    const chips = Array.from(row!.querySelectorAll<HTMLButtonElement>('.filter-chip'));
+    // INTERESTS 순서: recruiting (HR 첫번째) → ai_ml (Tech 두번째) → unknown 마지막
+    expect(chips.map(c => c.dataset.interestId ?? '')).toEqual(['', 'recruiting', 'ai_ml', 'unknown']);
+    expect(chips.map(c => c.textContent)).toEqual(['전체', '🎯 채용', '🤖 AI/ML', '📰 미분류']);
+    // 기본 active = '전체'
+    expect(chips[0]?.classList.contains('active')).toBe(true);
+  });
+
+  it('chip 클릭 → 해당 분야 카드만 grid 표시 + active class 이동', () => {
+    const user = mkUser({
+      insights: [
+        { id: 'r1', text: 'r1', interestId: 'recruiting', createdAt: '2026-05-09T10:00:00Z' },
+        { id: 'r2', text: 'r2', interestId: 'recruiting', createdAt: '2026-05-08T10:00:00Z' },
+        { id: 'r3', text: 'r3', interestId: 'recruiting', createdAt: '2026-05-07T10:00:00Z' },
+        { id: 'a1', text: 'a1', interestId: 'ai_ml',      createdAt: '2026-05-06T10:00:00Z' },
+        { id: 'a2', text: 'a2', interestId: 'ai_ml',      createdAt: '2026-05-05T10:00:00Z' },
+        { id: 'u1', text: 'u1', interestId: 'unknown',    createdAt: '2026-05-04T10:00:00Z' },
+      ],
+    });
+    mockGetCachedUser.mockReturnValue(user);
+    renderInsights(container);
+
+    // initial: 6 cards
+    expect(container.querySelectorAll('.insight-card')).toHaveLength(6);
+
+    // recruiting chip 클릭
+    const recChip = container.querySelector<HTMLButtonElement>(
+      '.filter-chip[data-interest-id="recruiting"]',
+    );
+    expect(recChip).not.toBeNull();
+    recChip!.click();
+
+    // 3 cards (recruiting only)
+    const cards = container.querySelectorAll('.insight-card');
+    expect(cards).toHaveLength(3);
+    // active class 이동
+    const activeChip = container.querySelector('.filter-chip.active');
+    expect(activeChip?.getAttribute('data-interest-id')).toBe('recruiting');
+    // 전체 chip은 inactive
+    const allChip = container.querySelector<HTMLButtonElement>(
+      '.filter-chip[data-interest-id=""]',
+    );
+    expect(allChip?.classList.contains('active')).toBe(false);
+  });
+
+  it("'미분류' chip은 unknown 인사이트가 1개 이상일 때만 노출", () => {
+    // unknown 0건 — 6개 모두 recruiting
+    const user = mkUser({
+      insights: Array.from({ length: 6 }, (_, k) => ({
+        id: `r${k}`,
+        text: `r${k}`,
+        interestId: 'recruiting',
+        createdAt: `2026-05-0${k + 1}T10:00:00Z`,
+      })),
+    });
+    mockGetCachedUser.mockReturnValue(user);
+    renderInsights(container);
+
+    const chips = Array.from(container.querySelectorAll<HTMLButtonElement>('.filter-chip'));
+    expect(chips.map(c => c.dataset.interestId ?? '')).toEqual(['', 'recruiting']);
+    // 미분류 chip 없음
+    expect(container.querySelector('.filter-chip[data-interest-id="unknown"]')).toBeNull();
+  });
+
+  it("insight-card 안 chip — interestId='unknown' 시 muted variant + '📰 미분류' 텍스트", () => {
+    const user = mkUser({
+      insights: [
+        { id: 'u1', text: 'unk', interestId: 'unknown', createdAt: '2026-05-09T10:00:00Z' },
+      ],
+    });
+    mockGetCachedUser.mockReturnValue(user);
+    renderInsights(container);
+
+    const card = container.querySelector('.insight-card');
+    const chip = card?.querySelector('.insight-chip');
+    expect(chip).not.toBeNull();
+    expect(chip?.classList.contains('insight-chip--muted')).toBe(true);
+    expect(chip?.textContent).toBe('📰 미분류');
+  });
+
+  it("insight-card 안 chip — interestId 카탈로그 매칭 시 라벨 그대로", () => {
+    const user = mkUser({
+      insights: [
+        { id: 'i1', text: 't', interestId: 'leadership', createdAt: '2026-05-09T10:00:00Z' },
+      ],
+    });
+    mockGetCachedUser.mockReturnValue(user);
+    renderInsights(container);
+
+    const chip = container.querySelector('.insight-card .insight-chip');
+    expect(chip).not.toBeNull();
+    expect(chip?.classList.contains('insight-chip--muted')).toBe(false);
+    expect(chip?.textContent).toBe('👑 리더십');
+  });
+});
