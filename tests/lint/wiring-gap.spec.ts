@@ -22,11 +22,11 @@ async function walk(dir: string): Promise<string[]> {
 }
 
 /**
- * v3.25 T5: 임시 allowlist — dispatcher가 다음 task에서 추가될 때까지 listener-only 허용.
- * - `dg:insights:updated`: T5에서 mountInsightsHandlers listener 추가, T6에서 interest-edit dropdown
- *   dispatcher 추가 예정. T6 commit에서 이 항목 제거 의무.
+ * 임시 allowlist — dispatcher가 다음 task에서 추가될 때까지 listener-only 허용.
+ * v3.25 T6에서 `dg:insights:updated` dispatcher 추가됨 (insight-detail 모달 dropdown change).
+ * 현재 비어 있음. 새 listener-only 이벤트 도입 시에만 임시 추가 (다음 task에서 제거 의무).
  */
-const DISPATCHER_DEFERRED: readonly string[] = ['dg:insights:updated'] as const;
+const DISPATCHER_DEFERRED: readonly string[] = [] as const;
 
 describe('wiring-gap', () => {
   it('every dispatched event name has a listener and every listener has a dispatcher', async () => {
