@@ -98,6 +98,14 @@ firebase deploy --only hosting   # 사용자 명시 승인 후
 권한 issue 시: spec self-review로 사전 대체 가능, 단 최종은 cycle wrap-up에서 별도 시점 재시도
 (v3.14.2 retro 패턴 — Codex 권한 미작동으로 review 누락된 사이클은 차기 사이클 carry-forward).
 
+### graduate 명문화 (v3.18~v3.23 7사이클 ROI)
+
+사전 review가 v3.18~v3.23 7사이클 연속 P0 catch (chain superset / KST anchor / TZ sweep / silent corruption guard 등). v3.24 T1에서 graduate:
+
+- **mandatory dispatch**: 각 사이클 T0 plan v1 작성 직후 (T2 진입 전 완료 의무).
+- **P0/P1 plan 반영 전 구현 금지**: 사전 review 결과 P0가 있으면 plan v2 in-cycle 흡수, T2 진입 X.
+- **CLI 한도 fallback**: controller self-review (`pr-review-toolkit:code-reviewer` 등) 허용 (v3.14.5 / v3.20 / v3.24 선례), 단 retro에 명시.
+
 ---
 
 ## Documentation Navigation
