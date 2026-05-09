@@ -159,11 +159,6 @@ describe('getStatsRange', () => {
     expect(r.totalAnswers).toBe(1);
   });
 
-  it('type 없는 답변: "unknown"으로 집계', () => {
-    const a = { schemaVersion: 1, id: 'a1', questionId: 'q', text: 'x', authorId: 'self', createdAt: '2026-05-08T03:00:00Z' };
-    localStorage.setItem('dg.answers', JSON.stringify([a]));
-
-    const r = getStatsRange(7);
-    expect(r.byInterest[0]).toEqual({ id: 'unknown', count: 1 });
-  });
+  // v3.24 T6 (P0-2): 'unknown' bucket 정밀화 정책으로 기존 spec 폐기.
+  // 신규 superset → tests/unit/stats-aggregate-byinterest.spec.ts (4건).
 });

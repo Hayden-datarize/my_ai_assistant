@@ -69,12 +69,17 @@ export function getStatsRange(days: 7 | 30): StatsRange {
   const totalAnswers = inRange.length;
   const avgPerDay = Math.round((totalAnswers / days) * 10) / 10;
 
-  // 분야별 카운트 (Answer.type ?? 'unknown')
+  // 분야별 카운트 — Answer.type 정밀화 (v3.24 T6 / B2)
+  // 정책: type이 null/undefined/empty/whitespace → 'unknown' bucket → byInterest 제외.
+  // (storage는 임의 JSON이라 schema가 string|undefined여도 런타임 null 방어 필요)
   const byInterestMap = new Map<string, number>();
   for (const a of inRange) {
-    const id = a.type ?? 'unknown';
+    const raw = a.type;
+    const id = typeof raw === 'string' && raw.trim().length > 0 ? raw : 'unknown';
     byInterestMap.set(id, (byInterestMap.get(id) ?? 0) + 1);
   }
+  // 'unknown' bucket은 byInterest 결과 + activeInterests count에서 제외 (분야 통계 의미 보존).
+  byInterestMap.delete('unknown');
   const byInterest = Array.from(byInterestMap.entries())
     .map(([id, count]) => ({ id, count }))
     .sort((a, b) => b.count - a.count)
