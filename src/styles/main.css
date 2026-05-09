@@ -297,11 +297,20 @@
   /* v3.23 T9: insights tab grid + detail modal */
   .insights-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(160px, 1fr)); gap: 12px; }
   /* T9 review I1: <button> reset (font/color inherit) — v3.21 .garden-card precedent */
-  .insight-card { display: flex; flex-direction: column; gap: 6px; padding: 12px; background: var(--bg-card); border: 1px solid var(--border); border-radius: var(--radius-md); text-align: left; cursor: pointer; width: 100%; font: inherit; color: inherit; }
+  .insight-card { display: flex; flex-direction: column; align-items: flex-start; gap: 6px; padding: 12px; background: var(--bg-card); border: 1px solid var(--border); border-radius: var(--radius-md); text-align: left; cursor: pointer; width: 100%; font: inherit; color: inherit; }
   @media (hover: hover) { .insight-card:hover { border-color: var(--primary); } }
   .insight-text { font-size: 0.9rem; line-height: 1.4; display: -webkit-box; -webkit-line-clamp: 3; -webkit-box-orient: vertical; overflow: hidden; }
   .insight-date { font-size: 0.75rem; color: var(--text-secondary); }
   .insight-detail-text { white-space: pre-wrap; font-size: 1rem; line-height: 1.6; }
   .insight-detail-date { font-size: 0.85rem; color: var(--text-secondary); margin-top: 8px; }
   .insight-delete-btn { margin-top: 16px; }
+
+  /* v3.25 T7: insights chip + filter row + detail dropdown — settings .interest-chip 패턴 답습 */
+  .insight-chip { padding: 4px 10px; border-radius: 12px; background: var(--primary-ultra-light); color: var(--primary); font-size: 0.75rem; font-weight: 600; align-self: flex-start; }
+  .insight-chip--muted { background: var(--bg-input); color: var(--text-secondary); }
+  .insight-filter-row { display: flex; gap: 8px; margin-bottom: 16px; flex-wrap: wrap; }
+  /* .filter-chip 자체는 archive.css에 정의됨 — @import layer(components)로 글로벌 */
+  .insight-detail-meta { display: flex; gap: 12px; align-items: baseline; flex-wrap: wrap; margin: 8px 0; }
+  .insight-detail-interest { display: flex; gap: 6px; align-items: baseline; font-size: 0.85rem; color: var(--text-secondary); }
+  .insight-interest-select { padding: 4px 8px; border-radius: 6px; border: 1px solid var(--border); background: var(--bg-input); color: var(--text-primary); font-size: 0.85rem; font-family: inherit; }
 }
