@@ -60,10 +60,17 @@ export const PROMPTS = {
   } satisfies PromptTemplate,
 
   insight: {
-    maxOutputTokens: 80,
+    maxOutputTokens: 110,
     build(input: ChatInput): string {
       return [
-        '아래 대화에서 가장 중요한 통찰을 한국어 1줄(최대 80자)로 추출. 문장형.',
+        '아래 대화에서 가장 중요한 통찰을 추출.',
+        '반드시 다음 형식의 1줄로만 출력 (다른 설명/마크다운 금지):',
+        '<통찰 한국어 1문장 (최대 80자)>|<interestId>',
+        '',
+        '<interestId>는 아래 16개 중 하나만 사용. 어떤 분야인지 매칭이 어려우면 unknown.',
+        'recruiting, onboarding, culture, hr_system, labor_law, leadership,',
+        'pm, ai_ml, data, startup, marketing, productivity,',
+        'career, communication, self_dev, unknown',
         '---',
         turnsToText(input.chatTurns),
       ].join('\n');

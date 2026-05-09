@@ -16,9 +16,9 @@ describe('PROMPTS — maxOutputTokens 차등', () => {
     expect(PROMPTS.statsNarrative.maxOutputTokens).toBeLessThan(PROMPTS.conversationSummary.maxOutputTokens);
   });
 
-  it('insight는 60~100 범위', () => {
+  it('insight는 60~120 범위 (v3.25 T3: 80→110, interestId+구분자 30 여유)', () => {
     expect(PROMPTS.insight.maxOutputTokens).toBeGreaterThanOrEqual(60);
-    expect(PROMPTS.insight.maxOutputTokens).toBeLessThanOrEqual(100);
+    expect(PROMPTS.insight.maxOutputTokens).toBeLessThanOrEqual(120);
   });
 });
 
