@@ -4,7 +4,7 @@
 import { on } from '../events';
 import { getCachedUser } from '../../state/user';
 import { openInsightDetailModal } from '../modals/insight-detail';
-import { formatRelative } from '../modals/plant-detail';
+import { formatRelative } from '../../utils/dates';
 import { escapeHtml } from '../../utils/escapeHtml';
 
 /**

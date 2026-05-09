@@ -5,7 +5,7 @@ import { getPlantIcon, STAGE_LABEL, STAGE_THRESHOLDS, TROPHY_MARK } from '../../
 import { checkWilting } from '../../state/plantEngine';
 import { escapeHtml } from '../../utils/escapeHtml';
 import { getAnswerCountByInterest, getScrapCountByInterest } from '../../utils/interestCounts';
-import { getKstDateStr } from '../../utils/dates';
+import { getKstDateStr, formatRelative } from '../../utils/dates';
 import type { User } from '../../state/user';
 import type { PlantState } from '../../state/plantTypes';
 
@@ -80,16 +80,3 @@ export function formatKoreanDate(iso: string): string {
   return `${y}년 ${Number(m)}월 ${Number(d)}일`;
 }
 
-/**
- * ISO → "오늘" / "어제" / "N일 전".
- * 음수 ms (시계 역행 / 미래 ISO)는 '오늘'으로 가드 (v3.22 T1).
- * @internal — spec 직접 호출용 export. plant-detail 외부에서 사용 금지.
- */
-export function formatRelative(iso: string): string {
-  const ms = Date.now() - new Date(iso).getTime();
-  if (ms < 0) return '오늘';
-  const days = Math.floor(ms / 86400_000);
-  if (days === 0) return '오늘';
-  if (days === 1) return '어제';
-  return `${days}일 전`;
-}

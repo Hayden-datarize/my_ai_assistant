@@ -1,7 +1,7 @@
 import { describe, it, expect, beforeEach, afterEach, vi } from 'vitest';
-import { formatRelative } from '../../../src/ui/modals/plant-detail';
+import { formatRelative } from '../../../src/utils/dates';
 
-describe('formatRelative — 음수 ms / 정상 days / 경계 가드 (v3.22 T1)', () => {
+describe('formatRelative — 음수 ms / 정상 days / 경계 가드 (v3.22 T1 → v3.24 T7 dates.ts 이전)', () => {
   beforeEach(() => {
     vi.useFakeTimers();
     // KST 명시 instant — 2026-05-08 12:00 KST = 2026-05-08T03:00:00Z
