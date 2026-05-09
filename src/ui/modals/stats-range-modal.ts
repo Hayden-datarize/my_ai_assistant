@@ -5,7 +5,6 @@ import { generateText } from '../../services/gemini';
 import { PROMPTS } from '../../services/prompts';
 import { checkAndIncrementGemini } from '../../state/geminiUsage';
 import { getApiKey } from '../../utils/apiKey';
-import { escapeHtml } from '../../utils/escapeHtml';
 import { showToast } from '../../utils/toast';
 
 export interface StatsRangeModalOpts {
@@ -24,41 +23,76 @@ function buildFingerprint(r: StatsRange): StatsFingerprint {
 
 function deterministicHighlight(r: StatsRange, days: 7 | 30): string {
   const top = r.byInterest[0];
-  const topPart = top ? `, ${escapeHtml(top.id)} 강세` : '';
+  const topPart = top ? `, ${top.id} 강세` : '';
   const prefix = days === 7 ? '이번 주' : '지난 30일';
   return `${prefix} ${r.totalAnswers}개 답변, 최장 ${r.longestStreak}일${topPart}`;
 }
 
-function renderStatCards(r: StatsRange): string {
-  return (
-    `<div class="stats-stat-card"><span class="stat-label">답변</span><span class="stat-value">${r.totalAnswers}</span></div>` +
-    `<div class="stats-stat-card"><span class="stat-label">최장 streak</span><span class="stat-value">${r.longestStreak}일</span></div>` +
-    `<div class="stats-stat-card"><span class="stat-label">활성 분야</span><span class="stat-value">${r.activeInterests}</span></div>` +
-    `<div class="stats-stat-card"><span class="stat-label">일 평균</span><span class="stat-value">${r.avgPerDay}</span></div>`
-  );
+function buildStatCards(r: StatsRange): HTMLElement {
+  const grid = document.createElement('div');
+  grid.className = 'stats-stat-grid';
+  const cards: Array<[string, string]> = [
+    ['답변', String(r.totalAnswers)],
+    ['최장 streak', `${r.longestStreak}일`],
+    ['활성 분야', String(r.activeInterests)],
+    ['일 평균', String(r.avgPerDay)],
+  ];
+  for (const [label, value] of cards) {
+    const card = document.createElement('div');
+    card.className = 'stats-stat-card';
+    const labelSpan = document.createElement('span');
+    labelSpan.className = 'stat-label';
+    labelSpan.textContent = label;
+    const valueSpan = document.createElement('span');
+    valueSpan.className = 'stat-value';
+    valueSpan.textContent = value;
+    card.appendChild(labelSpan);
+    card.appendChild(valueSpan);
+    grid.appendChild(card);
+  }
+  return grid;
 }
 
-function renderSparkline(daily: number[]): string {
+function buildSparkline(daily: number[]): HTMLElement {
   const max = Math.max(...daily, 1);
-  const bars = daily
-    .map(v => `<div class="stats-sparkline-bar" style="height:${Math.round((v / max) * 100)}%"></div>`)
-    .join('');
-  return `<div class="stats-sparkline" aria-hidden="true">${bars}</div>`;
+  const container = document.createElement('div');
+  container.className = 'stats-sparkline';
+  container.setAttribute('aria-hidden', 'true');
+  for (const v of daily) {
+    const bar = document.createElement('div');
+    bar.className = 'stats-sparkline-bar';
+    bar.style.height = `${Math.round((v / max) * 100)}%`;
+    container.appendChild(bar);
+  }
+  return container;
 }
 
-function renderInterestBars(byInterest: StatsRange['byInterest']): string {
+function buildInterestBars(byInterest: StatsRange['byInterest']): HTMLElement | null {
   const first = byInterest[0];
-  if (!first) return '';
+  if (!first) return null;
   const max = first.count;
-  const items = byInterest
-    .map(
-      i =>
-        `<li><span class="bar-label">${escapeHtml(i.id)}</span>` +
-        `<span class="bar-track"><span class="bar-fill" style="width:${Math.round((i.count / max) * 100)}%"></span></span>` +
-        `<span class="bar-count">${i.count}</span></li>`,
-    )
-    .join('');
-  return `<ul class="stats-interest-bars">${items}</ul>`;
+  const ul = document.createElement('ul');
+  ul.className = 'stats-interest-bars';
+  for (const i of byInterest) {
+    const li = document.createElement('li');
+    const label = document.createElement('span');
+    label.className = 'bar-label';
+    label.textContent = i.id;
+    const track = document.createElement('span');
+    track.className = 'bar-track';
+    const fill = document.createElement('span');
+    fill.className = 'bar-fill';
+    fill.style.width = `${Math.round((i.count / max) * 100)}%`;
+    track.appendChild(fill);
+    const count = document.createElement('span');
+    count.className = 'bar-count';
+    count.textContent = String(i.count);
+    li.appendChild(label);
+    li.appendChild(track);
+    li.appendChild(count);
+    ul.appendChild(li);
+  }
+  return ul;
 }
 
 export async function openStatsRangeModal(opts: StatsRangeModalOpts): Promise<void> {
@@ -89,7 +123,7 @@ export async function openStatsRangeModal(opts: StatsRangeModalOpts): Promise<vo
         prompt: tmpl.build(r),
         maxOutputTokens: tmpl.maxOutputTokens, // codex P1-3 fix
       });
-      highlightText = escapeHtml(out.trim());
+      highlightText = out.trim();
       // T5 review fix #2: cache write 실패는 silent — Gemini 결과는 이미 받았으니 사용자 표시 우선
       try {
         setStatsCache(
@@ -106,17 +140,21 @@ export async function openStatsRangeModal(opts: StatsRangeModalOpts): Promise<vo
     }
   }
 
+  // v3.24 T2: DOM API 마이그레이션 — textContent 기반 안전 조립.
+  // openModal contract(bodyHtml: string) 유지 위해 마지막에 innerHTML 직렬화.
+  const bodyContainer = document.createElement('div');
+  bodyContainer.appendChild(buildStatCards(r));
+  if (opts.range === 30 && r.daily) {
+    bodyContainer.appendChild(buildSparkline(r.daily));
+  }
+  const bars = buildInterestBars(r.byInterest);
+  if (bars) bodyContainer.appendChild(bars);
+  const highlight = document.createElement('p');
+  highlight.className = 'stats-highlight';
+  highlight.textContent = highlightText;
+  bodyContainer.appendChild(highlight);
+
   const title = opts.range === 7 ? '지난 7일' : '지난 30일';
-  const sparklineHtml = opts.range === 30 && r.daily ? renderSparkline(r.daily) : '';
-
-  // innerHTML 주의: 모든 동적 문자열은 escapeHtml 처리됨
-  // eslint-disable-next-line no-restricted-syntax
-  const bodyHtml = [
-    `<div class="stats-stat-grid">${renderStatCards(r)}</div>`,
-    sparklineHtml,
-    renderInterestBars(r.byInterest),
-    `<p class="stats-highlight">${highlightText}</p>`,
-  ].join('');
-
-  openModal({ title, bodyHtml });
+  // eslint-disable-next-line no-restricted-syntax -- DOM Node로 조립한 결과를 직렬화 (caller-escaped contract 충족)
+  openModal({ title, bodyHtml: bodyContainer.innerHTML });
 }
