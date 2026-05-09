@@ -38,6 +38,12 @@ vi.mock('../../../../src/state/user', () => ({
   saveUser: (...a: unknown[]) => mockSaveUser(...a),
   getSaveErrorMessage: vi.fn().mockReturnValue('저장 실패'),
   recordDailyAnswer: vi.fn().mockResolvedValue(undefined),
+  // v3.24 T5 (B1): handlers/home.ts now uses validateInsightText. Real-shape passthrough.
+  validateInsightText: (text: string): string => {
+    const trimmed = text.trim();
+    if (trimmed.length === 0) throw new Error('Insight text empty');
+    return trimmed.slice(0, 200);
+  },
 }));
 vi.mock('../../../../src/utils/apiKey', () => ({
   getApiKey: (...a: unknown[]) => mockGetApiKey(...a),

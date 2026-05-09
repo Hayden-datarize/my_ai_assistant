@@ -26,7 +26,7 @@ import { openMemoModal } from '../modals/memo';
 import { createLangToggle, type LangToggleEl, type LangState } from '../components/cardLangToggle';
 import { checkAndIncrement, getCap, getTodayCount } from '../../state/usage';
 import { showCapToast, showTranslateError, showPartialTranslateFail } from '../translateToast';
-import { getCachedUser, getSaveErrorMessage, recordDailyAnswer, saveUser, type Insight } from '../../state/user';
+import { getCachedUser, getSaveErrorMessage, recordDailyAnswer, saveUser, validateInsightText, type Insight } from '../../state/user';
 import { renderGardenMini } from '../components/garden-grid';
 import { scrollToGardenSection } from './stats';
 import { loadActiveSeenUrls, recordSeen, purgeExpiredSeen } from '../../state/seen';
@@ -1106,8 +1106,11 @@ export async function handleGenerateInsight(): Promise<void> {
       prompt: tmpl.build({ chatTurns: history.map(m => ({ role: m.role, text: m.text })) }),
       maxOutputTokens: tmpl.maxOutputTokens,
     });
-    const insightText = text.trim().slice(0, 200);
-    if (!insightText) {
+    // v3.24 T5 (B1): entry guard — `validateInsightText`로 trim + non-empty + max-200 cap 일원화.
+    let insightText: string;
+    try {
+      insightText = validateInsightText(text);
+    } catch {
       showToast('AI 분석에 실패했어요');
       return;
     }

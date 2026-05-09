@@ -13,14 +13,30 @@ import { showToast } from '../utils/toast';
 /**
  * v3.23 NEW: Gemini 기반 통찰 항목.
  *
- * @invariant caller 책임 — `isValidUserShape`는 `Array.isArray(insights)`만 검증한다.
- * - `text`: caller가 max 200자 trim 의무. UI render 시점에 escapeHtml 의무.
- * - storage layer는 entry-level shape 검증 없음 (T1 scope 외, v3.24+ 강화 후보).
+ * @invariant entry guard via `validateInsightText` (v3.24 T5 graduate).
+ * - `text`: caller는 raw 입력에 대해 `validateInsightText`로 trim + max-200 cap 적용 의무.
+ *   UI render 시점에 escapeHtml 의무.
+ * - `isValidUserShape`는 `Array.isArray(insights)`만 검증 — entry-level shape 검증 없음.
+ *   `validateInsightText` 호출 책임은 caller (Gemini 빈 응답 등 raw 텍스트 진입점).
  */
 export interface Insight {
   id: string;        // crypto.randomUUID()
   text: string;      // Gemini 통찰 (caller invariant — 위 @invariant 참조)
   createdAt: string; // ISO 8601
+}
+
+/**
+ * v3.24 T5 (B1): Insight.text entry-level guard.
+ * - trim 적용 후 반환
+ * - 빈/공백-only 입력은 throw (caller 책임 — Gemini 빈 응답 등 raw 텍스트 진입점)
+ * - 200자 max cap (storage bloat + UI overflow 차단)
+ *
+ * @throws Error 빈 / 공백-only 입력
+ */
+export function validateInsightText(text: string): string {
+  const trimmed = text.trim();
+  if (trimmed.length === 0) throw new Error('Insight text empty (빈 또는 공백 only)');
+  return trimmed.slice(0, 200);
 }
 
 export interface User {
