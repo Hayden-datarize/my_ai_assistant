@@ -1,6 +1,6 @@
 import { getKstDateStr } from '../utils/dates';
 import { MSG } from '../ui/messages';
-import { migrateUserToV2, migrateUserToV3, migrateUserToV4, migrateUserToV5, migrateUserToV6 } from './migration';
+import { migrateUserToV2, migrateUserToV3, migrateUserToV4, migrateUserToV5, migrateUserToV6, migrateUserToV7 } from './migration';
 import { takeSnapshot, runSweep } from './achievements';
 import type { MissionInstance } from './missionTypes';
 import { getActiveMissions, tickMissionProgress } from './missionEngine';
@@ -67,7 +67,7 @@ export interface User {
   // ❌ removed: level (computed via getCurrentTier(xp).id)
   earnedBadges: Record<string, number>;     // badgeId → unlockedAt epoch ms
   gamificationMigrated: boolean;            // 환영 모달 1회 보장 flag
-  schemaVersion: 6;
+  schemaVersion: 7;
   missions: {
     active: MissionInstance[];
     cumulative: { dailyCount: number; weeklyCount: number; monthlyCount: number };
@@ -99,13 +99,14 @@ export function getCachedUser(): User | null {
     raw = localStorage.getItem(KEY);
     if (!raw) return null;
     const parsed = JSON.parse(raw);
-    let user = (parsed?.schemaVersion === 2 || parsed?.schemaVersion === 3 || parsed?.schemaVersion === 4 || parsed?.schemaVersion === 5 || parsed?.schemaVersion === 6)
+    let user = (parsed?.schemaVersion === 2 || parsed?.schemaVersion === 3 || parsed?.schemaVersion === 4 || parsed?.schemaVersion === 5 || parsed?.schemaVersion === 6 || parsed?.schemaVersion === 7)
       ? parsed
       : migrateUserToV2(parsed);
-    user = migrateUserToV3(user);  // v4/v5/v6 user는 early return (S5 fix + P0-1 fix)
+    user = migrateUserToV3(user);  // v4/v5/v6/v7 user는 early return (S5 fix + P0-1 fix + v3.25 chain superset)
     user = migrateUserToV4(user);
     user = migrateUserToV5(user);
     user = migrateUserToV6(user);  // v3.23 T1: v5→v6 lazy migration
+    user = migrateUserToV7(user);  // v3.25 T2: v6→v7 lazy migration
     if (!isValidUserShape(user)) {
       // v3.14.2 T12 P1: JSON parse OK이지만 shape invalid도 corruption — 같은 toast.
       notifyCorruption();
@@ -122,8 +123,8 @@ export function getCachedUser(): User | null {
         // v3.24 T3: dynamic → static (위 notifyCorruption과 동일).
         showToast(getSaveErrorMessage(err));
       }
-    } else if (parsed?.schemaVersion !== 6) {
-      // lazy migrate v1/v2/v3/v4/v5 → v6 (정상 데이터만 persist; 손상 데이터는 위에서 null)
+    } else if (parsed?.schemaVersion !== 7) {
+      // lazy migrate v1/v2/v3/v4/v5/v6 → v7 (정상 데이터만 persist; 손상 데이터는 위에서 null)
       // setItem 실패(Quota 등)는 무시 — in-memory 변환 결과는 그대로 반환
       try { localStorage.setItem(KEY, JSON.stringify(user)); } catch { /* ignore */ }
     }
@@ -153,7 +154,8 @@ function isValidUserShape(u: unknown): u is User {
   // S8 fix (Codex P1-2): v4 plantStateByInterest nested guard
   // v3.21 T1: v5도 동일 검증 (v5는 v4의 superset — streakFreeze 추가만)
   // v3.23 T1: v6도 동일 검증 (v6는 v5의 superset — insights 추가만)
-  if (r.schemaVersion === 4 || r.schemaVersion === 5 || r.schemaVersion === 6) {
+  // v3.25 T2: v7도 동일 검증 (v7는 v6의 superset — Insight.interestId 추가만)
+  if (r.schemaVersion === 4 || r.schemaVersion === 5 || r.schemaVersion === 6 || r.schemaVersion === 7) {
     if (typeof r.plantStateByInterest !== 'object' || r.plantStateByInterest === null) return false;
     for (const plant of Object.values(r.plantStateByInterest as Record<string, unknown>)) {
       if (!plant || typeof plant !== 'object') return false;
@@ -166,7 +168,8 @@ function isValidUserShape(u: unknown): u is User {
 
   // v3.21 T1: v5 신규 streakFreeze nested guard (silent NaN 차단, v3.12 lesson)
   // v3.23 T1: v6도 동일 검증 (v6는 v5의 superset)
-  if (r.schemaVersion === 5 || r.schemaVersion === 6) {
+  // v3.25 T2: v7도 동일 검증 (v7는 v6의 superset)
+  if (r.schemaVersion === 5 || r.schemaVersion === 6 || r.schemaVersion === 7) {
     const sf = r.streakFreeze as { count?: unknown; lastEarnedAt?: unknown } | undefined | null;
     if (!sf || typeof sf !== 'object') return false;
     if (typeof sf.count !== 'number' || !Number.isFinite(sf.count) || sf.count < 0 || sf.count > 2) return false;
@@ -174,8 +177,25 @@ function isValidUserShape(u: unknown): u is User {
   }
 
   // v3.23 T1: v6 신규 insights 배열 guard
-  if (r.schemaVersion === 6) {
+  // v3.25 T2: v7도 동일 검증 (v7는 v6의 superset — array guard는 동일)
+  if (r.schemaVersion === 6 || r.schemaVersion === 7) {
     if (!Array.isArray(r.insights)) return false;
+  }
+
+  // v3.25 T2 (Codex P0-A1 fix): Insight entry-level shape 강화.
+  // migrate chain (V3→V4→V5→V6→V7) 끝난 후라 모든 user는 v7 — entry는 항상 v7 shape 보장.
+  // v6 user는 migrateUserToV7에서 interestId='unknown' 채워지므로 데이터 손실 0.
+  if (r.schemaVersion === 7) {
+    if (Array.isArray(r.insights)) {
+      for (const i of r.insights as unknown[]) {
+        if (!i || typeof i !== 'object') return false;
+        const ie = i as Record<string, unknown>;
+        if (typeof ie.id !== 'string' || ie.id.length === 0) return false;
+        if (typeof ie.text !== 'string') return false;
+        if (typeof ie.createdAt !== 'string') return false;
+        if (typeof ie.interestId !== 'string') return false;
+      }
+    }
   }
 
   return true;

@@ -59,6 +59,7 @@ export function migrateUnknown<T extends Record<string, unknown>>(raw: T): T & {
 }
 
 import type { User, Insight } from './user';
+import { validateInterestId } from './user';
 import type { MissionInstance } from './missionTypes';
 import type { PlantState } from './plantTypes';
 
@@ -182,7 +183,8 @@ export function migrateUserToV3(raw: unknown): User {
   // v3.15 T16.1 (P0-1 fix): plant 필드는 그대로 두고, missions만 normalize.
   // v3.21 T1: v5도 v4의 superset (streakFreeze 추가)이므로 동일 분기 적용.
   // v3.23 T1 (P0-1 fix): v6도 v5의 superset (insights 추가)이므로 동일 분기 적용.
-  if (v?.schemaVersion === 4 || v?.schemaVersion === 5 || v?.schemaVersion === 6) {
+  // v3.25 T2 (chain superset): v7도 v6의 superset (Insight.interestId 추가)이므로 동일 분기 적용.
+  if (v?.schemaVersion === 4 || v?.schemaVersion === 5 || v?.schemaVersion === 6 || v?.schemaVersion === 7) {
     return {
       ...(v as User),
       missions: buildNormalizedMissions(v),
@@ -227,7 +229,8 @@ export function migrateUserToV4(u: unknown): User {
 
   // v3.21 T1: v5 user도 v4의 superset이므로 plantStateByInterest 보존 위해 early return.
   // v3.23 T1 (P0-1 fix): v6도 v5의 superset이므로 동일 분기 적용.
-  if (r.schemaVersion === 4 || r.schemaVersion === 5 || r.schemaVersion === 6) return r as unknown as User;
+  // v3.25 T2 (chain superset): v7도 v6의 superset이므로 동일 분기 적용.
+  if (r.schemaVersion === 4 || r.schemaVersion === 5 || r.schemaVersion === 6 || r.schemaVersion === 7) return r as unknown as User;
 
   // v3 → v4 lazy: 빈 정원 + flag 0
   const migrated = {
@@ -260,7 +263,8 @@ export function migrateUserToV5(u: unknown): User {
   };
 
   // v3.23 T1 (P0-1 fix): v6도 v5의 superset이므로 early return.
-  if (r.schemaVersion === 5 || r.schemaVersion === 6) return r as unknown as User;
+  // v3.25 T2 (chain superset): v7도 v6의 superset이므로 동일 분기 적용.
+  if (r.schemaVersion === 5 || r.schemaVersion === 6 || r.schemaVersion === 7) return r as unknown as User;
 
   // v4 → v5 lazy: streakFreeze 신규 또는 손상 시 default.
   // v3.22 P2-2: 머신 TZ 무관하게 KST 자정 anchor (Intl.DateTimeFormat).
@@ -309,7 +313,8 @@ export function migrateUserToV6(u: unknown): User {
     insights?: unknown;
   };
 
-  if (r.schemaVersion === 6) return r as unknown as User;
+  // v3.25 T2 (chain superset): v7도 v6의 superset이므로 동일 분기 적용.
+  if (r.schemaVersion === 6 || r.schemaVersion === 7) return r as unknown as User;
 
   // v5까지 lift (V5 early-return이 v6 guard됨 — 불필요 이중 lift 없음)
   const v5 = migrateUserToV5(u);
@@ -323,6 +328,51 @@ export function migrateUserToV6(u: unknown): User {
   return {
     ...v5,
     schemaVersion: 6 as const,
+    insights,
+  } as unknown as User;
+}
+
+/**
+ * v3.25 T2: schema v6 → v7 — Insight.interestId 필드 추가.
+ * - 기존 insights[]에 interestId='unknown' default 채움.
+ * - id/text 누락 entry는 silent drop (corruption 폴백, v3.25 spec §3 P0-A2).
+ * - validateInterestId로 invalid id → 'unknown' 폴백 (case-sensitive whitelist).
+ * - idempotent: 이미 v7이면 그대로 반환 (early return).
+ *
+ * @internal Caller invariant — `getCachedUser` chain (V3→V4→V5→V6→V7) 후 호출.
+ *   chain superset 패턴 (v3.23 lesson): V3/V4/V5/V6 early-return에 v7 guard 추가됨.
+ */
+export function migrateUserToV7(u: unknown): User {
+  const r = u as Record<string, unknown> & {
+    schemaVersion?: number;
+    insights?: unknown;
+  };
+
+  if (r.schemaVersion === 7) return r as unknown as User;
+
+  // v6까지 lift (V6 early-return이 v7 guard됨 — 불필요 이중 lift 없음)
+  const v6 = migrateUserToV6(u);
+  const v6r = v6 as unknown as Record<string, unknown>;
+
+  // insights 마이그레이션 (id/text 누락 entry drop + interestId 폴백)
+  const insightsIn = Array.isArray(v6r.insights) ? (v6r.insights as unknown[]) : [];
+  const insights: Insight[] = insightsIn
+    .map((i: unknown) => {
+      const ie = (i ?? {}) as Record<string, unknown>;
+      return {
+        id: typeof ie.id === 'string' ? ie.id : '',
+        text: typeof ie.text === 'string' ? ie.text : '',
+        createdAt: typeof ie.createdAt === 'string' ? ie.createdAt : new Date().toISOString(),
+        interestId: typeof ie.interestId === 'string'
+          ? validateInterestId(ie.interestId)
+          : 'unknown',
+      };
+    })
+    .filter((i) => i.id.length > 0 && i.text.length > 0);  // 손상 entry drop
+
+  return {
+    ...v6,
+    schemaVersion: 7 as const,
     insights,
   } as unknown as User;
 }
