@@ -141,7 +141,7 @@ export async function openStatsRangeModal(opts: StatsRangeModalOpts): Promise<vo
   }
 
   // v3.24 T2: DOM API 마이그레이션 — textContent 기반 안전 조립.
-  // openModal contract(bodyHtml: string) 유지 위해 마지막에 innerHTML 직렬화.
+  // v3.26 T3: bodyNode 채택 — innerHTML 직렬화 단계 제거 (XSS round-trip 안전성 + listener 보존).
   const bodyContainer = document.createElement('div');
   bodyContainer.appendChild(buildStatCards(r));
   if (opts.range === 30 && r.daily) {
@@ -155,6 +155,5 @@ export async function openStatsRangeModal(opts: StatsRangeModalOpts): Promise<vo
   bodyContainer.appendChild(highlight);
 
   const title = opts.range === 7 ? '지난 7일' : '지난 30일';
-  // eslint-disable-next-line no-restricted-syntax -- DOM Node로 조립한 결과를 직렬화 (caller-escaped contract 충족)
-  openModal({ title, bodyHtml: bodyContainer.innerHTML });
+  openModal({ title, bodyNode: bodyContainer });
 }

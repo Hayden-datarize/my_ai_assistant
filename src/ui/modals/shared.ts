@@ -1,13 +1,22 @@
 import { createFocusTrap, type FocusTrap } from '../utils/focus-trap';
 
-export interface ModalConfig {
+/**
+ * v3.26 T3 (v3.24 P2-3): discriminated xor union body contract.
+ * - bodyHtml: 기존 path — caller-escaped HTML 문자열 (caller invariant)
+ * - bodyNode: DOM Node — innerHTML 직렬화 단계 0, listener/identity 보존, XSS round-trip 안전
+ *
+ * 둘 중 정확히 하나만 지정 (xor). TypeScript는 ?never 패턴으로 enforce.
+ */
+type ModalBody =
+  | { bodyHtml: string; bodyNode?: never }
+  | { bodyNode: Node; bodyHtml?: never };
+
+export type ModalConfig = {
   title: string;
-  /** Caller-owned HTML; caller MUST escape any user interpolation before passing. */
-  bodyHtml: string;
   /** Called after the modal is closed (ESC, backdrop, close button, or programmatic).
    *  Use for cleanup only — do NOT rely on this for save semantics (ESC would save-on-cancel). */
   onClose?: () => void;
-}
+} & ModalBody;
 
 interface CloseOpts {
   skipFocusRestore?: boolean;
@@ -45,8 +54,15 @@ export function openModal(cfg: ModalConfig): HTMLDivElement {
   if (titleEl) titleEl.textContent = cfg.title;
 
   const bodyEl = wrap.querySelector<HTMLDivElement>('.dg-modal-body');
-  // eslint-disable-next-line no-restricted-syntax -- caller-supplied bodyHtml per ModalConfig contract; caller MUST escape interpolations
-  if (bodyEl) bodyEl.innerHTML = cfg.bodyHtml;
+  // v3.26 T3: discriminated body 분기 — bodyNode path는 직렬화 0 (listener/identity 보존)
+  if (bodyEl) {
+    if ('bodyNode' in cfg && cfg.bodyNode) {
+      bodyEl.append(cfg.bodyNode);
+    } else if ('bodyHtml' in cfg) {
+      // eslint-disable-next-line no-restricted-syntax -- caller-supplied bodyHtml per ModalConfig contract; caller MUST escape interpolations
+      bodyEl.innerHTML = cfg.bodyHtml;
+    }
+  }
 
   wrap.querySelector('.dg-modal-close')?.addEventListener('click', () => closeModal());
   wrap.querySelector('.dg-modal-backdrop')?.addEventListener('click', () => closeModal());
