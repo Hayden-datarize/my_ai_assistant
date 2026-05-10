@@ -42,7 +42,7 @@ describe('isValidUserShape — Insight entry shape (v3.25 T2)', () => {
 
   function makeBaseUser(): any {
     return {
-      schemaVersion: 7,
+      schemaVersion: 8,
       name: 'X', interests: [], onboardedAt: '2026-01-01',
       streak: 0, lastActiveDate: '2026-01-01',
       xp: 0, earnedBadges: {}, gamificationMigrated: true,
@@ -51,6 +51,7 @@ describe('isValidUserShape — Insight entry shape (v3.25 T2)', () => {
       plantStateByInterest: {}, gardenIntroduced: true, gardenBackfilled: true,
       streakFreeze: { count: 2, lastEarnedAt: '2026-01-01' },
       insights: [],
+      xpHistory: [],  // v3.27 T1: v8 isValidUserShape required
     };
   }
 
@@ -75,14 +76,14 @@ describe('isValidUserShape — Insight entry shape (v3.25 T2)', () => {
     expect(getCachedUser()).toBeNull();
   });
 
-  it('v6 insights — migrateUserToV7로 자동 변환 후 통과 (interestId=unknown 채움)', () => {
+  it('v6 insights — migrateUserToV7→V8로 자동 변환 후 통과 (interestId=unknown 채움)', () => {
     const u = makeBaseUser();
     u.schemaVersion = 6;  // v6 user (interestId 없음)
     u.insights = [{ id: 'i1', text: 'ok', createdAt: '2026-01-01' }];  // interestId 없음
     localStorage.setItem('user', JSON.stringify(u));
     const result = getCachedUser();
     expect(result).not.toBeNull();
-    expect(result!.schemaVersion).toBe(7);
+    expect(result!.schemaVersion).toBe(8);  // v3.27 T1: chain v6→v7→v8
     expect(result!.insights[0]!.interestId).toBe('unknown');
   });
 });

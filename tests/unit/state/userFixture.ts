@@ -6,6 +6,7 @@ import type { User } from '../../../src/state/user';
  * v3.21 T1: schemaVersion: 5 + streakFreeze 기본값 (count: 2, lastEarnedAt: '2026-05-07').
  * v3.23 T1: schemaVersion: 6 + insights 기본값 ([]).
  * v3.25 T2: schemaVersion: 7 (Insight.interestId 필드 추가, 기본 insights []이라 fixture 영향 없음).
+ * v3.27 T1: schemaVersion: 8 + xpHistory 기본값 ([]) 추가. Insight.pinned는 optional이라 fixture 영향 없음.
  * 각 테스트에서 필요한 필드만 override.
  */
 export const DEFAULT_MISSIONS: User['missions'] = {
@@ -27,13 +28,14 @@ export function mkUser(over: Partial<Omit<User, 'schemaVersion' | 'missions'>> &
     xp: 0,
     earnedBadges: {},
     gamificationMigrated: false,
-    schemaVersion: 7,
+    schemaVersion: 8,
     missions: { ...DEFAULT_MISSIONS, ...mOver },
     plantStateByInterest: {},
     gardenIntroduced: false,
     gardenBackfilled: false,
     streakFreeze: { count: 2, lastEarnedAt: '2026-05-07' },
     insights: [],
+    xpHistory: [],
     ...rest,
   };
 }

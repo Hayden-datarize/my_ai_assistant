@@ -74,6 +74,8 @@ import type { PlantState } from './plantTypes';
  */
 export function migrateUserToV2(raw: unknown): User {
   const r = (raw ?? {}) as Record<string, unknown>;
+  // v3.27 T1 (Codex 사전 P0-1): chain superset — v8 user → same reference (forward-compat).
+  if (r.schemaVersion === 8) return r as unknown as User;
   const v2 = { ...r, schemaVersion: 2 } as Record<string, unknown>;
   delete v2.level;
   v2.earnedBadges = v2.earnedBadges ?? {};
@@ -177,6 +179,9 @@ export function migrateUserToV3(raw: unknown): User {
     schemaVersion?: number;
     missions?: Partial<User['missions']>;
   };
+  // v3.27 T1 (Codex 사전 P0-1): chain superset — v8 user → same reference (forward-compat).
+  // v8을 v4~v7 superset 분기에 합류시키면 mission normalize로 NEW reference가 되어 invariant 위반.
+  if (v?.schemaVersion === 8) return v as unknown as User;
   // S5 fix (Codex P0-1): v4 user는 v3 migrate 통과 — schemaVersion=3 덮어쓰고 missions reset 방지.
   // v4가 v3의 superset (plantStateByInterest + gardenIntroduced + gardenBackfilled 추가)이므로
   // 모든 v3 필드 보존되어 안전.
@@ -230,7 +235,8 @@ export function migrateUserToV4(u: unknown): User {
   // v3.21 T1: v5 user도 v4의 superset이므로 plantStateByInterest 보존 위해 early return.
   // v3.23 T1 (P0-1 fix): v6도 v5의 superset이므로 동일 분기 적용.
   // v3.25 T2 (chain superset): v7도 v6의 superset이므로 동일 분기 적용.
-  if (r.schemaVersion === 4 || r.schemaVersion === 5 || r.schemaVersion === 6 || r.schemaVersion === 7) return r as unknown as User;
+  // v3.27 T1 (Codex 사전 P0-1): v8도 v7의 superset이므로 동일 분기 적용.
+  if (r.schemaVersion === 4 || r.schemaVersion === 5 || r.schemaVersion === 6 || r.schemaVersion === 7 || r.schemaVersion === 8) return r as unknown as User;
 
   // v3 → v4 lazy: 빈 정원 + flag 0
   const migrated = {
@@ -264,7 +270,8 @@ export function migrateUserToV5(u: unknown): User {
 
   // v3.23 T1 (P0-1 fix): v6도 v5의 superset이므로 early return.
   // v3.25 T2 (chain superset): v7도 v6의 superset이므로 동일 분기 적용.
-  if (r.schemaVersion === 5 || r.schemaVersion === 6 || r.schemaVersion === 7) return r as unknown as User;
+  // v3.27 T1 (Codex 사전 P0-1): v8도 v7의 superset이므로 동일 분기 적용.
+  if (r.schemaVersion === 5 || r.schemaVersion === 6 || r.schemaVersion === 7 || r.schemaVersion === 8) return r as unknown as User;
 
   // v4 → v5 lazy: streakFreeze 신규 또는 손상 시 default.
   // v3.22 P2-2: 머신 TZ 무관하게 KST 자정 anchor (Intl.DateTimeFormat).
@@ -314,7 +321,8 @@ export function migrateUserToV6(u: unknown): User {
   };
 
   // v3.25 T2 (chain superset): v7도 v6의 superset이므로 동일 분기 적용.
-  if (r.schemaVersion === 6 || r.schemaVersion === 7) return r as unknown as User;
+  // v3.27 T1 (Codex 사전 P0-1): v8도 v7의 superset이므로 동일 분기 적용.
+  if (r.schemaVersion === 6 || r.schemaVersion === 7 || r.schemaVersion === 8) return r as unknown as User;
 
   // v5까지 lift (V5 early-return이 v6 guard됨 — 불필요 이중 lift 없음)
   const v5 = migrateUserToV5(u);
@@ -348,7 +356,8 @@ export function migrateUserToV7(u: unknown): User {
     insights?: unknown;
   };
 
-  if (r.schemaVersion === 7) return r as unknown as User;
+  // v3.27 T1 (Codex 사전 P0-1): v8도 v7의 superset이므로 same reference.
+  if (r.schemaVersion === 7 || r.schemaVersion === 8) return r as unknown as User;
 
   // v6까지 lift (V6 early-return이 v7 guard됨 — 불필요 이중 lift 없음)
   const v6 = migrateUserToV6(u);
@@ -374,5 +383,48 @@ export function migrateUserToV7(u: unknown): User {
     ...v6,
     schemaVersion: 7 as const,
     insights,
+  } as unknown as User;
+}
+
+/**
+ * v3.27 T1: schema v7 → v8 — Insight.pinned default false + xpHistory 신설.
+ * - Insight.pinned: undefined → false (기존 .pinned=true forward-compat 보존).
+ * - xpHistory: { date: string; xpEarned: number }[] 신설 (default []).
+ *   답변 entry 시점에 recordDailyAnswer가 push (KST date anchor).
+ * - chain superset (Codex 사전 P0-1): V2~V7 + getCachedUser allowlist에 v8 early-return guard 추가됨.
+ *   v8 user는 V2~V7 모두 same reference로 통과 (forward-compat 보장).
+ *
+ * @internal Caller invariant — `getCachedUser` chain (V3→V4→V5→V6→V7→V8) 후 호출.
+ */
+export function migrateUserToV8(u: unknown): User {
+  const r = u as Record<string, unknown> & {
+    schemaVersion?: number;
+    insights?: unknown;
+    xpHistory?: unknown;
+  };
+
+  if (r.schemaVersion === 8) return r as unknown as User;
+
+  // v7까지 lift (V7 early-return이 v8 guard됨 — 불필요 이중 lift 없음)
+  const v7 = migrateUserToV7(u);
+  const v7r = v7 as unknown as Record<string, unknown>;
+
+  // Insight.pinned default false (기존 .pinned=true forward-compat 보존)
+  const insights = (Array.isArray(v7r.insights) ? v7r.insights : []).map((i: unknown) => {
+    const ie = (i ?? {}) as Record<string, unknown>;
+    return {
+      ...ie,
+      pinned: typeof ie.pinned === 'boolean' ? ie.pinned : false,
+    };
+  });
+
+  // xpHistory default [] — 손상(non-array) → []
+  const xpHistory = Array.isArray(v7r.xpHistory) ? v7r.xpHistory : [];
+
+  return {
+    ...v7,
+    schemaVersion: 8 as const,
+    insights,
+    xpHistory,
   } as unknown as User;
 }

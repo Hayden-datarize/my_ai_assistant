@@ -52,7 +52,7 @@ describe('홈 #gardenMini integration', () => {
           unlockedAt: undefined,
         },
       },
-      schemaVersion: 7,
+      schemaVersion: 8,
       lastActiveDate: '2026-05-04',
       xp: 100,
       earnedBadges: {},

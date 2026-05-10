@@ -20,6 +20,8 @@ export interface Answer extends Versioned {
   evaluation?: { score: number; feedback: string };
   /** legacy 'YYYY-MM-DD'. optional, kept for archive daily grouping. */
   date?: string;
+  /** v3.27 T1: archive 핀(즐겨찾기). default false. lazy migration — undefined인 기존 entry는 unpinned로 처리. */
+  pinned?: boolean;
 }
 
 export interface UserSettings extends Versioned {
