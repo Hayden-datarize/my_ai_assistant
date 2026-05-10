@@ -3,9 +3,9 @@ import type { MissionInstance, MissionPeriod, MissionAction } from './missionTyp
 import { DAILY_POOL, WEEKLY_FIXED, MONTHLY_FIXED, getMissionDef } from './missionCatalog';
 import { assertNever } from '../utils/assertNever';
 import { applyMissionBonus } from './plantEngine';
+import { KST_FMT_DATE as KST_FMT } from '../utils/intl';
 
-// en-CA 로케일은 YYYY-MM-DD 형식을 보장 (ISO 8601 준수)
-const KST_FMT = new Intl.DateTimeFormat('en-CA', { timeZone: 'Asia/Seoul', year: 'numeric', month: '2-digit', day: '2-digit' });
+// v3.26 T1a: KST_FMT singleton 중앙화 (src/utils/intl.ts). en-CA 로케일은 YYYY-MM-DD (ISO 8601).
 
 export function getKSTDateIso(now: Date): string {
   return KST_FMT.format(now);                                            // 'YYYY-MM-DD'

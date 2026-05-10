@@ -9,6 +9,7 @@
 
 import { loadAnswers } from '../state/persistence';
 import { getKstDateStr } from './dates';
+import { KST_FMT_DATE as KST_FMT } from './intl';
 
 export interface StatsRange {
   totalAnswers: number;
@@ -20,13 +21,7 @@ export interface StatsRange {
   daily?: number[];
 }
 
-/** KST 날짜 포매터 (en-CA → 'YYYY-MM-DD' 형식) */
-const KST_FMT = new Intl.DateTimeFormat('en-CA', {
-  timeZone: 'Asia/Seoul',
-  year: 'numeric',
-  month: '2-digit',
-  day: '2-digit',
-});
+// v3.26 T1a: KST_FMT singleton (src/utils/intl.ts) — KST_FMT_DATE alias 유지로 기존 caller 0 변경.
 
 /**
  * UTC ISO 문자열 → KST 날짜 'YYYY-MM-DD'.
