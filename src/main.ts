@@ -4,7 +4,7 @@ import { mountHomeHandlers } from './ui/handlers/home';
 import { mountArchiveHandlers } from './ui/handlers/archive';
 import { mountStatsHandlers } from './ui/handlers/stats';
 import { mountMissionsHandlers } from './ui/handlers/missions';
-import { mountInsightsHandlers } from './ui/tabs/insights';
+// v3.27 T2a: mountInsightsHandlers import 제거 — insights tab 폐기, dg:insights:* listener는 mountArchiveHandlers로 흡수.
 import { mountRewards } from './ui/rewards';
 import { renderOnboarding } from './ui/onboarding';
 import { maybeShowWelcomeGarden } from './ui/modals/welcome-garden';
@@ -26,7 +26,7 @@ function bootMainApp(): void {
   mountArchiveHandlers();
   mountStatsHandlers();
   mountMissionsHandlers();
-  mountInsightsHandlers();  // v3.23 T8: dg:insights:* placeholder listener (T9 wiring 대기)
+  // v3.27 T2a: mountInsightsHandlers 호출 제거 — mountArchiveHandlers에서 dg:insights:* 흡수.
   mountNav();
   mountSidebar();
   mountRewards();

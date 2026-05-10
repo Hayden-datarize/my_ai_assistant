@@ -11,9 +11,10 @@ beforeEach(() => {
 });
 
 describe('nav', () => {
-  it('mounts 6 tab buttons', () => {
+  it('mounts 5 tab buttons', () => {
     mountNav();
-    expect(document.querySelectorAll('#bottomNav button').length).toBe(6);
+    // v3.27 T2a: insights tab 제거 (6→5).
+    expect(document.querySelectorAll('#bottomNav button').length).toBe(5);
   });
   it('switchTab("home") renders Home into #app', () => {
     mountNav();
@@ -28,8 +29,9 @@ describe('nav', () => {
 });
 
 describe('nav TABS catalog', () => {
-  it('includes 6 tabs in fixed order', () => {
-    expect(TABS.map((t) => t.id)).toEqual(['home', 'archive', 'stats', 'insights', 'settings', 'missions']);
+  it('includes 5 tabs in fixed order', () => {
+    // v3.27 T2a: insights 제거 (P0-5).
+    expect(TABS.map((t) => t.id)).toEqual(['home', 'archive', 'stats', 'settings', 'missions']);
   });
 
   it('missions tab carries 미션 label and 🎯 icon', () => {

@@ -256,7 +256,8 @@ export function mountHomeHandlers(): void {
   });
 
   on('dg:home:switch-tab', ({ tab }) => {
-    if (tab === 'home' || tab === 'archive' || tab === 'stats' || tab === 'insights' || tab === 'settings') {
+    // v3.27 T2a: 'insights' 제거 (tab 폐기, archive 통합).
+    if (tab === 'home' || tab === 'archive' || tab === 'stats' || tab === 'settings') {
       switchTab(tab);
     }
   });

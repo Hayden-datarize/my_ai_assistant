@@ -69,10 +69,11 @@ describe('mountSidebar', () => {
     expect(drawer.dataset['open']).toBe('false');
   });
 
-  it('drawer renders one .nav-item per tab (6 total)', () => {
+  it('drawer renders one .nav-item per tab (5 total)', () => {
     mountSidebar();
+    // v3.27 T2a: insights tab 제거 (6→5).
     const items = document.querySelectorAll('#sidebarDrawer .nav-item');
-    expect(items.length).toBe(6);
+    expect(items.length).toBe(5);
   });
 
   it('clicking a drawer nav-item closes drawer and dispatches dg:nav:tab-changed', () => {

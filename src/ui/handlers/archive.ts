@@ -324,6 +324,21 @@ export function mountArchiveHandlers(): void {
   on('dg:nav:tab-changed', ({ tab }) => {
     if (tab === 'archive') hydrateArchive();
   });
+
+  // v3.27 T2a: insights tab 폐기 — dg:insights:* listener 흡수, archive re-render.
+  on('dg:insights:added', () => rerenderList());
+  on('dg:insights:removed', () => rerenderList());
+  on('dg:insights:updated', () => rerenderList());
+
+  // v3.27 T2a: archive insight card click → openInsightDetailModal (insights tab 흡수).
+  document.addEventListener('click', (e) => {
+    const card = (e.target as HTMLElement).closest<HTMLElement>('.archive-insight-card');
+    if (!card) return;
+    const id = card.dataset['insightId'];
+    if (id) {
+      void import('../modals/insight-detail').then(m => m.openInsightDetailModal(id));
+    }
+  });
 }
 
 export function hydrateArchive(): void {

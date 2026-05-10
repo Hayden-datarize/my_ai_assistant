@@ -2,17 +2,18 @@ import { qs } from '../utils/dom';
 import { renderHome } from './tabs/home';
 import { renderArchive } from './tabs/archive';
 import { renderStats } from './tabs/stats';
-import { renderInsights } from './tabs/insights';
+// v3.27 T2a (Codex 사전 P0-5): renderInsights import 제거 — insights tab 폐기, archive 통합 렌더.
 import { renderSettings } from './tabs/settings';
 import { renderMissions } from './tabs/missions';
 
-export type TabId = 'home' | 'archive' | 'stats' | 'insights' | 'settings' | 'missions';
+// v3.27 T2a (Codex 사전 P0-5): 'insights' union 제거.
+export type TabId = 'home' | 'archive' | 'stats' | 'settings' | 'missions';
 
+// v3.27 T2a (Codex 사전 P0-5): insights TABS entry 제거.
 export const TABS: Array<{ id: TabId; label: string; icon: string; render: (c: HTMLElement) => void }> = [
   { id: 'home', label: '홈', icon: '🏠', render: renderHome },
   { id: 'archive', label: '아카이브', icon: '📚', render: renderArchive },
   { id: 'stats', label: '통계', icon: '📊', render: renderStats },
-  { id: 'insights', label: '인사이트', icon: '💡', render: renderInsights },
   { id: 'settings', label: '설정', icon: '⚙️', render: renderSettings },
   { id: 'missions', label: '미션', icon: '🎯', render: renderMissions },
 ];

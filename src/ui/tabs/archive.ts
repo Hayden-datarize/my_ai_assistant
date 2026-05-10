@@ -3,6 +3,7 @@
  * 인라인 핸들러 없이 CustomEvent를 dispatch하여 Task 18에서 연결한다.
  */
 import { loadAnswers } from '../../state/persistence';
+import { getCachedUser } from '../../state/user';
 import { KST_FMT_KO } from '../../utils/intl';
 
 export function renderArchive(container: HTMLElement): void {
@@ -14,13 +15,19 @@ export function renderArchive(container: HTMLElement): void {
   bindHandlers(container);
 }
 
-/** localStorage에서 답변을 읽어 #archiveList를 채운다. */
+/**
+ * localStorage에서 답변 + insights를 읽어 #archiveList를 채운다.
+ * v3.27 T2a: insights tab 폐기 후 archive 통합 렌더 — insights entity 카드 추가.
+ */
 function populateList(container: HTMLElement): void {
   const list = container.querySelector<HTMLElement>('#archiveList');
   if (!list) return;
 
   const answers = loadAnswers();
-  if (answers.length === 0) {
+  const user = getCachedUser();
+  const insights = user?.insights ?? [];
+
+  if (answers.length === 0 && insights.length === 0) {
     list.textContent = '아직 저장된 답변이 없어요. 첫 답변을 남겨보세요.';
     return;
   }
@@ -45,6 +52,24 @@ function populateList(container: HTMLElement): void {
     deleteBtn.textContent = '×';
 
     card.append(dateEl, textEl, deleteBtn);
+    list.append(card);
+  }
+
+  // v3.27 T2a: insights entity 카드 (insights tab 흡수). T2b chip filter + T4 핀 정렬에서 통합 처리.
+  for (const i of insights) {
+    const card = document.createElement('article');
+    card.className = 'archive-card archive-insight-card';
+    card.dataset['insightId'] = i.id;
+
+    const dateEl = document.createElement('div');
+    dateEl.className = 'archive-date';
+    dateEl.textContent = KST_FMT_KO.format(new Date(i.createdAt));
+
+    const textEl = document.createElement('div');
+    textEl.className = 'archive-text';
+    textEl.textContent = i.text;
+
+    card.append(dateEl, textEl);
     list.append(card);
   }
 }
