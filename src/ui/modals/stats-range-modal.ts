@@ -67,7 +67,8 @@ function buildSparkline(daily: number[]): HTMLElement {
   return container;
 }
 
-function buildInterestBars(byInterest: StatsRange['byInterest']): HTMLElement | null {
+/** v3.26 T5 (v3.24 T2 P2): byInterest 빈 배열 → null 반환 (caller가 append 분기 처리). export는 spec 단위 검증용. @internal */
+export function buildInterestBars(byInterest: StatsRange['byInterest']): HTMLElement | null {
   const first = byInterest[0];
   if (!first) return null;
   const max = first.count;

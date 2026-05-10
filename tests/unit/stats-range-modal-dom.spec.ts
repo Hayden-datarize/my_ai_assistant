@@ -1,6 +1,7 @@
 import { describe, it, expect, beforeEach, vi } from 'vitest';
 import { openStatsRangeModal } from '../../src/ui/modals/stats-range-modal';
 
+// v3.26 T5 (v3.24 T2 P2): daily 미지정으로 mock 단순화 (range=7 path는 daily 사용 안 함)
 vi.mock('../../src/utils/statsAggregate', () => ({
   getStatsRange: () => ({
     totalAnswers: 5,
@@ -11,7 +12,6 @@ vi.mock('../../src/utils/statsAggregate', () => ({
       { id: '<img src=x onerror=alert(1)>', count: 3 },
       { id: 'AI', count: 2 },
     ],
-    daily: undefined,
   }),
 }));
 vi.mock('../../src/utils/statsCache', () => ({
@@ -43,5 +43,21 @@ describe('stats-range-modal DOM 안전성 (v3.24 T2)', () => {
   it('range=7에서는 sparkline 미표시', async () => {
     await openStatsRangeModal({ range: 7 });
     expect(document.querySelectorAll('.stats-sparkline').length).toBe(0);
+  });
+});
+
+// v3.26 T5 (v3.24 T2 P2): byInterest null explicit spec — buildInterestBars 정책 명문화.
+import { buildInterestBars } from '../../src/ui/modals/stats-range-modal';
+
+describe('buildInterestBars empty/non-empty (v3.26 T5)', () => {
+  it('byInterest 빈 배열 → null 반환 (caller가 append 안 함)', () => {
+    expect(buildInterestBars([])).toBeNull();
+  });
+
+  it('byInterest 1개 이상 → ul.stats-interest-bars 반환', () => {
+    const ul = buildInterestBars([{ id: 'recruiting', count: 5 }]);
+    expect(ul).not.toBeNull();
+    expect(ul?.classList.contains('stats-interest-bars')).toBe(true);
+    expect(ul?.querySelectorAll('li').length).toBe(1);
   });
 });

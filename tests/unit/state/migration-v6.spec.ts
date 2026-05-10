@@ -1,6 +1,15 @@
 import { describe, it, expect } from 'vitest';
 import { migrateUserToV3, migrateUserToV4, migrateUserToV5, migrateUserToV6 } from '../../../src/state/migration';
 
+// v3.26 T5: chain superset assertion helper — V2/V3/V4 type 시그니처 너머의 superset 필드 검증용.
+// `as any` 대신 explicit ChainSupersetView interface로 ESLint warning 0건 + chainable assertion.
+interface ChainSupersetView {
+  plantStateByInterest?: Record<string, { stage: number; cumulativeActivity: number; unlockedAt?: string }>;
+  streakFreeze?: { count: number; lastEarnedAt: string };
+  insights?: Array<{ id: string; text: string; createdAt: string; interestId?: string }>;
+}
+const lifted = (u: unknown): ChainSupersetView => u as ChainSupersetView;
+
 // v6 user 공통 픽스처 builder
 function mkV5(over: Record<string, unknown> = {}): Record<string, unknown> {
   return {
@@ -59,7 +68,7 @@ describe('migrateUserToV6', () => {
     expect(v6.streakFreeze).toBeDefined();
     expect(typeof v6.streakFreeze.count).toBe('number');
     // plantStateByInterest 보존
-    expect((v6 as any).plantStateByInterest?.recruiting?.stage).toBe(2);
+    expect(lifted(v6).plantStateByInterest?.recruiting?.stage).toBe(2);
   });
 
   it('손상된 insights (string) → default [] 복구', () => {
@@ -117,26 +126,26 @@ describe('chain superset — v6 user → 하위 chain 통과 시 필드 보존',
     // missions 보존 (reset 안 됨)
     expect(out.missions.cumulative.dailyCount).toBe(9);
     // streakFreeze 보존
-    expect((out as any).streakFreeze).toEqual({ count: 2, lastEarnedAt: '2026-05-07' });
+    expect(lifted(out).streakFreeze).toEqual({ count: 2, lastEarnedAt: '2026-05-07' });
     // plantStateByInterest 보존
-    expect((out as any).plantStateByInterest?.recruiting?.stage).toBe(3);
+    expect(lifted(out).plantStateByInterest?.recruiting?.stage).toBe(3);
     // insights 보존
-    expect((out as any).insights).toEqual(v6User.insights);
+    expect(lifted(out).insights).toEqual(v6User.insights);
   });
 
   it('v6 user → migrateUserToV4 통과 시 plantStateByInterest / streakFreeze / insights 보존 (early return)', () => {
     const out = migrateUserToV4(v6User);
     expect(out.schemaVersion).toBe(6);
-    expect((out as any).plantStateByInterest?.recruiting?.stage).toBe(3);
-    expect((out as any).streakFreeze).toEqual({ count: 2, lastEarnedAt: '2026-05-07' });
-    expect((out as any).insights).toEqual(v6User.insights);
+    expect(lifted(out).plantStateByInterest?.recruiting?.stage).toBe(3);
+    expect(lifted(out).streakFreeze).toEqual({ count: 2, lastEarnedAt: '2026-05-07' });
+    expect(lifted(out).insights).toEqual(v6User.insights);
   });
 
   it('v6 user → migrateUserToV5 통과 시 streakFreeze / insights 보존 (early return)', () => {
     const out = migrateUserToV5(v6User);
     expect(out.schemaVersion).toBe(6);
-    expect((out as any).streakFreeze).toEqual({ count: 2, lastEarnedAt: '2026-05-07' });
-    expect((out as any).insights).toEqual(v6User.insights);
+    expect(lifted(out).streakFreeze).toEqual({ count: 2, lastEarnedAt: '2026-05-07' });
+    expect(lifted(out).insights).toEqual(v6User.insights);
   });
 
   it('v6 user → migrateUserToV6 통과 시 idempotent (same reference)', () => {

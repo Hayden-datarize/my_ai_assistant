@@ -14,6 +14,7 @@ export interface StatsCacheEntry {
   fingerprint: StatsFingerprint;
   highlight?: string;
   narrative?: string;
+  /** 진단 필드 — write 시각 ISO. 캐시 hit 결정에는 사용하지 않음 (key의 KST date + fingerprint가 결정). v3.23 T6 mid P2-3 명확화 (v3.26 T5). */
   cachedAt: string;
 }
 
