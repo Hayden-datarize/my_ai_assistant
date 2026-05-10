@@ -112,6 +112,26 @@ describe('renderGardenMini (홈 preview)', () => {
     renderGardenMini(root, u);
     expect(root.querySelector('.garden-mini-cell')?.getAttribute('aria-label')).toContain('AI/ML');
   });
+
+  // v3.26 T4 (v3.24 T3 P2-5): aria-label / mini-label escapeHtml 회귀 방어 — DOM injection 0
+  it('renderGardenMini: 사용자 정의 분야명 raw HTML → DOM injection 0 + visible text escape', () => {
+    const u = mkUser({ '<img src=x onerror=alert(1)>': { stage: 1, cumulativeActivity: 0 } });
+    renderGardenMini(root, u);
+    // 1. injection 방어: 자식 element로 img 미생성
+    expect(root.querySelector('img')).toBeNull();
+    // 2. cell 정상 생성 (attribute parsing 안 깨짐)
+    expect(root.querySelector('.garden-mini-cell')).not.toBeNull();
+    // 3. visible text는 escape 적용 (mini-label textContent에 raw < 는 decoded text로만 표시)
+    const labelText = root.querySelector('.garden-mini-label')?.textContent;
+    expect(labelText).toContain('<img'); // textContent는 decoded entity
+  });
+
+  it('renderGardenGrid: 사용자 정의 분야명 raw HTML → DOM injection 0', () => {
+    const u = mkUser({ '<script>alert(1)</script>': { stage: 1, cumulativeActivity: 0 } });
+    renderGardenGrid(root, u);
+    expect(root.querySelector('script')).toBeNull(); // injection 방어
+    expect(root.querySelector('.garden-card')).not.toBeNull(); // 정상 card 생성
+  });
 });
 
 // v3.18.1 H4 (#5): mini label 4자 + ellipsis (의미 손실 완화)
