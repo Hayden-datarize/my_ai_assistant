@@ -57,6 +57,31 @@ export function validateInterestId(id: string): string {
   return INTERESTS.some(i => i.id === id) ? id : 'unknown';
 }
 
+/**
+ * v3.26 T2 (Codex 사전 P1-3): persisted v7 invalid interestId string normalize.
+ *
+ * `isValidUserShape`는 pure validator로 유지(mutation ❌, P1-3 invariant) — 본 함수가
+ * mutation을 분리 담당. silent corruption guard 패턴(v3.25 lesson #6 graduated):
+ * whitelist 매칭 실패 시 'unknown'으로 in-place normalize + console.warn 1줄 가시화.
+ *
+ * Caller invariant: input은 isValidUserShape 통과한 Insight[] (interestId는 항상 string).
+ * idempotent — 이중 호출 안전, 'unknown' normalize 후 추가 warn 없음.
+ *
+ * 호출 위치 (v3.26 T2):
+ * - `getCachedUser`: isValidUserShape 통과 직후 (early-return v7 user의 invalid 가드).
+ * - migrate v6→v7 path는 `migrateUserToV7` inline `validateInterestId`로 자동 처리되어 추가 호출 불필요.
+ */
+export function normalizeInsightInterestIds(insights: Insight[]): void {
+  for (const i of insights) {
+    const id = i.interestId;
+    const valid = id === 'unknown' || INTERESTS.some(x => x.id === id);
+    if (!valid) {
+      console.warn(`[v3.26 T2] invalid interestId "${id}" → "unknown" (insight=${i.id})`);
+      i.interestId = 'unknown';
+    }
+  }
+}
+
 export interface User {
   name: string;
   interests: string[];
@@ -111,6 +136,13 @@ export function getCachedUser(): User | null {
       // v3.14.2 T12 P1: JSON parse OK이지만 shape invalid도 corruption — 같은 toast.
       notifyCorruption();
       return null;
+    }
+
+    // v3.26 T2 (Codex 사전 P1-3): 이미 v7로 저장된 user의 invalid interestId string normalize.
+    // migrate path는 migrateUserToV7가 validateInterestId 처리하지만, early-return v7 user는
+    // 우회. 본 호출이 silent corruption guard. idempotent — in-memory only (saveUser 시 persist).
+    if (Array.isArray(user.insights)) {
+      normalizeInsightInterestIds(user.insights);
     }
 
     // T8: backfill 자동 (sweep 우회 — 환영 모달 highlight로만 통지)
