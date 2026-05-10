@@ -113,7 +113,7 @@ firebase deploy --only hosting   # 사용자 명시 승인 후
 **📋 Master Index**: `docs/INDEX.md` - Complete navigation with token costs
 
 ### Core References
-- **Common Mistakes**: `.claude/COMMON_MISTAKES.md` ⚠️ **MANDATORY**
+- **Common Mistakes**: `.claude/COMMON_MISTAKES.md` ⚠️ **MANDATORY** (v3.26 T6부터 git tracked — `.gitignore` 예외 `!.claude/COMMON_MISTAKES.md`. controller auto-load + git audit + cross-machine consistency 동시 만족)
 - **Quick Start**: `.claude/QUICK_START.md`
 - **Architecture Map**: `.claude/ARCHITECTURE_MAP.md`
 - **Maintenance**: `.claude/DOCUMENTATION_MAINTENANCE.md`

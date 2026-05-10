@@ -13,4 +13,7 @@ test-results/
 .firebase/
 firebase-debug.log
 .bkit/
-.claude/
+# v3.26 T6 (v3.24 P2-2): .claude/ 전체 무시하되 COMMON_MISTAKES.md만 git tracked.
+# git negation은 부모 디렉토리가 *로 끝나야 작동 (parent excluded면 child re-include 불가).
+.claude/*
+!.claude/COMMON_MISTAKES.md
