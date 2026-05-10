@@ -21,6 +21,10 @@ import { getKSTDateIso } from '../../state/missionEngine';
 
 let currentFilter = 'all';
 let currentQuery = '';
+// v3.27 T2b (Codex 사전 P0-4): 1차 entity chip state — 'all' | 'answer' | 'scrap' | 'insight'.
+// scrap 분기는 currentFilter === 'scrap' (data-filter)에서 currentEntity === 'scrap'으로 전면 이전.
+type EntityFilter = 'all' | 'answer' | 'scrap' | 'insight';
+let currentEntity: EntityFilter = 'all';
 
 // 선택 모드 상태
 const selectedIds = new Set<string>();
@@ -86,7 +90,8 @@ function handleBulkDeleteClick(): void {
   if (n === 0) return;
 
   // scrap 벌크 분기 (T5 신설)
-  if (currentFilter === 'scrap') {
+  // v3.27 T2b (P0-4): currentFilter → currentEntity 이전 (entity chip 도입).
+  if (currentEntity === 'scrap') {
     if (!window.confirm(MSG.SCRAP_BULK_CONFIRM(n))) return;
     const ids = [...selectedIds];
     const briefings = loadBriefings();
@@ -339,6 +344,35 @@ export function mountArchiveHandlers(): void {
       void import('../modals/insight-detail').then(m => m.openInsightDetailModal(id));
     }
   });
+
+  // v3.27 T2b: entity chip click — 1차 row [전체/답변/스크랩/인사이트].
+  document.addEventListener('click', (e) => {
+    const chip = (e.target as HTMLElement).closest<HTMLButtonElement>('.archive-entity-chip[data-entity]');
+    if (!chip) return;
+    const entity = chip.dataset['entity'] as EntityFilter | undefined;
+    if (!entity) return;
+    currentEntity = entity;
+    // ARIA radiogroup state
+    document.querySelectorAll<HTMLButtonElement>('.archive-entity-chip').forEach((b) => {
+      const active = b.dataset['entity'] === entity;
+      b.classList.toggle('active', active);
+      b.setAttribute('aria-checked', active ? 'true' : 'false');
+    });
+    // 2차 question type row 조건부 노출 — entity ∈ {all, answer}만.
+    const questionRow = document.getElementById('archiveFilters');
+    if (questionRow) {
+      const hide = entity === 'scrap' || entity === 'insight';
+      questionRow.style.display = hide ? 'none' : '';
+    }
+    rerenderList();
+  });
+
+  // v3.27 T2b: onboarding banner dismiss — sessionStorage stamp + remove.
+  document.addEventListener('click', (e) => {
+    if (!(e.target as HTMLElement).closest('#archiveOnboardingDismiss')) return;
+    sessionStorage.setItem('archive-relocated-seen', '1');
+    document.getElementById('archiveRelocatedBanner')?.remove();
+  });
 }
 
 export function hydrateArchive(): void {
@@ -436,7 +470,8 @@ export function rerenderList(): void {
     list!.append(card);
   }
 
-  if (currentFilter === 'scrap') {
+  // v3.27 T2b (P0-4): currentFilter scrap → currentEntity scrap 이전.
+  if (currentEntity === 'scrap') {
     const scrapped = briefings.filter((b) => b.scrapped);
     if (scrapped.length === 0) {
       list.textContent = '아직 스크랩한 기사가 없어요.';
@@ -448,7 +483,8 @@ export function rerenderList(): void {
 
   // v3.20.1 H4: '전체' 필터는 answers + scrapped briefings 통합 (사용자 의도).
   // type 필터(분석/전환/실무/성장/트렌드)는 answers만 — briefing은 type 없음.
-  if (currentFilter === 'all') {
+  // v3.27 T2b: entity='all' 또는 'answer' 시 question type 분기 진입. 'insight'는 분리.
+  if (currentEntity === 'all' && currentFilter === 'all') {
     const scrapped = briefings.filter((b) => b.scrapped);
     type Entry =
       | { kind: 'answer'; answer: typeof answers[number]; sortKey: string }

@@ -51,7 +51,7 @@ describe('Archive scrap 카드 마크업 통일 (T4)', () => {
     handlers.mountArchiveHandlers();
 
     // scrap 필터로 전환
-    document.querySelector<HTMLButtonElement>('[data-filter="scrap"]')!.click();
+    document.querySelector<HTMLButtonElement>('[data-entity="scrap"]')!.click();
 
     const card = document.querySelector<HTMLElement>('.archive-card.archive-card--scrap');
     expect(card).toBeTruthy();
@@ -83,7 +83,7 @@ describe('Archive scrap 카드 마크업 통일 (T4)', () => {
     tab.renderArchive(container);
     handlers.mountArchiveHandlers();
 
-    document.querySelector<HTMLButtonElement>('[data-filter="scrap"]')!.click();
+    document.querySelector<HTMLButtonElement>('[data-entity="scrap"]')!.click();
     document.querySelector<HTMLElement>('.archive-card--scrap')!.click();
 
     expect(openModal).toHaveBeenCalledWith(
@@ -116,7 +116,7 @@ describe('Archive scrap 카드 마크업 통일 (T4)', () => {
     tab.renderArchive(container);
     handlers.mountArchiveHandlers();
 
-    document.querySelector<HTMLButtonElement>('[data-filter="scrap"]')!.click();
+    document.querySelector<HTMLButtonElement>('[data-entity="scrap"]')!.click();
     document
       .querySelector<HTMLButtonElement>('.archive-card--scrap .archive-card-delete')!
       .click();
@@ -150,7 +150,7 @@ describe('Archive scrap 카드 마크업 통일 (T4)', () => {
     tab.renderArchive(container);
     handlers.mountArchiveHandlers();
 
-    document.querySelector<HTMLButtonElement>('[data-filter="scrap"]')!.click();
+    document.querySelector<HTMLButtonElement>('[data-entity="scrap"]')!.click();
     document
       .querySelector<HTMLButtonElement>('.archive-card--scrap .archive-card-delete')!
       .click();

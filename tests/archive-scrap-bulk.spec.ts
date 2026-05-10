@@ -41,7 +41,7 @@ describe('Archive scrap 벌크 해제 (T5)', () => {
     vi.spyOn(window, 'confirm').mockReturnValue(true);
     handlers.mountArchiveHandlers();
 
-    document.querySelector<HTMLButtonElement>('[data-filter="scrap"]')!.click();
+    document.querySelector<HTMLButtonElement>('[data-entity="scrap"]')!.click();
     document.getElementById('archiveSelectToggle')!.click();
     document
       .querySelectorAll<HTMLElement>('.archive-card--scrap')
@@ -70,7 +70,7 @@ describe('Archive scrap 벌크 해제 (T5)', () => {
     vi.spyOn(window, 'confirm').mockReturnValue(true);
     handlers.mountArchiveHandlers();
 
-    document.querySelector<HTMLButtonElement>('[data-filter="scrap"]')!.click();
+    document.querySelector<HTMLButtonElement>('[data-entity="scrap"]')!.click();
     document.getElementById('archiveSelectToggle')!.click();
     document
       .querySelectorAll<HTMLElement>('.archive-card--scrap')

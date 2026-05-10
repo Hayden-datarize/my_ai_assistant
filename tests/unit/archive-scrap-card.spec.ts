@@ -36,7 +36,7 @@ async function setupScrapView(briefing: Parameters<typeof import('../../src/stat
   tab.renderArchive(container);
   handlers.mountArchiveHandlers();
 
-  document.querySelector<HTMLButtonElement>('[data-filter="scrap"]')!.click();
+  document.querySelector<HTMLButtonElement>('[data-entity="scrap"]')!.click();
 }
 
 describe('archive scrap card uses briefing-card visual structure (v3.11 T5)', () => {
@@ -107,7 +107,7 @@ describe('archive scrap card uses briefing-card visual structure (v3.11 T5)', ()
     const handlers = await import('../../src/ui/handlers/archive');
     tab.renderArchive(container);
     handlers.mountArchiveHandlers();
-    document.querySelector<HTMLButtonElement>('[data-filter="scrap"]')!.click();
+    document.querySelector<HTMLButtonElement>('[data-entity="scrap"]')!.click();
     const card = document.querySelector<HTMLElement>('.archive-card--scrap');
     expect(card).not.toBeNull();
     // No ♥ or ✎ buttons exposed in archive — prevents idx-bound mutate of wrong briefing
@@ -129,7 +129,7 @@ describe('archive scrap card uses briefing-card visual structure (v3.11 T5)', ()
     const handlers = await import('../../src/ui/handlers/archive');
     tab.renderArchive(container);
     handlers.mountArchiveHandlers();
-    document.querySelector<HTMLButtonElement>('[data-filter="scrap"]')!.click();
+    document.querySelector<HTMLButtonElement>('[data-entity="scrap"]')!.click();
     const card = document.querySelector<HTMLElement>('.archive-card--scrap')!;
     const link = card.querySelector<HTMLAnchorElement>('.card-main')!;
     link.click();
