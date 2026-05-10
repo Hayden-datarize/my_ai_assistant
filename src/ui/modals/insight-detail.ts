@@ -9,6 +9,7 @@ import { INTERESTS, getCategoryLabel } from '../../utils/categories';
 import { escapeHtml } from '../../utils/escapeHtml';
 import { showToast } from '../../utils/toast';
 import { dispatch } from '../events';
+import { KST_FMT_DATE } from '../../utils/intl';
 
 /**
  * 인사이트 detail 모달을 열고 분야 변경 + 삭제 wiring을 부착한다.
@@ -33,7 +34,9 @@ export function openInsightDetailModal(id: string): void {
 
   // v3.24 T3: indent 압축 (production-safe).
   // eslint-disable-next-line no-restricted-syntax -- escapeHtml applied to all dynamic strings
-  const bodyHtml = `<div class="insight-detail"><p class="insight-detail-text">${escapeHtml(insight.text)}</p><div class="insight-detail-meta"><label class="insight-detail-interest"><span>분야:</span><select class="insight-interest-select">${optionsHtml}</select></label><p class="insight-detail-date">${escapeHtml(insight.createdAt.slice(0, 10))}</p></div><button type="button" class="btn btn-danger insight-delete-btn">삭제</button></div>`;
+  // v3.26 T1b: createdAt UTC ISO → KST 'YYYY-MM-DD' (slice(0,10)는 UTC date prefix라 KST 자정 어긋남)
+  const kstDate = KST_FMT_DATE.format(new Date(insight.createdAt));
+  const bodyHtml = `<div class="insight-detail"><p class="insight-detail-text">${escapeHtml(insight.text)}</p><div class="insight-detail-meta"><label class="insight-detail-interest"><span>분야:</span><select class="insight-interest-select">${optionsHtml}</select></label><p class="insight-detail-date">${escapeHtml(kstDate)}</p></div><button type="button" class="btn btn-danger insight-delete-btn">삭제</button></div>`;
   const modal = openModal({ title: '인사이트', bodyHtml });
 
   // v3.25 T6: dropdown 분야 변경 wiring (atomic single-write — v3.10 graduated).

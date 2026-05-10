@@ -3,6 +3,7 @@
  * 인라인 핸들러 없이 CustomEvent를 dispatch하여 Task 18에서 연결한다.
  */
 import { loadAnswers } from '../../state/persistence';
+import { KST_FMT_KO } from '../../utils/intl';
 
 export function renderArchive(container: HTMLElement): void {
   // v3.24 T3: indent 압축 (production-safe).
@@ -31,7 +32,7 @@ function populateList(container: HTMLElement): void {
 
     const dateEl = document.createElement('div');
     dateEl.className = 'archive-date';
-    dateEl.textContent = new Date(a.createdAt).toLocaleDateString('ko-KR');
+    dateEl.textContent = KST_FMT_KO.format(new Date(a.createdAt)); // v3.26 T1b: KST anchor (createdAt UTC ISO closing)
 
     const textEl = document.createElement('div');
     textEl.className = 'archive-text';

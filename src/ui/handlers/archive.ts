@@ -13,6 +13,7 @@ import { showToast, showUndoToast } from '../../utils/toast';
 import { toKoType } from '../../utils/typeLabel';
 import { getSaveErrorMessage } from '../../state/user';
 import { MSG } from '../messages';
+import { KST_FMT_KO } from '../../utils/intl';
 import { renderBriefingCard } from './home';
 import type { Answer } from '../../state/schema';
 import { fireArchiveRevisitTrigger } from './missions-triggers';
@@ -357,7 +358,7 @@ function renderAnswerCard(a: Answer): HTMLElement {
 
   const date = document.createElement('time');
   date.className = 'archive-date';
-  date.textContent = a.date ?? (a.createdAt ? new Date(a.createdAt).toLocaleDateString('ko-KR') : '');
+  date.textContent = a.date ?? (a.createdAt ? KST_FMT_KO.format(new Date(a.createdAt)) : ''); // v3.26 T1b: KST anchor
   header.append(date);
 
   const deleteBtn = document.createElement('button');
@@ -491,7 +492,7 @@ function showArchiveDetail(payload: DetailPayload): void {
   const parts: string[] = [];
   if (payload.kind === 'answer') {
     const a = payload.answer;
-    const when = a.date ?? (a.createdAt ? new Date(a.createdAt).toLocaleDateString('ko-KR') : '');
+    const when = a.date ?? (a.createdAt ? KST_FMT_KO.format(new Date(a.createdAt)) : ''); // v3.26 T1b: KST anchor
     parts.push(`<div class="archive-detail-meta">${escapeHtml(when)}${a.type ? ` · ${escapeHtml(toKoType(a.type))}` : ''}</div>`);
     parts.push(`<div class="archive-detail-body">${escapeHtml(a.text).replace(/\n/g, '<br>')}</div>`);
     if (a.evaluation) {

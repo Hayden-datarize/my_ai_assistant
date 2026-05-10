@@ -2,6 +2,7 @@ import { openModal } from './shared';
 import { findBadge } from '../../state/badgeCatalog';
 import { loadUserData } from '../../state/user';
 import { escapeHtml } from '../../utils/escapeHtml';
+import { KST_FMT_DATE } from '../../utils/intl';
 
 export function openBadgeDetail(badgeId: string): void {
   const def = findBadge(badgeId);
@@ -9,7 +10,7 @@ export function openBadgeDetail(badgeId: string): void {
   const u = loadUserData();
   const unlockedAt = u?.earnedBadges?.[badgeId];
   const dateText = unlockedAt
-    ? `${new Date(unlockedAt).toISOString().slice(0, 10)} 획득`
+    ? `${KST_FMT_DATE.format(new Date(unlockedAt))} 획득` // v3.26 T1b P1-1: KST anchor (UTC date prefix → KST)
     : `달성 조건: ${escapeHtml(def.description)}`;
 
   // v3.24 T3: indent 압축 (production-safe).
