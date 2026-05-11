@@ -39,6 +39,15 @@
   transition: width 0.5s ease;
 }
 
+/* v3.27 T8: 공통 panel — 질문 유형별 / XP 추이 / 뱃지 inline style 통합 trim. */
+.stats-panel {
+  background: var(--bg-card);
+  border-radius: var(--radius-lg);
+  padding: 16px;
+  border: 1px solid var(--border);
+  margin-bottom: 16px;
+}
+
 /* Responsive: wider screens */
 @media (min-width: 768px) {
   .stat-grid { grid-template-columns: repeat(4, 1fr); }

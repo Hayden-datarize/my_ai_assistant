@@ -7,7 +7,7 @@
 import { on } from '../events';
 import { loadAnswers, saveAnswers, deleteAnswerById, deleteAnswersByIds } from '../../state/persistence';
 import { loadBriefings, saveBriefings, toggleScrap } from '../../state/briefings';
-import { openModal, closeModal } from '../modals/shared';
+import { openModal } from '../modals/shared';
 import { escapeHtml } from '../../utils/escapeHtml';
 import { showToast, showUndoToast } from '../../utils/toast';
 import { toKoType } from '../../utils/typeLabel';
@@ -738,5 +738,4 @@ function showArchiveDetail(payload: DetailPayload): void {
     if (b.memo) parts.push(`<div class="archive-detail-memo">📝 ${escapeHtml(b.memo)}</div>`);
   }
   openModal({ title: '기록 상세', bodyHtml: parts.join('') });
-  void closeModal; // referenced so eslint doesn't flag the import
 }
