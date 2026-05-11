@@ -370,3 +370,34 @@ export function getSaveErrorMessage(err: unknown): string {
   }
   return MSG.SAVE_FAILED;
 }
+
+/**
+ * v3.27 T7: 최근 N일 cumulative XP 추이.
+ * - raw `user.xpHistory[]`(date+xpEarned)을 KST 일별 그룹화 → cumulative 누적 → 최근 N일 slice.
+ * - 같은 날 다중 push (e.g. 답변 + bonus) → 일별 합산.
+ * - cumulative는 history 시작점부터의 누적 (보유 전체 기간 기준 — 일관성 확보).
+ * - 입력 < 1 entries → 빈 배열 (xp-chart의 empty guard와 정합).
+ *
+ * Codex 사전 P1-2: schema v8 `User.xpHistory[]`(T1 wiring) 가 XP source.
+ */
+export interface XpHistoryView {
+  date: string;        // 'YYYY-MM-DD' (KST)
+  cumulativeXp: number;
+}
+
+export function getXpHistory(days: number = 30): XpHistoryView[] {
+  const user = getCachedUser();
+  const raw = user?.xpHistory ?? [];
+  if (raw.length === 0) return [];
+  const byDate = new Map<string, number>();
+  for (const h of raw) {
+    byDate.set(h.date, (byDate.get(h.date) ?? 0) + h.xpEarned);
+  }
+  let cumulative = 0;
+  const all: XpHistoryView[] = [];
+  for (const [date, earned] of [...byDate.entries()].sort(([a], [b]) => a.localeCompare(b))) {
+    cumulative += earned;
+    all.push({ date, cumulativeXp: cumulative });
+  }
+  return all.slice(-days);
+}
