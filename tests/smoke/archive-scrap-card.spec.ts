@@ -29,8 +29,8 @@ test('scrap 카드 ✕ → "스크랩 해제" 토스트 표시 (하단 중앙)',
   // archive 탭 이동 (mobile viewport — bottomNav 사용)
   await page.locator('#bottomNav button[data-tab-id="archive"]').click();
 
-  // scrap 필터로 전환
-  await page.locator('.filter-chip[data-filter="scrap"]').click();
+  // v3.27 T2b: scrap chip 제거 → entity chip 'scrap' 사용
+  await page.locator('.archive-entity-chip[data-entity="scrap"]').click();
 
   // scrap 카드가 보이는지 확인
   await expect(page.locator('.archive-card--scrap[data-briefing-id="b1"]')).toBeVisible();
@@ -76,13 +76,14 @@ test('select 모드 진입 → 다른 chip aria-disabled', async ({ page }) => {
   // 기본 active 칩은 'all' — select 모드 진입
   await page.click('#archiveSelectToggle');
 
-  // active 외 모든 chip은 aria-disabled='true' + disabled
-  const scrapChip = page.locator('.filter-chip[data-filter="scrap"]');
-  await expect(scrapChip).toHaveAttribute('aria-disabled', 'true');
-  await expect(scrapChip).toBeDisabled();
-
+  // v3.27 T2b: scrap chip 제거 → question chip 중 분석/전환/실무 chip로 검증.
+  // active 외 모든 question chip은 aria-disabled='true' + disabled
   const analysisChip = page.locator('.filter-chip[data-filter="분석"]');
   await expect(analysisChip).toHaveAttribute('aria-disabled', 'true');
+  await expect(analysisChip).toBeDisabled();
+
+  const transformChip = page.locator('.filter-chip[data-filter="전환"]');
+  await expect(transformChip).toHaveAttribute('aria-disabled', 'true');
 
   // active chip ('all')은 enabled 유지
   const allChip = page.locator('.filter-chip[data-filter="all"]');
@@ -91,6 +92,6 @@ test('select 모드 진입 → 다른 chip aria-disabled', async ({ page }) => {
 
   // select 모드 해제 → 모든 chip 복원
   await page.click('#archiveSelectToggle');
-  await expect(scrapChip).not.toHaveAttribute('aria-disabled', 'true');
-  await expect(scrapChip).toBeEnabled();
+  await expect(analysisChip).not.toHaveAttribute('aria-disabled', 'true');
+  await expect(analysisChip).toBeEnabled();
 });

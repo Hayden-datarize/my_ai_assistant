@@ -114,15 +114,18 @@ test('E2 인사이트 카드 happy path: chat → 생성 → 저장 → 인사�
   // 8. 토스트 확인 ('인사이트 카드 1장 추가')
   await expect(page.getByText('인사이트 카드 1장 추가')).toBeVisible({ timeout: 3_000 });
 
-  // 9. 인사이트 탭 이동 (nav label '인사이트')
-  await page.locator('#bottomNav button[data-tab-id="insights"]').click();
+  // v3.27 T2a/T2b: 인사이트 탭 폐기 → archive entity chip 'insight'.
+  // 9. archive 탭 이동
+  await page.locator('#bottomNav button[data-tab-id="archive"]').click();
+  // 9b. entity chip 'insight' 선택
+  await page.locator('.archive-entity-chip[data-entity="insight"]').click();
 
-  // 10. .insight-card grid에 방금 저장한 카드 렌더 확인
-  await expect(page.locator('.insight-card').first()).toBeVisible({ timeout: 5_000 });
-  await expect(page.locator('.insight-card').first()).toContainText('작은 도전');
+  // 10. .archive-insight-card에 방금 저장한 카드 렌더 확인
+  await expect(page.locator('.archive-insight-card').first()).toBeVisible({ timeout: 5_000 });
+  await expect(page.locator('.archive-insight-card').first()).toContainText('작은 도전');
 
   // 11. 카드 클릭 → insight detail 모달
-  await page.locator('.insight-card').first().click();
+  await page.locator('.archive-insight-card').first().click();
   await expect(page.locator('.insight-detail-text')).toBeVisible({ timeout: 3_000 });
   await expect(page.locator('.insight-detail-text')).toContainText('작은 도전');
 

@@ -63,8 +63,8 @@ test.describe('v3.11 archive cards visual upgrade', () => {
 
     await page.goto('/');
     await page.locator('#bottomNav button[data-tab-id="archive"]').click();
-    // 스크랩 필터로 전환
-    await page.locator('button.filter-chip[data-filter="scrap"]').click();
+    // v3.27 T2b: scrap chip 제거 → entity chip 'scrap' 사용
+    await page.locator('.archive-entity-chip[data-entity="scrap"]').click();
 
     const card = page.locator('.archive-card--scrap').first();
     await expect(card).toBeVisible();

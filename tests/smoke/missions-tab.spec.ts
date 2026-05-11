@@ -12,11 +12,12 @@ import { primeOnboardedUser } from '../helpers/seed';
 //  - v3.13-missions.spec.ts 와 동일한 fixture 패턴
 
 test.describe('v3.14 Missions Tab', () => {
-  test('m1: bottom-nav shows 6 items including 미션 (mobile 375×667)', async ({ page }) => {
+  test('m1: bottom-nav shows 5 items including 미션 (mobile 375×667)', async ({ page }) => {
     await page.setViewportSize({ width: 375, height: 667 });
     await primeOnboardedUser(page, { interests: ['ai_ml'], schemaVersion: 3 });
     await page.goto('/');
-    await expect(page.locator('.bottom-nav .nav-item')).toHaveCount(6);
+    // v3.27 T2a: insights tab 제거 → 6→5 (home/archive/missions/stats/settings).
+    await expect(page.locator('.bottom-nav .nav-item')).toHaveCount(5);
     const missionNav = page.locator('.bottom-nav .nav-item', { hasText: '미션' });
     await expect(missionNav).toBeVisible();
   });
