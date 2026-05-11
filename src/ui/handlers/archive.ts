@@ -507,7 +507,7 @@ function renderAnswerCard(a: Answer): HTMLElement {
   header.append(date);
 
   // v3.27 T4: pin 토글 버튼 — delete 왼쪽
-  header.append(makePinButton('answer', a.id, a.pinned ?? false));
+  header.append(makePinButton('answer', a.id, a.pinned));
 
   const deleteBtn = document.createElement('button');
   deleteBtn.className = 'archive-card-delete';
@@ -553,7 +553,7 @@ function renderInsightCard(i: Insight): HTMLElement {
   date.className = 'archive-date';
   date.textContent = KST_FMT_KO.format(new Date(i.createdAt));
   header.append(date);
-  header.append(makePinButton('insight', i.id, i.pinned ?? false));
+  header.append(makePinButton('insight', i.id, i.pinned));
   card.append(header);
 
   const body = document.createElement('p');
@@ -623,7 +623,7 @@ export function rerenderList(): void {
       oldLink.replaceWith(newLink);
     }
     // v3.27 T4: pin 토글 버튼
-    card.append(makePinButton('scrap', b.id, b.pinned ?? false));
+    card.append(makePinButton('scrap', b.id, b.pinned));
     const deleteBtn = document.createElement('button');
     deleteBtn.className = 'archive-card-delete';
     deleteBtn.type = 'button';
@@ -645,7 +645,7 @@ export function rerenderList(): void {
       list.textContent = '아직 스크랩한 기사가 없어요.';
       return;
     }
-    sortPinThenDesc(pool, (b) => b.pinned ?? false, (b) => b.date).forEach((b) => appendScrapCard(b));
+    sortPinThenDesc(pool, (b) => b.pinned, (b) => b.date).forEach((b) => appendScrapCard(b));
     return;
   }
 
@@ -659,7 +659,7 @@ export function rerenderList(): void {
       list.textContent = '아직 저장된 인사이트가 없어요.';
       return;
     }
-    sortPinThenDesc(pool, (i) => i.pinned ?? false, (i) => i.createdAt).forEach((i) => list.append(renderInsightCard(i)));
+    sortPinThenDesc(pool, (i) => i.pinned, (i) => i.createdAt).forEach((i) => list.append(renderInsightCard(i)));
     return;
   }
 
@@ -671,9 +671,9 @@ export function rerenderList(): void {
       | { kind: 'insight'; insight: Insight; sortKey: string; pinned: boolean };
 
     let entries: Entry[] = [
-      ...answers.map((a) => ({ kind: 'answer' as const, answer: a, sortKey: a.createdAt, pinned: a.pinned ?? false })),
-      ...scraps.map((b) => ({ kind: 'scrap' as const, briefing: b, sortKey: b.date, pinned: b.pinned ?? false })),
-      ...insights.map((i) => ({ kind: 'insight' as const, insight: i, sortKey: i.createdAt, pinned: i.pinned ?? false })),
+      ...answers.map((a) => ({ kind: 'answer' as const, answer: a, sortKey: a.createdAt, pinned: a.pinned })),
+      ...scraps.map((b) => ({ kind: 'scrap' as const, briefing: b, sortKey: b.date, pinned: b.pinned })),
+      ...insights.map((i) => ({ kind: 'insight' as const, insight: i, sortKey: i.createdAt, pinned: i.pinned })),
     ];
 
     if (currentQuery) {
@@ -713,7 +713,7 @@ export function rerenderList(): void {
     return;
   }
 
-  sortPinThenDesc(filtered, (a) => a.pinned ?? false, (a) => a.createdAt).forEach((a) => list.append(renderAnswerCard(a)));
+  sortPinThenDesc(filtered, (a) => a.pinned, (a) => a.createdAt).forEach((a) => list.append(renderAnswerCard(a)));
 }
 
 type DetailPayload =

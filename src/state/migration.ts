@@ -11,9 +11,12 @@ import { getKstDateStr } from '../utils/dates';
 export function migrateAnswer(raw: unknown): Answer {
   const r = (raw ?? {}) as Partial<Answer> & Record<string, unknown>;
 
-  // Already Phase B + has text → pass-through
+  // Already Phase B + has text → COPY + pinned backfill (v3.28 T2 P0-3: no in-place mutation)
   if (isVersioned(r) && r.schemaVersion === CURRENT_SCHEMA_VERSION && typeof r.text === 'string') {
-    return r as Answer;
+    return {
+      ...(r as Answer),
+      pinned: typeof r.pinned === 'boolean' ? r.pinned : false,
+    };
   }
 
   // Legacy v2.0 had `answer` field and `date` as YYYY-MM-DD
@@ -39,6 +42,8 @@ export function migrateAnswer(raw: unknown): Answer {
     type: legacyType ?? (typeof r.type === 'string' ? (r.type as string) : undefined),
     evaluation: legacyEval ?? (r.evaluation as { score: number; feedback: string } | undefined),
     date: legacyDate || (typeof r.date === 'string' ? (r.date as string) : undefined),
+    // v3.28 T2 (P2-2): legacy 분기도 pinned 정규화 (raw가 pinned 가질 가능성 미미하지만 invariant 일관성).
+    pinned: typeof r.pinned === 'boolean' ? r.pinned : false,
     schemaVersion: CURRENT_SCHEMA_VERSION,
   };
 }
@@ -375,6 +380,8 @@ export function migrateUserToV7(u: unknown): User {
         interestId: typeof ie.interestId === 'string'
           ? validateInterestId(ie.interestId)
           : 'unknown',
+        // v3.28 T2 (P2-2): forward-compat pinned default — chain은 v7→v8에서 한 번 더 normalize.
+        pinned: typeof ie.pinned === 'boolean' ? ie.pinned : false,
       };
     })
     .filter((i) => i.id.length > 0 && i.text.length > 0);  // 손상 entry drop

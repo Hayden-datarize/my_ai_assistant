@@ -15,6 +15,7 @@ function mkBriefing(overrides: Partial<Briefing>): Briefing {
     scrapped: true,
     read: false,
     memo: '',
+    pinned: false,
     ...overrides,
   };
 }

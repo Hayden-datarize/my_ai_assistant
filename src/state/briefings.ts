@@ -23,8 +23,8 @@ export interface Briefing {
   detectedLang?: 'en' | 'ko' | 'unknown';
   titleKo?: string;
   summaryKo?: string;
-  /** v3.27 T1: archive 핀(즐겨찾기). default false. lazy migration — undefined인 기존 entry는 unpinned로 처리. */
-  pinned?: boolean;
+  /** v3.27 T1 → v3.28 T2: archive 핀(즐겨찾기). default false. write-side normalize (P2-2) — `loadBriefings` map 단계에 copy-based backfill (P0-3 idempotency). */
+  pinned: boolean;
 }
 
 const KEY = 'briefings';
@@ -38,14 +38,17 @@ export function loadBriefings(): Briefing[] {
     const raw = JSON.parse(localStorage.getItem(KEY) ?? '[]') as unknown;
     if (!Array.isArray(raw)) return [];
     return raw.map((b) => {
-      const briefing = b as Briefing;
+      // v3.28 T2 (P2-2): copy-based pinned 정규화 (P0-3 idempotency — 원본 mutation 금지).
+      const briefing = b as Briefing & { pinned?: boolean };
+      const normalized: Briefing = {
+        ...briefing,
+        pinned: typeof briefing.pinned === 'boolean' ? briefing.pinned : false,
+      };
       // Drop imageUrl only if present-but-invalid; leave undefined alone.
-      if (briefing.imageUrl !== undefined && !isHttpsUrl(briefing.imageUrl)) {
-        const normalized: Briefing = { ...briefing };
+      if (normalized.imageUrl !== undefined && !isHttpsUrl(normalized.imageUrl)) {
         delete normalized.imageUrl;
-        return normalized;
       }
-      return briefing;
+      return normalized;
     });
   } catch {
     return [];

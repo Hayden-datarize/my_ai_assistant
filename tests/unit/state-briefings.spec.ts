@@ -2,7 +2,7 @@ import { describe, it, expect, beforeEach } from 'vitest';
 import { saveBriefings, loadBriefings, toggleScrap, setRead, saveMemo, type Briefing } from '../../src/state/briefings';
 
 const seed = (): Briefing[] => [
-  { id: 'b1', date: '2026-04-19', url: 'u', title: 't', summary: 's', scrapped: false, read: false, memo: '' },
+  { id: 'b1', date: '2026-04-19', url: 'u', title: 't', summary: 's', scrapped: false, read: false, memo: '', pinned: false },
 ];
 
 describe('state/briefings', () => {
@@ -57,7 +57,7 @@ describe('v3.3.3 Briefing.imageUrl', () => {
   it('persists imageUrl when set', () => {
     const b: Briefing = {
       id: '1', date: '2026-04-23', url: 'https://example.com', title: 't',
-      summary: 's', scrapped: false, read: false, memo: '',
+      summary: 's', scrapped: false, read: false, memo: '', pinned: false,
       imageUrl: 'https://example.com/img.jpg',
     };
     saveBriefings([b]);

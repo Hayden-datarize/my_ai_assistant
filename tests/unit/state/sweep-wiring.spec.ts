@@ -52,7 +52,7 @@ describe('sweep wiring', () => {
   });
 
   it('toggleScrap: scraps 0→1 → sweep 호출 (T5 badge arm 활성화: scrap-1 unlock)', () => {
-    saveBriefings([{ id: '1', date: '2026-04-30', url: 'https://x.com', title: 't', summary: 's', scrapped: false, read: false, memo: '' }]);
+    saveBriefings([{ id: '1', date: '2026-04-30', url: 'https://x.com', title: 't', summary: 's', scrapped: false, read: false, memo: '', pinned: false }]);
     const captured = captureRewardEvents();
     toggleScrap(0);
     // T5 badge arm 활성화: scrap-1 unlock 발생
@@ -64,7 +64,7 @@ describe('sweep wiring', () => {
     vi.useFakeTimers();
     vi.setSystemTime(new Date('2026-04-30T15:00:00.000Z'));
     try {
-      saveBriefings([{ id: '1', date: '2026-04-30', url: 'https://x.com', title: 't', summary: 's', scrapped: false, read: false, memo: '' }]);
+      saveBriefings([{ id: '1', date: '2026-04-30', url: 'https://x.com', title: 't', summary: 's', scrapped: false, read: false, memo: '', pinned: false }]);
       const captured = captureRewardEvents();
       saveMemo(0, '내 메모');
       // memo-5는 5건 이상 필요 → 1건 작성으로는 unlock 안 됨
@@ -75,7 +75,7 @@ describe('sweep wiring', () => {
   });
 
   it('toggleScrap: saveBriefings throw 시 sweep 안 함', () => {
-    saveBriefings([{ id: '1', date: '2026-04-30', url: 'https://x.com', title: 't', summary: 's', scrapped: false, read: false, memo: '' }]);
+    saveBriefings([{ id: '1', date: '2026-04-30', url: 'https://x.com', title: 't', summary: 's', scrapped: false, read: false, memo: '', pinned: false }]);
     const captured = captureRewardEvents();
     const spy = vi.spyOn(Storage.prototype, 'setItem').mockImplementation((k) => {
       if (k === 'briefings') throw new DOMException('quota', 'QuotaExceededError');
@@ -88,7 +88,7 @@ describe('sweep wiring', () => {
 
 describe('sweep wiring — badge arm (T5 활성화 후)', () => {
   it('toggleScrap: scraps 0→1 → scrap-1 badge unlock', () => {
-    saveBriefings([{ id: '1', date: '2026-04-30', url: 'https://x.com', title: 't', summary: 's', scrapped: false, read: false, memo: '' }]);
+    saveBriefings([{ id: '1', date: '2026-04-30', url: 'https://x.com', title: 't', summary: 's', scrapped: false, read: false, memo: '', pinned: false }]);
     const captured = captureRewardEvents();
     toggleScrap(0);
     expect(captured).toContain('dg:reward:badge-unlock');
@@ -101,7 +101,7 @@ describe('sweep wiring — badge arm (T5 활성화 후)', () => {
     try {
       const briefings = Array.from({ length: 6 }, (_, i) => ({
         id: `${i}`, date: '2026-04-30', url: `https://x${i}.com`, title: 't', summary: 's',
-        scrapped: false, read: false, memo: i < 4 ? `m${i}` : '',
+        scrapped: false, read: false, memo: i < 4 ? `m${i}` : '', pinned: false,
       }));
       saveBriefings(briefings);
       const captured = captureRewardEventsWithDetail();

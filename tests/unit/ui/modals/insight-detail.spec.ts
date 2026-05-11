@@ -86,7 +86,7 @@ describe('openInsightDetailModal — delete flow (v3.23 T9)', () => {
     window.confirm = vi.fn().mockReturnValue(true);
 
     const user = mkUser({
-      insights: [{ id: 'i1', text: '통찰', interestId: 'unknown', createdAt: '2026-05-09T10:00:00Z' }],
+      insights: [{ id: 'i1', text: '통찰', interestId: 'unknown', createdAt: '2026-05-09T10:00:00Z', pinned: false }],
     });
     mockGetCachedUser.mockReturnValue(user);
     mockSaveUser.mockImplementation(() => undefined);
@@ -106,7 +106,7 @@ describe('openInsightDetailModal — delete flow (v3.23 T9)', () => {
     window.confirm = vi.fn().mockReturnValue(false);
 
     const user = mkUser({
-      insights: [{ id: 'i1', text: '통찰', interestId: 'unknown', createdAt: '2026-05-09T10:00:00Z' }],
+      insights: [{ id: 'i1', text: '통찰', interestId: 'unknown', createdAt: '2026-05-09T10:00:00Z', pinned: false }],
     });
     mockGetCachedUser.mockReturnValue(user);
 
@@ -123,7 +123,7 @@ describe('openInsightDetailModal — delete flow (v3.23 T9)', () => {
     window.confirm = vi.fn().mockReturnValue(true);
 
     const user = mkUser({
-      insights: [{ id: 'i1', text: '통찰', interestId: 'unknown', createdAt: '2026-05-09T10:00:00Z' }],
+      insights: [{ id: 'i1', text: '통찰', interestId: 'unknown', createdAt: '2026-05-09T10:00:00Z', pinned: false }],
     });
     mockGetCachedUser.mockReturnValue(user);
     mockSaveUser.mockImplementation(() => { throw new Error('quota'); });
@@ -194,7 +194,7 @@ describe('openInsightDetailModal — dropdown 분야 변경 (v3.25 T6)', () => {
   it('dropdown 변경 시 saveUser 호출 + dg:insights:updated dispatch + toast (modal 닫지 않음)', () => {
     const { select } = setupWrapWithSelect('unknown');
     const user = mkUser({
-      insights: [{ id: 'i1', text: '통찰', interestId: 'unknown', createdAt: '2026-05-09T10:00:00Z' }],
+      insights: [{ id: 'i1', text: '통찰', interestId: 'unknown', createdAt: '2026-05-09T10:00:00Z', pinned: false }],
     });
     mockGetCachedUser.mockReturnValue(user);
     mockSaveUser.mockImplementation(() => undefined);
@@ -213,7 +213,7 @@ describe('openInsightDetailModal — dropdown 분야 변경 (v3.25 T6)', () => {
   it('saveUser throw 시 in-memory + select.value 양방향 rollback', () => {
     const { select } = setupWrapWithSelect('unknown');
     const user = mkUser({
-      insights: [{ id: 'i1', text: '통찰', interestId: 'unknown', createdAt: '2026-05-09T10:00:00Z' }],
+      insights: [{ id: 'i1', text: '통찰', interestId: 'unknown', createdAt: '2026-05-09T10:00:00Z', pinned: false }],
     });
     mockGetCachedUser.mockReturnValue(user);
     mockSaveUser.mockImplementationOnce(() => { throw new Error('Quota'); });
@@ -235,7 +235,7 @@ describe('openInsightDetailModal — dropdown 분야 변경 (v3.25 T6)', () => {
   it("invalid value (whitelist 외) — validateInterestId로 'unknown' 폴백", () => {
     const { select } = setupWrapWithSelect('unknown');
     const user = mkUser({
-      insights: [{ id: 'i1', text: '통찰', interestId: 'unknown', createdAt: '2026-05-09T10:00:00Z' }],
+      insights: [{ id: 'i1', text: '통찰', interestId: 'unknown', createdAt: '2026-05-09T10:00:00Z', pinned: false }],
     });
     mockGetCachedUser.mockReturnValue(user);
     mockSaveUser.mockImplementation(() => undefined);

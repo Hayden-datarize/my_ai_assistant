@@ -15,7 +15,8 @@ beforeEach(() => localStorage.clear());
 
 describe('persistence — existing Phase B behaviour', () => {
   it('round-trips answers', () => {
-    const answers = [{ id: 'a1', questionId: 'q1', text: 'hi', authorId: 'u1', createdAt: '2026-04-18T00:00:00Z', schemaVersion: 1 as const }];
+    // v3.28 T2 (P2-2): write-side normalize — Answer.pinned 필수 boolean (default false).
+    const answers = [{ id: 'a1', questionId: 'q1', text: 'hi', authorId: 'u1', createdAt: '2026-04-18T00:00:00Z', pinned: false, schemaVersion: 1 as const }];
     saveAnswers(answers);
     expect(loadAnswers()).toEqual(answers);
   });
@@ -23,6 +24,8 @@ describe('persistence — existing Phase B behaviour', () => {
     localStorage.setItem('dg.answers', JSON.stringify([{ id: 'a1', questionId: 'q1', text: 'old', authorId: 'u1', createdAt: '2025-12-01T00:00:00Z' }]));
     const loaded = loadAnswers();
     expect(loaded[0]?.schemaVersion).toBe(1);
+    // v3.28 T2 (P2-2): legacy 분기도 pinned 정규화 보장.
+    expect(loaded[0]?.pinned).toBe(false);
   });
   it('returns empty array on missing key', () => {
     expect(loadAnswers()).toEqual([]);

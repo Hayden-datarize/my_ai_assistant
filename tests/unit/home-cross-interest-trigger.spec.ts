@@ -21,6 +21,7 @@ const fakeBriefing = (over: Partial<Briefing> = {}): Briefing => ({
   scrapped: false,
   sourceTitle: 'X',
   memo: '',
+  pinned: false,
   ...over,
 });
 

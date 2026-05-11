@@ -16,7 +16,7 @@ describe('normalizeInsightInterestIds (v3.26 T2 — P1-3)', () => {
 
   it('preserves known whitelist interestId (recruiting)', () => {
     const insights: Insight[] = [
-      { id: 'i1', text: 'foo', createdAt: '2026-05-10T03:00:00Z', interestId: 'recruiting' },
+      { id: 'i1', text: 'foo', createdAt: '2026-05-10T03:00:00Z', interestId: 'recruiting', pinned: false },
     ];
     normalizeInsightInterestIds(insights);
     expect(insights[0]!.interestId).toBe('recruiting');
@@ -25,7 +25,7 @@ describe('normalizeInsightInterestIds (v3.26 T2 — P1-3)', () => {
 
   it('preserves "unknown" sentinel', () => {
     const insights: Insight[] = [
-      { id: 'i1', text: 'foo', createdAt: '2026-05-10T03:00:00Z', interestId: 'unknown' },
+      { id: 'i1', text: 'foo', createdAt: '2026-05-10T03:00:00Z', interestId: 'unknown', pinned: false },
     ];
     normalizeInsightInterestIds(insights);
     expect(insights[0]!.interestId).toBe('unknown');
@@ -34,7 +34,7 @@ describe('normalizeInsightInterestIds (v3.26 T2 — P1-3)', () => {
 
   it('normalizes invalid string interestId → "unknown" + warns', () => {
     const insights: Insight[] = [
-      { id: 'i1', text: 'foo', createdAt: '2026-05-10T03:00:00Z', interestId: '<script>' },
+      { id: 'i1', text: 'foo', createdAt: '2026-05-10T03:00:00Z', interestId: '<script>', pinned: false },
     ];
     normalizeInsightInterestIds(insights);
     expect(insights[0]!.interestId).toBe('unknown');
@@ -44,7 +44,7 @@ describe('normalizeInsightInterestIds (v3.26 T2 — P1-3)', () => {
 
   it('normalizes empty string → "unknown"', () => {
     const insights: Insight[] = [
-      { id: 'i1', text: 'foo', createdAt: '2026-05-10T03:00:00Z', interestId: '' },
+      { id: 'i1', text: 'foo', createdAt: '2026-05-10T03:00:00Z', interestId: '', pinned: false },
     ];
     normalizeInsightInterestIds(insights);
     expect(insights[0]!.interestId).toBe('unknown');
@@ -53,10 +53,10 @@ describe('normalizeInsightInterestIds (v3.26 T2 — P1-3)', () => {
 
   it('handles multiple insights with mixed valid/invalid', () => {
     const insights: Insight[] = [
-      { id: 'i1', text: 'a', createdAt: 'x', interestId: 'recruiting' },
-      { id: 'i2', text: 'b', createdAt: 'x', interestId: 'BAD_ID' },
-      { id: 'i3', text: 'c', createdAt: 'x', interestId: 'unknown' },
-      { id: 'i4', text: 'd', createdAt: 'x', interestId: '' },
+      { id: 'i1', text: 'a', createdAt: 'x', interestId: 'recruiting', pinned: false },
+      { id: 'i2', text: 'b', createdAt: 'x', interestId: 'BAD_ID', pinned: false },
+      { id: 'i3', text: 'c', createdAt: 'x', interestId: 'unknown', pinned: false },
+      { id: 'i4', text: 'd', createdAt: 'x', interestId: '', pinned: false },
     ];
     normalizeInsightInterestIds(insights);
     expect(insights[0]!.interestId).toBe('recruiting');
@@ -68,7 +68,7 @@ describe('normalizeInsightInterestIds (v3.26 T2 — P1-3)', () => {
 
   it('is idempotent (이중 호출 시에도 결과 동일, 추가 warn 없음)', () => {
     const insights: Insight[] = [
-      { id: 'i1', text: 'foo', createdAt: 'x', interestId: 'BAD' },
+      { id: 'i1', text: 'foo', createdAt: 'x', interestId: 'BAD', pinned: false },
     ];
     normalizeInsightInterestIds(insights);
     expect(insights[0]!.interestId).toBe('unknown');
@@ -81,7 +81,7 @@ describe('normalizeInsightInterestIds (v3.26 T2 — P1-3)', () => {
 
   it('warn 메시지에 insight.id 포함 (debugging 가시화)', () => {
     const insights: Insight[] = [
-      { id: 'insight-xyz', text: 'foo', createdAt: 'x', interestId: 'BAD' },
+      { id: 'insight-xyz', text: 'foo', createdAt: 'x', interestId: 'BAD', pinned: false },
     ];
     normalizeInsightInterestIds(insights);
     expect(console.warn).toHaveBeenCalledWith(expect.stringContaining('insight-xyz'));

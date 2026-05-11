@@ -24,14 +24,14 @@ describe('v3.27 T2a: insights tab 제거 + insights entity archive 렌더', () =
   });
 
   it('archive tab에 user.insights 카드 렌더 (.archive-insight-card)', () => {
-    saveUser(mkUser({ insights: [{ id: 'i1', text: 'insight 본문', interestId: 'tech', createdAt: '2026-05-10T00:00:00Z' }] }));
+    saveUser(mkUser({ insights: [{ id: 'i1', text: 'insight 본문', interestId: 'tech', createdAt: '2026-05-10T00:00:00Z', pinned: false }] }));
     const container = document.createElement('div');
     renderArchive(container);
     expect(container.querySelector('.archive-insight-card')).not.toBeNull();
   });
 
   it('archive insight 카드 — text 노출 + insightId data 속성', () => {
-    saveUser(mkUser({ insights: [{ id: 'i1', text: '깊은 통찰 텍스트', interestId: 'tech', createdAt: '2026-05-10T00:00:00Z' }] }));
+    saveUser(mkUser({ insights: [{ id: 'i1', text: '깊은 통찰 텍스트', interestId: 'tech', createdAt: '2026-05-10T00:00:00Z', pinned: false }] }));
     const container = document.createElement('div');
     renderArchive(container);
     const card = container.querySelector<HTMLElement>('.archive-insight-card');

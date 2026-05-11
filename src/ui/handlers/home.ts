@@ -663,6 +663,7 @@ async function refreshBriefings(): Promise<void> {
     scrapped: false,
     read: false,
     memo: '',
+    pinned: false, // v3.28 T2 (P2-2): write-side normalize — Briefing.pinned 필수 boolean.
     ...(sourceTitle ? { sourceTitle } : {}),
     ...(item.image ? { imageUrl: item.image } : {}),
   }));
@@ -1134,6 +1135,7 @@ export async function handleGenerateInsight(): Promise<void> {
           text: insightText,
           interestId: insightInterestId,  // v3.25 T4: parseInsightResponse 결과 (Gemini 분류 또는 'unknown' 폴백)
           createdAt: new Date().toISOString(),
+          pinned: false, // v3.28 T2 (P2-2): write-side normalize — Insight.pinned 필수 boolean.
         };
         // T8 review fix C2: saveUser throw on Quota → in-memory pop rollback (v3.7 정책 + v3.10 atomic single-write idiom).
         u.insights.push(insight);

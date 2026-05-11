@@ -20,6 +20,7 @@ function mkBriefing(over: Partial<Briefing> = {}): Briefing {
     scrapped: false,
     read: false,
     memo: '',
+    pinned: false,
     sourceTitle: '',
     ...over,
   };

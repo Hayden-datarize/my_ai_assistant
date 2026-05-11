@@ -20,8 +20,8 @@ export interface Answer extends Versioned {
   evaluation?: { score: number; feedback: string };
   /** legacy 'YYYY-MM-DD'. optional, kept for archive daily grouping. */
   date?: string;
-  /** v3.27 T1: archive 핀(즐겨찾기). default false. lazy migration — undefined인 기존 entry는 unpinned로 처리. */
-  pinned?: boolean;
+  /** v3.27 T1 → v3.28 T2: archive 핀(즐겨찾기). default false. write-side normalize (P2-2) — `makeAnswer` + `migrateAnswer` 모두 boolean 보장. */
+  pinned: boolean;
 }
 
 export interface UserSettings extends Versioned {
@@ -30,8 +30,9 @@ export interface UserSettings extends Versioned {
   policyVersion?: string;
 }
 
-export function makeAnswer(input: Omit<Answer, 'schemaVersion' | 'createdAt'>): Answer {
-  return { ...input, schemaVersion: CURRENT_SCHEMA_VERSION, createdAt: new Date().toISOString() };
+export function makeAnswer(input: Omit<Answer, 'schemaVersion' | 'createdAt' | 'pinned'> & { pinned?: boolean }): Answer {
+  // v3.28 T2 (P2-2): pinned default false (input.pinned 명시 시 override). spread 앞에 두어 input override 허용 패턴.
+  return { pinned: false, ...input, schemaVersion: CURRENT_SCHEMA_VERSION, createdAt: new Date().toISOString() };
 }
 
 export function makeUserSettings(input: { userId: string }): UserSettings {

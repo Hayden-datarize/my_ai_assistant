@@ -17,6 +17,7 @@ function mkAnswer(over: Partial<Answer> = {}): Answer {
     text: 'answer',
     authorId: 'self',
     createdAt: '2026-05-10T10:00:00.000Z',
+    pinned: false,
     schemaVersion: 1 as Answer['schemaVersion'],
     ...over,
   };
@@ -28,6 +29,7 @@ function mkInsight(over: Partial<Insight> = {}): Insight {
     text: 'insight body',
     interestId: 'ai_ml',
     createdAt: '2026-05-10T10:00:00.000Z',
+    pinned: false,
     ...over,
   };
 }

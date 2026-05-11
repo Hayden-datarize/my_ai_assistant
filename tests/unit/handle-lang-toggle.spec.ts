@@ -24,6 +24,7 @@ function buildEnv() {
     scrapped: false,
     read: false,
     memo: '',
+    pinned: false,
     sourceTitle: 'src',
     detectedLang: 'en',
   };

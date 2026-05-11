@@ -31,8 +31,8 @@ export interface Insight {
   text: string;      // Gemini 통찰 (caller invariant — 위 @invariant 참조)
   interestId: string; // v3.25 T1: INTERESTS id 또는 'unknown' (validateInterestId 통과 의무)
   createdAt: string; // ISO 8601
-  /** v3.27 T1: archive 핀(즐겨찾기). default false. lazy migration — undefined인 기존 entry는 unpinned로 처리. */
-  pinned?: boolean;
+  /** v3.27 T1 → v3.28 T2: archive 핀(즐겨찾기). default false. write-side normalize (P2-2) — `migrateUserToV8` (migration.ts:412-419) copy-based backfill 보장. */
+  pinned: boolean;
 }
 
 /** v3.27 T1: XP 추이 entry — 답변 entry 시점에 1개씩 push (KST date anchor). */
