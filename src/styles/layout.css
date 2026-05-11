@@ -68,7 +68,6 @@
 #homeTab,
 #archiveTab,
 #statsTab,
-#insightsTab,
 #settingsTab,
 #missionsTab {
   padding-bottom: var(--content-bottom-pad);
@@ -85,13 +84,6 @@
   }
 }
 
-/* Insights has no components-layer override (no pages/insights.css), so the
-   top/right pad must be set here so its heading aligns with other tabs. */
-#insightsTab {
-  padding-top: 20px;
-  padding-right: 20px;
-}
-
 /* Responsive: wider screens */
 @media (min-width: 768px) {
   .bottom-nav { display: none; }
@@ -101,7 +93,6 @@
   #homeTab,
   #archiveTab,
   #statsTab,
-  #insightsTab,
   #settingsTab,
   #missionsTab {
     padding-left: 80px;
