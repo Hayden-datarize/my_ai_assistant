@@ -28,6 +28,8 @@ export interface EventMap {
   'dg:archive:search': undefined;
   'dg:archive:period-change': undefined;
   'dg:archive:filter': { filter: string };
+  // v3.27 T4 (Codex 사전 P1-4) — togglePin entity별 storage 정합 후 archive re-render trigger.
+  'dg:archive:updated': { entity: 'answer' | 'scrap' | 'insight'; id: string };
   // stats (2) — matches tabs/stats.ts exactly
   'dg:stats:weekly-report': undefined;
   'dg:stats:growth-analysis': undefined;
@@ -75,7 +77,7 @@ export const EVENT_NAMES: readonly EventName[] = [
   'dg:home:switch-tab', 'dg:home:refresh-briefings', 'dg:home:update-char-count',
   'dg:home:toggle-hint', 'dg:home:submit-answer', 'dg:home:send-chat',
   'dg:home:summarize-chat', 'dg:home:generate-insight-card',
-  'dg:archive:search', 'dg:archive:period-change', 'dg:archive:filter',
+  'dg:archive:search', 'dg:archive:period-change', 'dg:archive:filter', 'dg:archive:updated',
   'dg:stats:weekly-report', 'dg:stats:growth-analysis',
   'dg:nav:tab-changed',
   'dg:reward:xp-float',

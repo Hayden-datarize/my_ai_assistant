@@ -39,8 +39,9 @@ describe('events', () => {
     // v3.23 T8: +1 insights event (`dg:insights:added`).
     // v3.23 T9: +1 insights event (`dg:insights:removed`).
     // v3.25 T1: +1 insights event (`dg:insights:updated` — interestId 분야 chip 수동 정정).
-    expect(EVENT_NAMES).toHaveLength(27);
-    expect(new Set(EVENT_NAMES).size).toBe(27);
+    // v3.27 T4: +1 archive event (`dg:archive:updated` — pin 토글 후 re-render trigger).
+    expect(EVENT_NAMES).toHaveLength(28);
+    expect(new Set(EVENT_NAMES).size).toBe(28);
   });
 
   it('V32_DEFERRED_EVENTS lists the 2 잔존 stubs (v3.23 T8 graduated 4건 제거)', () => {

@@ -11,7 +11,7 @@ import { openModal, closeModal } from '../modals/shared';
 import { escapeHtml } from '../../utils/escapeHtml';
 import { showToast, showUndoToast } from '../../utils/toast';
 import { toKoType } from '../../utils/typeLabel';
-import { getSaveErrorMessage } from '../../state/user';
+import { getSaveErrorMessage, getCachedUser, saveUser, type Insight } from '../../state/user';
 import { MSG } from '../messages';
 import { KST_FMT_KO } from '../../utils/intl';
 import { renderBriefingCard } from './home';
@@ -29,6 +29,62 @@ let currentEntity: EntityFilter = 'all';
 // 선택 모드 상태
 const selectedIds = new Set<string>();
 let selectMode = false;
+
+/**
+ * v3.27 T4: 3 entity unified 핀 토글.
+ * - Codex 사전 P0-2: scrap pin은 loadBriefings → mutate → saveBriefings (briefings storage anchor)
+ * - Codex 사전 P0-3: answer pin은 loadAnswers → mutate → saveAnswers (answers storage anchor, single-write)
+ * - insight pin은 User.insights[] mutate → saveUser (user storage anchor, v3.7 throw 패턴)
+ * - 비-소유 id → no-op + console.warn (silent fail 방지)
+ * - save throw 시 toast + early-return (이벤트 emit 안 함, v3.12 false-fire invariant 정합)
+ */
+export type PinEntity = 'answer' | 'scrap' | 'insight';
+
+export function togglePin(entity: PinEntity, id: string): void {
+  if (entity === 'insight') {
+    const user = getCachedUser();
+    if (!user) {
+      console.warn(`[v3.27 T4] togglePin insight: cached user 없음`);
+      return;
+    }
+    const insight = user.insights.find((i) => i.id === id);
+    if (!insight) {
+      console.warn(`[v3.27 T4] togglePin insight id=${id} not found`);
+      return;
+    }
+    insight.pinned = !insight.pinned;
+    try { saveUser(user); }
+    catch (err) { showToast(getSaveErrorMessage(err)); return; }
+  } else if (entity === 'answer') {
+    const answers = loadAnswers();
+    const a = answers.find((x) => x.id === id);
+    if (!a) { console.warn(`[v3.27 T4] togglePin answer id=${id} not found`); return; }
+    a.pinned = !a.pinned;
+    try { saveAnswers(answers); }
+    catch (err) { showToast(getSaveErrorMessage(err)); return; }
+  } else {
+    const briefings = loadBriefings();
+    const b = briefings.find((x) => x.id === id);
+    if (!b) { console.warn(`[v3.27 T4] togglePin scrap id=${id} not found`); return; }
+    b.pinned = !b.pinned;
+    try { saveBriefings(briefings); }
+    catch (err) { showToast(getSaveErrorMessage(err)); return; }
+  }
+  document.dispatchEvent(new CustomEvent('dg:archive:updated', { detail: { entity, id } }));
+}
+
+/** v3.27 T4: pin 토글 button DOM helper — renderAnswerCard / appendScrapCard / renderInsightCard 재사용. */
+function makePinButton(entity: PinEntity, id: string, pinned: boolean): HTMLButtonElement {
+  const btn = document.createElement('button');
+  btn.className = 'archive-pin-toggle';
+  btn.type = 'button';
+  btn.dataset['pinEntity'] = entity;
+  btn.dataset['pinId'] = id;
+  btn.setAttribute('aria-pressed', pinned ? 'true' : 'false');
+  btn.setAttribute('aria-label', pinned ? '핀 해제' : '핀 고정');
+  btn.textContent = pinned ? '📌' : '📍';
+  return btn;
+}
 
 function updateBulkButton(): void {
   const bulk = document.getElementById('archiveBulkDelete') as HTMLButtonElement | null;
@@ -177,6 +233,8 @@ function handleBulkDeleteClick(): void {
 function handleCardClick(e: Event): void {
   // ✕ 버튼은 handleCardDeleteClick에서 처리
   if ((e.target as HTMLElement).closest('.archive-card-delete')) return;
+  // v3.27 T4 (Codex P1-1): pin 토글 버튼 click은 card-level 액션 차단 (select 토글 / detail 모달 / scrap 토글).
+  if ((e.target as HTMLElement).closest('.archive-pin-toggle')) return;
 
   const card = (e.target as HTMLElement).closest<HTMLElement>('.archive-card');
   if (!card) return;
@@ -336,8 +394,45 @@ export function mountArchiveHandlers(): void {
   on('dg:insights:removed', () => rerenderList());
   on('dg:insights:updated', () => rerenderList());
 
+  // v3.27 T4: pin 토글 후 re-render (3 entity unified).
+  on('dg:archive:updated', () => rerenderList());
+
+  // v3.27 T4: pin 버튼 click — 이벤트 위임 (rerender 후 새 button에도 wiring 유지).
+  document.addEventListener('click', (e) => {
+    const btn = (e.target as HTMLElement).closest<HTMLButtonElement>('.archive-pin-toggle');
+    if (!btn) return;
+    e.stopPropagation(); // card click delegate / select 모드 toggle 방지
+    const entity = btn.dataset['pinEntity'] as PinEntity | undefined;
+    const id = btn.dataset['pinId'];
+    if (!entity || !id) return;
+    togglePin(entity, id);
+  });
+
+  // v3.27 T4: counter click → entity 'all' 전환 (다른 카테고리 핀 가시화 후 진입).
+  document.addEventListener('click', (e) => {
+    if (!(e.target as HTMLElement).closest('.other-pin-counter')) return;
+    currentEntity = 'all';
+    // v3.27 T4 (Codex P1-2): currentFilter 도 'all' 리셋 — 질문 chip 활성 상태에서 진입 시
+    // 'all' merge가 아닌 type 분기로 빠져 다른 카테고리 핀 항목이 여전히 숨김 상태가 되는 버그 방지.
+    currentFilter = 'all';
+    document.querySelectorAll<HTMLButtonElement>('.archive-entity-chip').forEach((b) => {
+      const active = b.dataset['entity'] === 'all';
+      b.classList.toggle('active', active);
+      b.setAttribute('aria-checked', active ? 'true' : 'false');
+    });
+    document.querySelectorAll<HTMLButtonElement>('.filter-chip').forEach((btn) => {
+      btn.classList.toggle('active', btn.dataset['filter'] === 'all');
+    });
+    // 2차 row(질문 type) 숨김 해제
+    const q = document.getElementById('archiveFilters');
+    if (q) q.style.display = '';
+    rerenderList();
+  });
+
   // v3.27 T2a: archive insight card click → openInsightDetailModal (insights tab 흡수).
   document.addEventListener('click', (e) => {
+    // v3.27 T4 (Codex P1-1): pin 토글 button click은 detail 모달 차단.
+    if ((e.target as HTMLElement).closest('.archive-pin-toggle')) return;
     const card = (e.target as HTMLElement).closest<HTMLElement>('.archive-insight-card');
     if (!card) return;
     const id = card.dataset['insightId'];
@@ -411,6 +506,9 @@ function renderAnswerCard(a: Answer): HTMLElement {
   date.textContent = a.date ?? (a.createdAt ? KST_FMT_KO.format(new Date(a.createdAt)) : ''); // v3.26 T1b: KST anchor
   header.append(date);
 
+  // v3.27 T4: pin 토글 버튼 — delete 왼쪽
+  header.append(makePinButton('answer', a.id, a.pinned ?? false));
+
   const deleteBtn = document.createElement('button');
   deleteBtn.className = 'archive-card-delete';
   deleteBtn.type = 'button';
@@ -440,6 +538,64 @@ function renderAnswerCard(a: Answer): HTMLElement {
   return card;
 }
 
+/**
+ * v3.27 T4: insight 카드 (rerenderList path — 핀 토글 후 re-render 필요).
+ * populateList(tabs/archive.ts)도 동일 class/dataset 유지 — list.replaceChildren() 후 동일 모양.
+ */
+function renderInsightCard(i: Insight): HTMLElement {
+  const card = document.createElement('article');
+  card.className = 'archive-card archive-insight-card';
+  card.dataset['insightId'] = i.id;
+
+  const header = document.createElement('div');
+  header.className = 'archive-card-header';
+  const date = document.createElement('time');
+  date.className = 'archive-date';
+  date.textContent = KST_FMT_KO.format(new Date(i.createdAt));
+  header.append(date);
+  header.append(makePinButton('insight', i.id, i.pinned ?? false));
+  card.append(header);
+
+  const body = document.createElement('p');
+  body.className = 'archive-card-body';
+  body.textContent = i.text;
+  card.append(body);
+
+  return card;
+}
+
+/** v3.27 T4: pinned-first → sortKey desc. Stable sort (Array.prototype.sort is stable since ES2019). */
+function sortPinThenDesc<T>(items: T[], getPinned: (t: T) => boolean, getKey: (t: T) => string): T[] {
+  return [...items].sort((a, b) => {
+    const pinDelta = (getPinned(b) ? 1 : 0) - (getPinned(a) ? 1 : 0);
+    if (pinDelta !== 0) return pinDelta;
+    return getKey(b).localeCompare(getKey(a));
+  });
+}
+
+/** v3.27 T4: 다른 카테고리 pin count — entity chip에 외부 entity의 pinned 항목 수. */
+function computeOtherPinCount(entity: EntityFilter, answers: Answer[], scraps: ReturnType<typeof loadBriefings>, insights: Insight[]): number {
+  if (entity === 'all') return 0;
+  let count = 0;
+  if (entity !== 'answer') count += answers.filter((a) => a.pinned).length;
+  if (entity !== 'scrap') count += scraps.filter((b) => b.pinned).length;
+  if (entity !== 'insight') count += insights.filter((i) => i.pinned).length;
+  return count;
+}
+
+/** v3.27 T4: counter 렌더 — list 형제로 prepend (list.replaceChildren 영향 안 받음). */
+function renderOtherPinCounter(count: number): void {
+  document.querySelector('.other-pin-counter')?.remove();
+  if (count === 0) return;
+  const list = document.getElementById('archiveList');
+  if (!list?.parentElement) return;
+  const btn = document.createElement('button');
+  btn.className = 'other-pin-counter';
+  btn.type = 'button';
+  btn.textContent = `다른 카테고리에 핀 ${count}개`;
+  list.parentElement.insertBefore(btn, list);
+}
+
 export function rerenderList(): void {
   const list = document.getElementById('archiveList');
   if (!list) return;
@@ -447,9 +603,13 @@ export function rerenderList(): void {
 
   const answers = loadAnswers();
   const briefings = loadBriefings();
+  const scraps = briefings.filter((b) => b.scrapped);
+  const insights = getCachedUser()?.insights ?? [];
+
+  // v3.27 T4: counter (entity != 'all' 시 외부 pinned 가시화).
+  renderOtherPinCounter(computeOtherPinCount(currentEntity, answers, scraps, insights));
 
   // v3.20.1 H4: scrap 카드 렌더링 helper (idx-bound handler 제거 + ✕ 버튼 부착).
-  // 'scrap' 필터 + 'all' 필터(통합) 둘 다 사용.
   function appendScrapCard(b: typeof briefings[number]): void {
     const card = renderBriefingCard(b, 0);
     card.classList.add('archive-card', 'archive-card--scrap');
@@ -462,6 +622,8 @@ export function rerenderList(): void {
       const newLink = oldLink.cloneNode(true) as HTMLAnchorElement;
       oldLink.replaceWith(newLink);
     }
+    // v3.27 T4: pin 토글 버튼
+    card.append(makePinButton('scrap', b.id, b.pinned ?? false));
     const deleteBtn = document.createElement('button');
     deleteBtn.className = 'archive-card-delete';
     deleteBtn.type = 'button';
@@ -471,38 +633,57 @@ export function rerenderList(): void {
     list!.append(card);
   }
 
-  // v3.27 T2b (P0-4): currentFilter scrap → currentEntity scrap 이전.
+  // v3.27 T2b (P0-4): scrap entity branch.
   if (currentEntity === 'scrap') {
-    const scrapped = briefings.filter((b) => b.scrapped);
-    if (scrapped.length === 0) {
+    let pool = scraps;
+    if (currentQuery) {
+      pool = pool.filter((b) =>
+        (b.title?.normalize('NFC').toLowerCase().includes(currentQuery) ?? false) ||
+        (b.summary?.normalize('NFC').toLowerCase().includes(currentQuery) ?? false));
+    }
+    if (pool.length === 0) {
       list.textContent = '아직 스크랩한 기사가 없어요.';
       return;
     }
-    scrapped.forEach((b) => appendScrapCard(b));
+    sortPinThenDesc(pool, (b) => b.pinned ?? false, (b) => b.date).forEach((b) => appendScrapCard(b));
     return;
   }
 
-  // v3.20.1 H4: '전체' 필터는 answers + scrapped briefings 통합 (사용자 의도).
-  // type 필터(분석/전환/실무/성장/트렌드)는 answers만 — briefing은 type 없음.
-  // v3.27 T2b: entity='all' 또는 'answer' 시 question type 분기 진입. 'insight'는 분리.
+  // v3.27 T4: insight entity branch.
+  if (currentEntity === 'insight') {
+    let pool = insights;
+    if (currentQuery) {
+      pool = pool.filter((i) => i.text.normalize('NFC').toLowerCase().includes(currentQuery));
+    }
+    if (pool.length === 0) {
+      list.textContent = '아직 저장된 인사이트가 없어요.';
+      return;
+    }
+    sortPinThenDesc(pool, (i) => i.pinned ?? false, (i) => i.createdAt).forEach((i) => list.append(renderInsightCard(i)));
+    return;
+  }
+
+  // v3.27 T4: 'all' merge (answers + scraps + insights) — question chip 'all' 시.
   if (currentEntity === 'all' && currentFilter === 'all') {
-    const scrapped = briefings.filter((b) => b.scrapped);
     type Entry =
-      | { kind: 'answer'; answer: typeof answers[number]; sortKey: string }
-      | { kind: 'scrap'; briefing: typeof briefings[number]; sortKey: string };
+      | { kind: 'answer'; answer: Answer; sortKey: string; pinned: boolean }
+      | { kind: 'scrap'; briefing: typeof briefings[number]; sortKey: string; pinned: boolean }
+      | { kind: 'insight'; insight: Insight; sortKey: string; pinned: boolean };
 
     let entries: Entry[] = [
-      ...answers.map((a) => ({ kind: 'answer' as const, answer: a, sortKey: a.createdAt })),
-      ...scrapped.map((b) => ({ kind: 'scrap' as const, briefing: b, sortKey: b.date })),
+      ...answers.map((a) => ({ kind: 'answer' as const, answer: a, sortKey: a.createdAt, pinned: a.pinned ?? false })),
+      ...scraps.map((b) => ({ kind: 'scrap' as const, briefing: b, sortKey: b.date, pinned: b.pinned ?? false })),
+      ...insights.map((i) => ({ kind: 'insight' as const, insight: i, sortKey: i.createdAt, pinned: i.pinned ?? false })),
     ];
 
     if (currentQuery) {
-      // v3.27 T3: NFC normalize target text (한국어 조합형 매칭).
       entries = entries.filter((e) =>
         e.kind === 'answer'
           ? e.answer.text.normalize('NFC').toLowerCase().includes(currentQuery)
-          : (e.briefing.title?.normalize('NFC').toLowerCase().includes(currentQuery) ?? false) ||
-            (e.briefing.summary?.normalize('NFC').toLowerCase().includes(currentQuery) ?? false),
+          : e.kind === 'insight'
+            ? e.insight.text.normalize('NFC').toLowerCase().includes(currentQuery)
+            : (e.briefing.title?.normalize('NFC').toLowerCase().includes(currentQuery) ?? false) ||
+              (e.briefing.summary?.normalize('NFC').toLowerCase().includes(currentQuery) ?? false),
       );
     }
 
@@ -511,20 +692,19 @@ export function rerenderList(): void {
       return;
     }
 
-    // newest first — ISO datetime + YYYY-MM-DD 둘 다 lexicographic 정렬 호환
-    entries.sort((x, y) => y.sortKey.localeCompare(x.sortKey));
-
-    for (const e of entries) {
+    const sorted = sortPinThenDesc(entries, (e) => e.pinned, (e) => e.sortKey);
+    for (const e of sorted) {
       if (e.kind === 'answer') list.append(renderAnswerCard(e.answer));
+      else if (e.kind === 'insight') list.append(renderInsightCard(e.insight));
       else appendScrapCard(e.briefing);
     }
     return;
   }
 
-  // type 분기 (분석/전환/실무/성장/트렌드) — answers만
-  let filtered = answers.filter((a) => (a.type ?? '').includes(currentFilter));
+  // answer entity (entity='answer' or 'all' with question chip != 'all') — type 분기.
+  let filtered = answers;
+  if (currentFilter !== 'all') filtered = filtered.filter((a) => (a.type ?? '').includes(currentFilter));
   if (currentQuery) {
-    // v3.27 T3: NFC normalize target text.
     filtered = filtered.filter((a) => a.text.normalize('NFC').toLowerCase().includes(currentQuery));
   }
 
@@ -533,9 +713,7 @@ export function rerenderList(): void {
     return;
   }
 
-  for (const a of filtered) {
-    list.append(renderAnswerCard(a));
-  }
+  sortPinThenDesc(filtered, (a) => a.pinned ?? false, (a) => a.createdAt).forEach((a) => list.append(renderAnswerCard(a)));
 }
 
 type DetailPayload =
