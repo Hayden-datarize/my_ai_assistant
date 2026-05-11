@@ -134,7 +134,8 @@ export function getCachedUser(): User | null {
     raw = localStorage.getItem(KEY);
     if (!raw) return null;
     const parsed = JSON.parse(raw);
-    let user = (parsed?.schemaVersion === 2 || parsed?.schemaVersion === 3 || parsed?.schemaVersion === 4 || parsed?.schemaVersion === 5 || parsed?.schemaVersion === 6 || parsed?.schemaVersion === 7 || parsed?.schemaVersion === 8)
+    const sv0 = typeof parsed?.schemaVersion === 'number' ? parsed.schemaVersion : -1;
+    let user = (sv0 >= 2 && sv0 <= 8)
       ? parsed
       : migrateUserToV2(parsed);
     user = migrateUserToV3(user);  // v4~v8 user는 early return (S5 fix + P0-1 fix + v3.25 chain superset + v3.27 T1)
@@ -199,7 +200,8 @@ function isValidUserShape(u: unknown): u is User {
   // v3.23 T1: v6도 동일 검증 (v6는 v5의 superset — insights 추가만)
   // v3.25 T2: v7도 동일 검증 (v7는 v6의 superset — Insight.interestId 추가만)
   // v3.27 T1: v8도 동일 검증 (v8는 v7의 superset — Insight.pinned + xpHistory + Answer.pinned + Briefing.pinned 추가만)
-  if (r.schemaVersion === 4 || r.schemaVersion === 5 || r.schemaVersion === 6 || r.schemaVersion === 7 || r.schemaVersion === 8) {
+  const sv = typeof r.schemaVersion === 'number' ? r.schemaVersion : -1;
+  if (sv >= 4 && sv <= 8) {
     if (typeof r.plantStateByInterest !== 'object' || r.plantStateByInterest === null) return false;
     for (const plant of Object.values(r.plantStateByInterest as Record<string, unknown>)) {
       if (!plant || typeof plant !== 'object') return false;
@@ -214,7 +216,7 @@ function isValidUserShape(u: unknown): u is User {
   // v3.23 T1: v6도 동일 검증 (v6는 v5의 superset)
   // v3.25 T2: v7도 동일 검증 (v7는 v6의 superset)
   // v3.27 T1: v8도 동일 (v8는 v7의 superset)
-  if (r.schemaVersion === 5 || r.schemaVersion === 6 || r.schemaVersion === 7 || r.schemaVersion === 8) {
+  if (sv >= 5 && sv <= 8) {
     const sf = r.streakFreeze as { count?: unknown; lastEarnedAt?: unknown } | undefined | null;
     if (!sf || typeof sf !== 'object') return false;
     if (typeof sf.count !== 'number' || !Number.isFinite(sf.count) || sf.count < 0 || sf.count > 2) return false;
@@ -224,14 +226,14 @@ function isValidUserShape(u: unknown): u is User {
   // v3.23 T1: v6 신규 insights 배열 guard
   // v3.25 T2: v7도 동일 검증 (v7는 v6의 superset — array guard는 동일)
   // v3.27 T1: v8도 동일 (v8는 v7의 superset)
-  if (r.schemaVersion === 6 || r.schemaVersion === 7 || r.schemaVersion === 8) {
+  if (sv >= 6 && sv <= 8) {
     if (!Array.isArray(r.insights)) return false;
   }
 
   // v3.25 T2 (Codex P0-A1 fix): Insight entry-level shape 강화.
   // migrate chain (V3→V4→V5→V6→V7→V8) 끝난 후라 모든 user는 v8 — entry는 항상 v8 shape 보장.
   // v3.27 T1: v8도 동일 entry 검증 + .pinned optional boolean 추가.
-  if (r.schemaVersion === 7 || r.schemaVersion === 8) {
+  if (sv >= 7 && sv <= 8) {
     if (Array.isArray(r.insights)) {
       for (const i of r.insights as unknown[]) {
         if (!i || typeof i !== 'object') return false;
