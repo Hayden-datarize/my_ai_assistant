@@ -318,7 +318,8 @@ export function mountArchiveHandlers(): void {
 
   on('dg:archive:search', () => {
     const input = document.getElementById('archiveSearch') as HTMLInputElement | null;
-    currentQuery = (input?.value ?? '').trim().toLowerCase();
+    // v3.27 T3: NFC normalize (한국어 조합형 분해/NFC 차이 흡수) + trim + lowercase.
+    currentQuery = (input?.value ?? '').trim().toLowerCase().normalize('NFC');
     rerenderList();
   });
 
@@ -496,11 +497,12 @@ export function rerenderList(): void {
     ];
 
     if (currentQuery) {
+      // v3.27 T3: NFC normalize target text (한국어 조합형 매칭).
       entries = entries.filter((e) =>
         e.kind === 'answer'
-          ? e.answer.text.toLowerCase().includes(currentQuery)
-          : (e.briefing.title?.toLowerCase().includes(currentQuery) ?? false) ||
-            (e.briefing.summary?.toLowerCase().includes(currentQuery) ?? false),
+          ? e.answer.text.normalize('NFC').toLowerCase().includes(currentQuery)
+          : (e.briefing.title?.normalize('NFC').toLowerCase().includes(currentQuery) ?? false) ||
+            (e.briefing.summary?.normalize('NFC').toLowerCase().includes(currentQuery) ?? false),
       );
     }
 
@@ -522,7 +524,8 @@ export function rerenderList(): void {
   // type 분기 (분석/전환/실무/성장/트렌드) — answers만
   let filtered = answers.filter((a) => (a.type ?? '').includes(currentFilter));
   if (currentQuery) {
-    filtered = filtered.filter((a) => a.text.toLowerCase().includes(currentQuery));
+    // v3.27 T3: NFC normalize target text.
+    filtered = filtered.filter((a) => a.text.normalize('NFC').toLowerCase().includes(currentQuery));
   }
 
   if (filtered.length === 0) {
