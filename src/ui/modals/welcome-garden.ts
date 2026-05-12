@@ -2,7 +2,7 @@ import { openModal, closeModal } from './shared';
 import { getCachedUser, saveUser } from '../../state/user';
 import { STAGE_LABEL, getPlantIcon } from '../../state/plantCatalog';
 import { switchTab } from '../nav';
-import { scrollToGardenSection } from '../handlers/stats';
+import { scrollToGardenSection } from '../handlers/stats-shared';
 import { escapeHtml } from '../../utils/escapeHtml';
 import { INTEREST_LABEL } from '../components/garden-grid';
 import { MSG } from '../messages';

@@ -29,7 +29,7 @@ import { showCapToast, showTranslateError, showPartialTranslateFail } from '../t
 import { getCachedUser, getSaveErrorMessage, recordDailyAnswer, saveUser, type Insight } from '../../state/user';
 import { parseInsightResponse } from '../../utils/gemini-parse';
 import { renderGardenMini } from '../components/garden-grid';
-import { scrollToGardenSection } from './stats';
+import { scrollToGardenSection } from './stats-shared';
 import { loadActiveSeenUrls, recordSeen, purgeExpiredSeen } from '../../state/seen';
 import { MSG } from '../messages';
 import { getActiveMissions, getKSTDateIso } from '../../state/missionEngine';

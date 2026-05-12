@@ -76,14 +76,6 @@ function hydrateGarden(): void {
   renderGardenGrid(root, user);
 }
 
-/** 환영 모달 등 외부 호출용 — #gardenSection으로 부드럽게 스크롤한다. */
-export function scrollToGardenSection(): void {
-  const section = document.getElementById('gardenSection');
-  if (section) {
-    section.scrollIntoView({ behavior: 'smooth', block: 'start' });
-  }
-}
-
 function hydrateLevelCard(): void {
   const user = getCachedUser();
   const icon = document.getElementById('levelIcon');
