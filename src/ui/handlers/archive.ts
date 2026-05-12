@@ -27,6 +27,33 @@ let currentQuery = '';
 type EntityFilter = 'all' | 'answer' | 'scrap' | 'insight';
 let currentEntity: EntityFilter = 'all';
 
+/**
+ * v3.30 T2: entity별 count single source-of-truth (R7).
+ * - answers: persistence (loadAnswers().length)
+ * - scrap: briefings.filter(b => b.scrapped).length
+ * - insight: getCachedUser()?.insights ?? []
+ * - cachedUser null 시 insight = 0 (silent corruption guard, P0 v3.13/v3.27 graduated).
+ */
+export function getEntityCounts(): Record<EntityFilter, number> {
+  const answer = loadAnswers().length;
+  const scrap = loadBriefings().filter((b) => b.scrapped).length;
+  const insight = getCachedUser()?.insights.length ?? 0;
+  return { all: answer + scrap + insight, answer, scrap, insight };
+}
+
+/**
+ * v3.30 T2: DOM data-entity-count span 4개 textContent 갱신 (chip row 재생성 X).
+ * - counts 인자 생략 시 getEntityCounts() 자동 호출.
+ * - data-entity-count span 없는 DOM (chip row 첫 렌더 전) 에서는 silent no-op.
+ */
+export function refreshEntityCounts(counts?: Record<EntityFilter, number>): void {
+  const c = counts ?? getEntityCounts();
+  document.querySelectorAll<HTMLElement>('[data-entity-count]').forEach((el) => {
+    const id = el.getAttribute('data-entity-count') as EntityFilter | null;
+    if (id && c[id] !== undefined) el.textContent = String(c[id]);
+  });
+}
+
 // 선택 모드 상태
 const selectedIds = new Set<string>();
 let selectMode = false;
@@ -396,7 +423,11 @@ export function mountArchiveHandlers(): void {
   on('dg:insights:updated', () => rerenderList());
 
   // v3.27 T4: pin 토글 후 re-render (3 entity unified).
-  on('dg:archive:updated', () => rerenderList());
+  // v3.30 T2: count 자동 갱신도 함께 (R1 race 방어 — chip row 재생성 X, textContent만).
+  on('dg:archive:updated', () => {
+    refreshEntityCounts();
+    rerenderList();
+  });
 
   // v3.27 T4: pin 버튼 click — 이벤트 위임 (rerender 후 새 button에도 wiring 유지).
   document.addEventListener('click', (e) => {
