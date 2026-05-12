@@ -9,6 +9,7 @@ import { loadAnswers, saveAnswers, deleteAnswerById, deleteAnswersByIds } from '
 import { loadBriefings, saveBriefings, toggleScrap } from '../../state/briefings';
 import { openModal } from '../modals/shared';
 import { escapeHtml } from '../../utils/escapeHtml';
+import { highlightHtml } from '../../utils/highlight';
 import { showToast, showUndoToast } from '../../utils/toast';
 import { toKoType } from '../../utils/typeLabel';
 import { getSaveErrorMessage, getCachedUser, saveUser, type Insight } from '../../state/user';
@@ -532,7 +533,13 @@ function renderAnswerCard(a: Answer): HTMLElement {
   // Answer body (CSS line-clamp 3 — JS truncation 안 함)
   const body = document.createElement('p');
   body.className = 'archive-card-body';
-  body.textContent = a.text;
+  // v3.29 T2: 검색 활성 시 keyword <mark> highlight (XSS-safe helper)
+  if (currentQuery) {
+    // eslint-disable-next-line no-restricted-syntax -- highlightHtml escapeHtml + escapeRegex 적용, <mark> only inject
+    body.innerHTML = highlightHtml(a.text, currentQuery);
+  } else {
+    body.textContent = a.text;
+  }
   card.append(body);
 
   return card;
@@ -558,7 +565,13 @@ function renderInsightCard(i: Insight): HTMLElement {
 
   const body = document.createElement('p');
   body.className = 'archive-card-body';
-  body.textContent = i.text;
+  // v3.29 T2: 검색 활성 시 keyword <mark> highlight (XSS-safe helper)
+  if (currentQuery) {
+    // eslint-disable-next-line no-restricted-syntax -- highlightHtml escapeHtml + escapeRegex 적용, <mark> only inject
+    body.innerHTML = highlightHtml(i.text, currentQuery);
+  } else {
+    body.textContent = i.text;
+  }
   card.append(body);
 
   return card;
