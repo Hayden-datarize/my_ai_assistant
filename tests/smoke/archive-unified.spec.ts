@@ -33,6 +33,12 @@ test('v3.27 archive 통합 — entity chip + 핀 + 검색 1 path', async ({ page
   await expect(page.locator('#archiveEntityFilters')).toBeVisible();
   await expect(page.locator('.archive-entity-chip[data-entity="scrap"]')).toBeVisible();
 
+  // v3.30 T1: archive 탭 entity row segmented + active class 회귀
+  const row = page.locator('#archiveEntityFilters');
+  await expect(row).toBeVisible();
+  const allChip = row.locator('[data-entity="all"]');
+  await expect(allChip).toHaveClass(/active/);
+
   // entity='scrap' click → 2차 question type row 숨김 (T2b)
   await page.locator('.archive-entity-chip[data-entity="scrap"]').click();
   await expect(page.locator('#archiveFilters')).toBeHidden();

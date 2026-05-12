@@ -235,3 +235,44 @@
   margin: 0;
   color: var(--text-secondary);
 }
+
+/* v3.30 T1: archive entity chip — segmented control + 카운트 */
+.archive-entity-row {
+  display: flex; gap: 0; margin-bottom: 12px;
+  border: 1px solid var(--border); border-radius: 12px;
+  overflow: hidden;
+  background: var(--bg-card);
+}
+.archive-entity-chip {
+  flex: 1 1 0; min-width: 0;
+  padding: 8px 12px;
+  border: 0; border-right: 1px solid var(--border);
+  background: transparent; color: var(--text-primary);
+  font-family: var(--font-body); font-size: 0.9rem; font-weight: 500;
+  cursor: pointer;
+  transition: background 0.18s var(--ease-out-soft), color 0.18s var(--ease-out-soft);
+}
+.archive-entity-chip:last-child { border-right: 0; }
+.archive-entity-chip:hover:not(.active) { background: var(--bg-input); }
+.archive-entity-chip.active {
+  background: var(--primary); color: #fff;
+  box-shadow: var(--shadow-sm) inset;
+}
+.archive-entity-count {
+  margin-left: 4px;
+  color: var(--text-tertiary); font-weight: 400;
+}
+.archive-entity-chip.active .archive-entity-count {
+  color: rgba(255, 255, 255, 0.85);
+}
+
+@media (max-width: 480px) {
+  .archive-entity-chip { padding: 6px 10px; font-size: 0.85rem; }
+}
+@media (max-width: 360px) {
+  .archive-entity-row {
+    overflow-x: auto;
+    scroll-snap-type: x mandatory;
+  }
+  .archive-entity-chip { scroll-snap-align: start; flex: 0 0 auto; }
+}
