@@ -410,7 +410,35 @@ export function migrateUserToV8(u: unknown): User {
     xpHistory?: unknown;
   };
 
-  if (r.schemaVersion === 8) return r as unknown as User;
+  if (r.schemaVersion === 8) {
+    // 이미 v8이지만 already-v8 path에서도 pinned/xpHistory invariant 보장 (P1 흡수)
+    const rawInsights = Array.isArray(r.insights) ? r.insights : [];
+    const xpHistoryValid = Array.isArray(r.xpHistory);
+
+    // 모든 insight의 pinned가 boolean이고 xpHistory가 array면 same-reference 유지 (idempotency)
+    const allPinnedValid = rawInsights.every((i) => {
+      const ie = (i ?? {}) as Record<string, unknown>;
+      return typeof ie.pinned === 'boolean';
+    });
+
+    if (allPinnedValid && xpHistoryValid) {
+      return r as unknown as User; // 진짜 idempotent
+    }
+
+    // Copy-based 백필 (in-place mutation 금지)
+    const insights = rawInsights.map((i) => {
+      const ie = (i ?? {}) as Record<string, unknown>;
+      return {
+        ...ie,
+        pinned: typeof ie.pinned === 'boolean' ? ie.pinned : false,
+      };
+    });
+    return {
+      ...r,
+      insights,
+      xpHistory: xpHistoryValid ? r.xpHistory : [],
+    } as unknown as User;
+  }
 
   // v7까지 lift (V7 early-return이 v8 guard됨 — 불필요 이중 lift 없음)
   const v7 = migrateUserToV7(u);
