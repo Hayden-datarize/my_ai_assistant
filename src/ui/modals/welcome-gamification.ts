@@ -77,6 +77,7 @@ export async function maybeShowWelcomeGamification(): Promise<void> {
       const { closeModal } = await import('./shared');
       const { switchTab } = await import('../nav');
       closeModal();           // fires onClose → gamificationMigrated set + focus restore
-      switchTab('stats');
+      // v3.29 T3: switchTab now async (dynamic import).
+      await switchTab('stats');
     });
 }

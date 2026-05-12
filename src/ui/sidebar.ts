@@ -44,7 +44,8 @@ export function mountSidebar(): void {
     btn.append(label);
 
     btn.addEventListener('click', () => {
-      switchTab(t.id);
+      // v3.29 T3: switchTab now async (dynamic import) — fire-and-forget.
+      void switchTab(t.id);
       close();
     });
     nav.append(btn);

@@ -16,14 +16,15 @@ describe('nav', () => {
     // v3.27 T2a: insights tab 제거 (6→5).
     expect(document.querySelectorAll('#bottomNav button').length).toBe(5);
   });
-  it('switchTab("home") renders Home into #app', () => {
+  // v3.29 T3: switchTab은 dynamic import 후 async — await 필요.
+  it('switchTab("home") renders Home into #app', async () => {
     mountNav();
-    switchTab('home');
+    await switchTab('home');
     expect(document.querySelector('#homeTab')).not.toBeNull();
   });
-  it('switchTab("archive") renders Archive into #app', () => {
+  it('switchTab("archive") renders Archive into #app', async () => {
     mountNav();
-    switchTab('archive');
+    await switchTab('archive');
     expect(document.querySelector('#archiveTab')).not.toBeNull();
   });
 });

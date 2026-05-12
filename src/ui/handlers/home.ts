@@ -258,7 +258,8 @@ export function mountHomeHandlers(): void {
   on('dg:home:switch-tab', ({ tab }) => {
     // v3.27 T2a: 'insights' 제거 (tab 폐기, archive 통합).
     if (tab === 'home' || tab === 'archive' || tab === 'stats' || tab === 'settings') {
-      switchTab(tab);
+      // v3.29 T3: switchTab now async — fire-and-forget.
+      void switchTab(tab);
     }
   });
 
@@ -879,9 +880,10 @@ export function openSettingsWithFocus(): void {
   if (isAlreadySettings) {
     scrollToField();
   } else {
-    switchTab('settings');
-    // switchTab renders synchronously; rAF ensures post-paint DOM stability before scroll
-    requestAnimationFrame(scrollToField);
+    // v3.29 T3: switchTab now async (dynamic import) — await render before rAF scroll.
+    void switchTab('settings').then(() => {
+      requestAnimationFrame(scrollToField);
+    });
   }
 }
 

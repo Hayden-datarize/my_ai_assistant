@@ -118,7 +118,8 @@ vi.mock('../../../../src/utils/interestKeywords', () => ({
   interestKeywords: {},
   matchKeyword: vi.fn().mockReturnValue(false),
 }));
-vi.mock('../../../../src/ui/nav', () => ({ switchTab: vi.fn() }));
+// v3.29 T3: switchTab is async (dynamic import) — return resolved Promise so .then() works.
+vi.mock('../../../../src/ui/nav', () => ({ switchTab: vi.fn(() => Promise.resolve()) }));
 vi.mock('../../../../src/utils/typeLabel', () => ({ toKoType: vi.fn().mockReturnValue('유형') }));
 vi.mock('../../../../src/state/briefings', () => ({
   loadBriefings: vi.fn().mockReturnValue([]),

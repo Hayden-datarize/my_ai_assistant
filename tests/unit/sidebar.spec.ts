@@ -76,7 +76,7 @@ describe('mountSidebar', () => {
     expect(items.length).toBe(5);
   });
 
-  it('clicking a drawer nav-item closes drawer and dispatches dg:nav:tab-changed', () => {
+  it('clicking a drawer nav-item closes drawer and dispatches dg:nav:tab-changed', async () => {
     localStorage.setItem(LS_KEY, 'open');
     mountSidebar();
     const archiveBtn = document.querySelector<HTMLButtonElement>(
@@ -87,7 +87,8 @@ describe('mountSidebar', () => {
     archiveBtn.click();
     const drawer = document.querySelector<HTMLElement>('#sidebarDrawer')!;
     expect(drawer.dataset['open']).toBe('false');
-    expect(spy).toHaveBeenCalled();
+    // v3.29 T3: switchTab is now async (dynamic import) — wait for chunk load + dispatch.
+    await vi.waitFor(() => expect(spy).toHaveBeenCalled(), { timeout: 2000, interval: 20 });
     document.removeEventListener('dg:nav:tab-changed', spy);
   });
 

@@ -5,7 +5,8 @@ vi.mock('../../src/ui/nav', async (importOriginal) => {
   const actual = await importOriginal<typeof import('../../src/ui/nav')>();
   return {
     ...actual,
-    switchTab: vi.fn(),
+    // v3.29 T3: switchTab is async (dynamic import) — return resolved Promise so .then() works.
+    switchTab: vi.fn(() => Promise.resolve()),
   };
 });
 
