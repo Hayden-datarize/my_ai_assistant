@@ -4,7 +4,7 @@ import { maybeShowWelcomeGarden } from '../../../src/ui/modals/welcome-garden';
 // switchTab / scrollToGardenSection mock
 // v3.29 T3: switchTab is async (dynamic import) — return resolved Promise so .then() works.
 vi.mock('../../../src/ui/nav', () => ({ switchTab: vi.fn(() => Promise.resolve()) }));
-vi.mock('../../../src/ui/handlers/stats', () => ({ scrollToGardenSection: vi.fn() }));
+vi.mock('../../../src/ui/handlers/stats-shared', () => ({ scrollToGardenSection: vi.fn() }));
 
 function setUser(opts: { gardenIntroduced: boolean; plants?: Record<string, { stage: number; cumulativeActivity: number }> }): void {
   localStorage.setItem('user', JSON.stringify({

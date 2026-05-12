@@ -98,7 +98,7 @@ vi.mock('../../../../src/ui/translateToast', () => ({
   showPartialTranslateFail: vi.fn(),
 }));
 vi.mock('../../../../src/ui/components/garden-grid', () => ({ renderGardenMini: vi.fn() }));
-vi.mock('../../../../src/ui/handlers/stats', () => ({ scrollToGardenSection: vi.fn() }));
+vi.mock('../../../../src/ui/handlers/stats-shared', () => ({ scrollToGardenSection: vi.fn() }));
 vi.mock('../../../../src/state/seen', () => ({
   loadActiveSeenUrls: vi.fn().mockReturnValue([]),
   recordSeen: vi.fn(),
