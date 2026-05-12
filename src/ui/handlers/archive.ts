@@ -662,6 +662,11 @@ function renderOtherPinCounter(count: number): void {
 }
 
 export function rerenderList(): void {
+  // v3.30 T7 P1 fix (Codex 최종 review): 모든 caller에서 chip count 자동 갱신.
+  // 답변 단건/벌크 삭제, scrap 해제/undo, dg:insights:* 변경 후 stale 방지.
+  // refreshEntityCounts는 data-entity-count span 없는 DOM에서 silent no-op (archive 탭 진입 전 안전).
+  refreshEntityCounts();
+
   const list = document.getElementById('archiveList');
   if (!list) return;
   list.replaceChildren();

@@ -41,6 +41,7 @@ import {
   refreshEntityCounts,
   mountArchiveHandlers,
   resetArchiveHandlersForTest,
+  rerenderList,
 } from '../../src/ui/handlers/archive';
 
 // Helper: fixture set (answers 5, scraps 4, insights 3).
@@ -244,5 +245,76 @@ describe('v3.30 T2 review fix (P1): mountArchiveHandlers double-mount guard', ()
     // 한 번 reset — 다시 mount 진입.
     resetArchiveHandlersForTest();
     expect(() => mountArchiveHandlers()).not.toThrow();
+  });
+});
+
+// ---------------------------------------------------------------------------
+// v3.30 T7 P1 fix (Codex 최종 review):
+// rerenderList() 본문에 refreshEntityCounts() 자동 호출 — 13 caller 자동 갱신.
+// archive 내부 mutation paths (answer 단건/벌크 삭제, scrap 해제/undo, dg:insights:* 등)
+// 에서 chip count stale 방지.
+// ---------------------------------------------------------------------------
+describe('v3.30 T7 P1 fix: rerenderList → refreshEntityCounts 자동 호출', () => {
+  beforeEach(() => {
+    mockLoadAnswers.mockReset();
+    mockLoadBriefings.mockReset();
+    mockGetCachedUser.mockReset();
+    resetArchiveHandlersForTest();
+    // eslint-disable-next-line no-restricted-syntax -- test fixture static HTML, no interpolation
+    document.body.innerHTML = `
+      <div id="archiveTab">
+        <div id="archiveEntityFilters">
+          <span data-entity-count="all">99</span>
+          <span data-entity-count="answer">99</span>
+          <span data-entity-count="scrap">99</span>
+          <span data-entity-count="insight">99</span>
+        </div>
+        <div id="archiveList"></div>
+      </div>
+    `;
+  });
+
+  it('rerenderList() 직접 호출 시 chip count 자동 갱신 (placeholder 99 → 실측치)', () => {
+    setMockState(5, 4, 3);
+    rerenderList();
+    expect(document.querySelector('[data-entity-count="all"]')?.textContent).toBe('12');
+    expect(document.querySelector('[data-entity-count="answer"]')?.textContent).toBe('5');
+    expect(document.querySelector('[data-entity-count="scrap"]')?.textContent).toBe('4');
+    expect(document.querySelector('[data-entity-count="insight"]')?.textContent).toBe('3');
+  });
+
+  it('dg:insights:added dispatch → chip count 자동 갱신 (P1 stale 회귀 가드)', () => {
+    setMockState(0, 0, 1);
+    mountArchiveHandlers();
+
+    // 인사이트 추가 simulate (production: addInsight 후 dg:insights:added dispatch).
+    setMockState(0, 0, 3);
+    document.dispatchEvent(new CustomEvent('dg:insights:added'));
+
+    // P1 fix 전: chip count 99 placeholder stale 유지 (dg:insights:added는 rerenderList만 호출, refreshEntityCounts 누락).
+    // P1 fix 후: rerenderList 첫 줄에서 refreshEntityCounts 호출 → DOM 3 갱신.
+    expect(document.querySelector('[data-entity-count="insight"]')?.textContent).toBe('3');
+    expect(document.querySelector('[data-entity-count="all"]')?.textContent).toBe('3');
+  });
+
+  it('dg:insights:removed dispatch → chip count 자동 갱신', () => {
+    setMockState(0, 0, 3);
+    mountArchiveHandlers();
+
+    // 인사이트 삭제 simulate.
+    setMockState(0, 0, 1);
+    document.dispatchEvent(new CustomEvent('dg:insights:removed'));
+
+    expect(document.querySelector('[data-entity-count="insight"]')?.textContent).toBe('1');
+    expect(document.querySelector('[data-entity-count="all"]')?.textContent).toBe('1');
+  });
+
+  it('data-entity-count span 없는 DOM (archive 탭 진입 전) → silent no-op (안전)', () => {
+    setMockState(2, 1, 0);
+    // archiveList만 있고 chip row가 없는 케이스 — archive 탭 첫 진입 전 mutation simulate.
+    // eslint-disable-next-line no-restricted-syntax -- test fixture static HTML, no interpolation
+    document.body.innerHTML = '<div id="archiveTab"><div id="archiveList"></div></div>';
+    // throw 없이 silent 동작 — refreshEntityCounts 의 querySelectorAll empty no-op 보장.
+    expect(() => rerenderList()).not.toThrow();
   });
 });
