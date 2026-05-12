@@ -68,10 +68,15 @@ export function maybeShowWelcomeGarden(): void {
     ?.addEventListener('click', () => {
       closeModal();
       // v3.29 T3: switchTab now async (dynamic import) — await render before scroll.
-      void switchTab('stats').then(() => {
-        // setTimeout 대신 requestAnimationFrame — paint 안정 보장 (home.ts T12 패턴)
-        requestAnimationFrame(() => scrollToGardenSection());
-      });
+      // v3.29 T3 review fix (I2): chunk load fail 진단 가능화.
+      switchTab('stats')
+        .then(() => {
+          // setTimeout 대신 requestAnimationFrame — paint 안정 보장 (home.ts T12 패턴)
+          requestAnimationFrame(() => scrollToGardenSection());
+        })
+        .catch((err) => {
+          console.warn('[welcome-garden] switchTab stats failed', err);
+        });
     });
 
   wrap.querySelector<HTMLButtonElement>('#welcomeGardenCloseBtn')

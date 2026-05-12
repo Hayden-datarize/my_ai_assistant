@@ -258,8 +258,10 @@ export function mountHomeHandlers(): void {
   on('dg:home:switch-tab', ({ tab }) => {
     // v3.27 T2a: 'insights' 제거 (tab 폐기, archive 통합).
     if (tab === 'home' || tab === 'archive' || tab === 'stats' || tab === 'settings') {
-      // v3.29 T3: switchTab now async — fire-and-forget.
-      void switchTab(tab);
+      // v3.29 T3 review fix (I2): chunk load fail 진단 가능화.
+      switchTab(tab).catch((err) => {
+        console.warn('[home] switchTab failed', tab, err);
+      });
     }
   });
 
@@ -881,9 +883,14 @@ export function openSettingsWithFocus(): void {
     scrollToField();
   } else {
     // v3.29 T3: switchTab now async (dynamic import) — await render before rAF scroll.
-    void switchTab('settings').then(() => {
-      requestAnimationFrame(scrollToField);
-    });
+    // v3.29 T3 review fix (I2): chunk load fail 진단 가능화.
+    switchTab('settings')
+      .then(() => {
+        requestAnimationFrame(scrollToField);
+      })
+      .catch((err) => {
+        console.warn('[home] switchTab settings failed', err);
+      });
   }
 }
 

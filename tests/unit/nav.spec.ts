@@ -27,6 +27,23 @@ describe('nav', () => {
     await switchTab('archive');
     expect(document.querySelector('#archiveTab')).not.toBeNull();
   });
+
+  it('v3.29 T3 review fix (I1): rapid switch — 최신 요청만 active, stale drop', async () => {
+    // rapid clicks 시뮬레이션 — home → archive 연속 호출 후 모두 await.
+    // pendingSwitchToken으로 token 비교 → 최신(archive)만 DOM mutate + active toggle.
+    mountNav();
+    const p1 = switchTab('home');
+    const p2 = switchTab('archive');
+    await Promise.all([p1, p2]);
+
+    // 최종 active는 archive 단 1개
+    const buttons = document.querySelectorAll<HTMLButtonElement>('.nav-item');
+    const activeIds: string[] = [];
+    buttons.forEach((b) => {
+      if (b.classList.contains('active')) activeIds.push(b.dataset['tabId']!);
+    });
+    expect(activeIds).toEqual(['archive']);
+  });
 });
 
 describe('nav TABS catalog', () => {

@@ -40,15 +40,26 @@ export function mountNav(): void {
     label.textContent = t.label;
     btn.append(label);
 
-    btn.addEventListener('click', () => { void switchTab(t.id); });
+    btn.addEventListener('click', () => {
+      switchTab(t.id).catch((err) => {
+        console.warn('[nav] switchTab failed', t.id, err);
+      });
+    });
     nav.append(btn);
   }
 }
 
+// v3.29 T3 review fix (I1): in-flight switch token — rapid clicks가 out-of-order
+// chunk resolve로 잘못된 탭 render하는 race 차단. 최신 요청만 DOM mutate.
+let pendingSwitchToken = 0;
+
 export async function switchTab(id: TabId): Promise<void> {
   const tab = TABS.find((t) => t.id === id);
   if (!tab) throw new Error(`Unknown tab: ${id}`);
+  const myToken = ++pendingSwitchToken;
   const render = await tab.load();
+  if (myToken !== pendingSwitchToken) return; // superseded — stale render drop
+
   const app = qs<HTMLElement>('#app');
   app.replaceChildren();
   render(app);

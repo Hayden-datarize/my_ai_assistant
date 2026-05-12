@@ -78,6 +78,11 @@ export async function maybeShowWelcomeGamification(): Promise<void> {
       const { switchTab } = await import('../nav');
       closeModal();           // fires onClose → gamificationMigrated set + focus restore
       // v3.29 T3: switchTab now async (dynamic import).
-      await switchTab('stats');
+      // v3.29 T3 review fix (I2): chunk load fail 진단 가능화.
+      try {
+        await switchTab('stats');
+      } catch (err) {
+        console.warn('[welcome-gamification] switchTab stats failed', err);
+      }
     });
 }

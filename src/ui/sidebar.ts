@@ -44,8 +44,11 @@ export function mountSidebar(): void {
     btn.append(label);
 
     btn.addEventListener('click', () => {
-      // v3.29 T3: switchTab now async (dynamic import) — fire-and-forget.
-      void switchTab(t.id);
+      // v3.29 T3 review fix (I2): silent dynamic-import failure 차단 — chunk
+      // load fail 시 console.warn으로 진단 가능화 (post-deploy stale SW 등).
+      switchTab(t.id).catch((err) => {
+        console.warn('[sidebar] switchTab failed', t.id, err);
+      });
       close();
     });
     nav.append(btn);
