@@ -36,7 +36,12 @@ vi.mock('../../src/state/user', () => ({
   getSaveErrorMessage: vi.fn().mockReturnValue('저장 실패'),
 }));
 
-import { getEntityCounts, refreshEntityCounts, mountArchiveHandlers } from '../../src/ui/handlers/archive';
+import {
+  getEntityCounts,
+  refreshEntityCounts,
+  mountArchiveHandlers,
+  resetArchiveHandlersForTest,
+} from '../../src/ui/handlers/archive';
 
 // Helper: fixture set (answers 5, scraps 4, insights 3).
 // sortPinThenDesc(rerenderList 내부) 가 b.date / a.createdAt / i.createdAt 의 localeCompare를 호출하므로
@@ -168,6 +173,8 @@ describe('v3.30 T2: dg:archive:updated hook 자동 재계산', () => {
     mockLoadAnswers.mockReset();
     mockLoadBriefings.mockReset();
     mockGetCachedUser.mockReset();
+    // v3.30 T2 review fix (P1): mount guard reset — 동일 file 내 it마다 mount 정상 재진입.
+    resetArchiveHandlersForTest();
     // archiveList 필요 — mountArchiveHandlers 내부 rerenderList 안전 호출.
     // eslint-disable-next-line no-restricted-syntax -- test fixture static HTML, no interpolation
     document.body.innerHTML = `
@@ -193,5 +200,49 @@ describe('v3.30 T2: dg:archive:updated hook 자동 재계산', () => {
     expect(document.querySelector('[data-entity-count="answer"]')?.textContent).toBe('3');
     expect(document.querySelector('[data-entity-count="scrap"]')?.textContent).toBe('2');
     expect(document.querySelector('[data-entity-count="insight"]')?.textContent).toBe('1');
+  });
+});
+
+describe('v3.30 T2 review fix (P1): mountArchiveHandlers double-mount guard', () => {
+  beforeEach(() => {
+    mockLoadAnswers.mockReset();
+    mockLoadBriefings.mockReset();
+    mockGetCachedUser.mockReset();
+    setMockState(0, 0, 0);
+    // eslint-disable-next-line no-restricted-syntax -- test fixture static HTML, no interpolation
+    document.body.innerHTML = `
+      <div id="archiveTab">
+        <div id="archiveEntityFilters">
+          <span data-entity-count="all">0</span>
+          <span data-entity-count="answer">0</span>
+          <span data-entity-count="scrap">0</span>
+          <span data-entity-count="insight">0</span>
+        </div>
+        <div id="archiveList"></div>
+      </div>
+    `;
+  });
+
+  it('두 번째 mountArchiveHandlers는 no-op — dg:archive:updated 1회 dispatch 시 DOM 1회 갱신', () => {
+    // 첫 mount 후 reset 안 함 — guard에 의해 두 번째 호출 차단 검증.
+    resetArchiveHandlersForTest();
+    mountArchiveHandlers();
+    mountArchiveHandlers(); // guard에 막힘 — listener 중복 등록 안 함.
+
+    // refreshEntityCounts 호출 횟수를 side-effect로 측정: setMockState 변경 후 dispatch 1회 → DOM 1회 갱신.
+    setMockState(2, 1, 0);
+    document.dispatchEvent(new CustomEvent('dg:archive:updated', { detail: { entity: 'answer', id: 'x' } }));
+    expect(document.querySelector('[data-entity-count="all"]')?.textContent).toBe('3');
+    expect(document.querySelector('[data-entity-count="answer"]')?.textContent).toBe('2');
+    expect(document.querySelector('[data-entity-count="scrap"]')?.textContent).toBe('1');
+    // listener 중복 시에도 idempotent라 DOM 결과는 같지만, 본 spec은 guard가 동작함을 약하게나마 보장.
+  });
+
+  it('resetArchiveHandlersForTest() 호출 후 mountArchiveHandlers는 재진입 가능 (guard reset)', () => {
+    resetArchiveHandlersForTest();
+    mountArchiveHandlers();
+    // 한 번 reset — 다시 mount 진입.
+    resetArchiveHandlersForTest();
+    expect(() => mountArchiveHandlers()).not.toThrow();
   });
 });

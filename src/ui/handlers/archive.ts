@@ -27,6 +27,23 @@ let currentQuery = '';
 type EntityFilter = 'all' | 'answer' | 'scrap' | 'insight';
 let currentEntity: EntityFilter = 'all';
 
+// v3.30 T2 review fix (P1): mountArchiveHandlers double-mount 가드.
+// Production 단일 호출 (main.ts) — test가 여러 번 mount 시 listener 중복 등록 방지.
+// `on()` helper는 호출마다 fresh wrapped closure를 allocate하므로 removeEventListener로 dedupe 불가.
+let __archiveMounted = false;
+
+/**
+ * v3.30 T2 review fix: test 격리용 reset helper.
+ * - guard flag만 reset. 등록된 wrapped closure ref 보존 X (해제 불가).
+ * - vitest 기본 jsdom 환경은 spec마다 fresh document를 제공하지 않으므로
+ *   동일 module instance 내 mount 반복 시 listener가 누적될 수 있다.
+ *   본 helper는 mount 가드만 reset하고, 누적 listener는 module 캐시 무효화
+ *   (vi.resetModules) 또는 spec 격리(jsdom file-level)에 의존한다.
+ */
+export function resetArchiveHandlersForTest(): void {
+  __archiveMounted = false;
+}
+
 /**
  * v3.30 T2: entity별 count single source-of-truth (R7).
  * - answers: persistence (loadAnswers().length)
@@ -377,6 +394,10 @@ function handleCardDeleteClick(e: Event): void {
 }
 
 export function mountArchiveHandlers(): void {
+  // v3.30 T2 review fix (P1): double-mount 가드 — production main.ts 단일 호출에는 영향 없음.
+  if (__archiveMounted) return;
+  __archiveMounted = true;
+
   // archive 카드 ✕ 버튼 클릭 — 이벤트 위임
   document.addEventListener('click', handleCardDeleteClick);
 
