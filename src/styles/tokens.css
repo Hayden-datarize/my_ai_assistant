@@ -107,6 +107,11 @@
 
   /* Modal backdrop (Material 3 token — light) */
   --modal-backdrop: rgba(0, 0, 0, 0.4);
+
+  /* v3.30 T6 (v3.29 C5): <mark> highlight 토큰 (archive 검색 keyword 강조).
+     light는 amber soft, dark는 amber dim — accent와 동일 hue 유지. */
+  --mark-bg: #FEF3C7;          /* amber-100 — same as --accent-light (light) */
+  --mark-fg: var(--text-primary);
 }
 
 [data-theme="dark"] {
@@ -115,6 +120,11 @@
   --heatmap-l1: #4338CA;   /* was #3730A3 — indigo-700, lifts l1 */
   --heatmap-l2: #6366F1;
   --heatmap-l3: var(--primary);
+
+  /* v3.30 T6 (v3.29 C5): <mark> highlight (dark) — amber dim background +
+     bright fg for contrast. */
+  --mark-bg: #78350F;          /* amber-900 — readable dim, not too bright */
+  --mark-fg: #FDE68A;          /* amber-200 — high contrast on dark amber */
 }
 
 /* ============================================

@@ -255,13 +255,16 @@ export function mountHomeHandlers(): void {
     banner?.classList.add('hidden');
   });
 
-  on('dg:home:switch-tab', ({ tab }) => {
+  on('dg:home:switch-tab', async ({ tab }) => {
     // v3.27 T2a: 'insights' 제거 (tab 폐기, archive 통합).
     if (tab === 'home' || tab === 'archive' || tab === 'stats' || tab === 'settings') {
+      // v3.30 T6 (v3.29 C4): .catch() → async/await 가독성.
       // v3.29 T3 review fix (I2): chunk load fail 진단 가능화.
-      switchTab(tab).catch((err) => {
+      try {
+        await switchTab(tab);
+      } catch (err) {
         console.warn('[home] switchTab failed', tab, err);
-      });
+      }
     }
   });
 

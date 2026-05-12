@@ -38,3 +38,12 @@ h3 { font-size: 1.1rem; }
   scroll-margin-top: calc(var(--nav-height) + 16px);
   scroll-margin-bottom: var(--content-bottom-pad);
 }
+
+/* v3.30 T6 (v3.29 C5): <mark> highlight — archive 검색 keyword 강조.
+   token 기반 light/dark 통합 (브라우저 기본 yellow → amber 디자인 토큰). */
+mark {
+  background: var(--mark-bg);
+  color: var(--mark-fg);
+  padding: 0 2px;
+  border-radius: 3px;
+}

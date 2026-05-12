@@ -40,10 +40,14 @@ export function mountNav(): void {
     label.textContent = t.label;
     btn.append(label);
 
-    btn.addEventListener('click', () => {
-      switchTab(t.id).catch((err) => {
+    btn.addEventListener('click', async () => {
+      // v3.30 T6 (v3.29 C4): .catch() → async/await 가독성. event propagation은
+      // listener 동기 단계에서 결정되므로 await 안전. chunk load fail 진단 동등.
+      try {
+        await switchTab(t.id);
+      } catch (err) {
         console.warn('[nav] switchTab failed', t.id, err);
-      });
+      }
     });
     nav.append(btn);
   }
