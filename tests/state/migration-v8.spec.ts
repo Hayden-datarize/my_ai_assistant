@@ -99,6 +99,17 @@ describe('migrateUserToV8 (v3.27 T1)', () => {
     expect(v8Out.xpHistory).toEqual([]);
   });
 
+  it('v8 user with insights non-array → [] 백필 (per-task review fix)', () => {
+    const v8In = {
+      schemaVersion: 8,
+      insights: 'corrupt' as unknown, // 손상
+      xpHistory: [],
+    };
+    const v8Out = migrateUserToV8(v8In);
+    expect(v8Out).not.toBe(v8In as unknown); // copy
+    expect(v8Out.insights).toEqual([]); // 백필
+  });
+
   // P0-1 (Codex 사전 review): V2~V7 모든 함수에 schemaVersion >= 8 early-return guard
   // — v8 user가 lower migration 블록에 재진입하면 forward-compat 깨짐 (silent corruption risk)
   it('v8 user → V2~V7 모든 함수 same reference (chain superset, P0-1)', () => {

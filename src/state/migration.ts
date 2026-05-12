@@ -411,17 +411,18 @@ export function migrateUserToV8(u: unknown): User {
   };
 
   if (r.schemaVersion === 8) {
-    // 이미 v8이지만 already-v8 path에서도 pinned/xpHistory invariant 보장 (P1 흡수)
-    const rawInsights = Array.isArray(r.insights) ? r.insights : [];
+    // 이미 v8이지만 already-v8 path에서도 insights/pinned/xpHistory invariant 보장 (P1 흡수 + per-task review fix)
+    const insightsValid = Array.isArray(r.insights);
+    const rawInsights = insightsValid ? (r.insights as unknown[]) : [];
     const xpHistoryValid = Array.isArray(r.xpHistory);
 
-    // 모든 insight의 pinned가 boolean이고 xpHistory가 array면 same-reference 유지 (idempotency)
+    // 모든 insight의 pinned가 boolean이고 insights/xpHistory가 array면 same-reference 유지 (idempotency)
     const allPinnedValid = rawInsights.every((i) => {
       const ie = (i ?? {}) as Record<string, unknown>;
       return typeof ie.pinned === 'boolean';
     });
 
-    if (allPinnedValid && xpHistoryValid) {
+    if (insightsValid && allPinnedValid && xpHistoryValid) {
       return r as unknown as User; // 진짜 idempotent
     }
 
