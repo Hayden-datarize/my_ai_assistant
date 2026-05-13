@@ -153,3 +153,127 @@ describe('v3.27 T3: archive 검색 enhancement', () => {
   });
 
 });
+
+describe('v3.32 T3: archive 검색 다중 토큰 + 초성', () => {
+  beforeEach(() => {
+    localStorage.clear();
+    sessionStorage.clear();
+    // eslint-disable-next-line no-restricted-syntax -- jsdom fixture cleanup
+    document.body.innerHTML = '';
+  });
+
+  afterEach(() => {
+    vi.useRealTimers();
+    vi.restoreAllMocks();
+    resetCoreHandlerListenersForTest();
+  });
+
+  it('다중 토큰 AND — 두 단어 모두 포함 항목만 표시', async () => {
+    const answers = [
+      { id: 'a1', text: '리액트 훅 사용법', type: '분석', createdAt: '2026-05-10T10:00:00.000Z', date: '2026-05-10' },
+      { id: 'a2', text: '리액트 컴포넌트', type: '분석', createdAt: '2026-05-10T11:00:00.000Z', date: '2026-05-10' },
+      { id: 'a3', text: '훅 정리', type: '분석', createdAt: '2026-05-10T12:00:00.000Z', date: '2026-05-10' },
+    ];
+    localStorage.setItem('dg.answers', JSON.stringify(answers));
+    await setupArchive();
+
+    document.querySelector<HTMLButtonElement>('.archive-entity-chip[data-entity="answer"]')!.click();
+    const input = document.getElementById('archiveSearch') as HTMLInputElement;
+    input.value = '리액트 훅';
+    document.dispatchEvent(new CustomEvent('dg:archive:search'));
+
+    const list = document.getElementById('archiveList')!;
+    await vi.waitFor(() => {
+      expect(list.querySelectorAll('.archive-card').length).toBe(1);
+      expect(list.textContent).toContain('리액트 훅 사용법');
+      expect(list.textContent).not.toContain('리액트 컴포넌트');
+      expect(list.textContent).not.toContain('훅 정리');
+    });
+  });
+
+  it('초성 only — 한글 텍스트 매칭 (mark 없음)', async () => {
+    const answers = [
+      { id: 'a1', text: '프로젝트 정리', type: '분석', createdAt: '2026-05-10T10:00:00.000Z', date: '2026-05-10' },
+      { id: 'a2', text: '회고 문서', type: '분석', createdAt: '2026-05-10T11:00:00.000Z', date: '2026-05-10' },
+    ];
+    localStorage.setItem('dg.answers', JSON.stringify(answers));
+    await setupArchive();
+
+    document.querySelector<HTMLButtonElement>('.archive-entity-chip[data-entity="answer"]')!.click();
+    const input = document.getElementById('archiveSearch') as HTMLInputElement;
+    input.value = 'ㅍㄹ';
+    document.dispatchEvent(new CustomEvent('dg:archive:search'));
+
+    const list = document.getElementById('archiveList')!;
+    await vi.waitFor(() => {
+      expect(list.querySelectorAll('.archive-card').length).toBe(1);
+      expect(list.textContent).toContain('프로젝트 정리');
+      // 초성-only 토큰은 <mark> 없음 (filter pass-only)
+      expect(list.querySelector('mark')).toBeNull();
+    });
+  });
+
+  it('초성 + substring 혼합 — substring 토큰만 mark', async () => {
+    const answers = [
+      { id: 'a1', text: 'react 프로젝트', type: '분석', createdAt: '2026-05-10T10:00:00.000Z', date: '2026-05-10' },
+      { id: 'a2', text: 'react 회고', type: '분석', createdAt: '2026-05-10T11:00:00.000Z', date: '2026-05-10' },
+    ];
+    localStorage.setItem('dg.answers', JSON.stringify(answers));
+    await setupArchive();
+
+    document.querySelector<HTMLButtonElement>('.archive-entity-chip[data-entity="answer"]')!.click();
+    const input = document.getElementById('archiveSearch') as HTMLInputElement;
+    input.value = 'ㅍㄹ react';
+    document.dispatchEvent(new CustomEvent('dg:archive:search'));
+
+    const list = document.getElementById('archiveList')!;
+    await vi.waitFor(() => {
+      expect(list.querySelectorAll('.archive-card').length).toBe(1);
+      expect(list.textContent).toContain('react 프로젝트');
+      // react만 mark, 초성은 mark X
+      const marks = Array.from(list.querySelectorAll('mark')).map((m) => m.textContent);
+      expect(marks).toEqual(['react']);
+    });
+  });
+
+  it('빈 토큰만 (공백 다수) — 전체 표시 (UX 회귀 차단)', async () => {
+    const answers = [
+      { id: 'a1', text: 'A', type: '분석', createdAt: '2026-05-10T10:00:00.000Z', date: '2026-05-10' },
+      { id: 'a2', text: 'B', type: '분석', createdAt: '2026-05-10T11:00:00.000Z', date: '2026-05-10' },
+    ];
+    localStorage.setItem('dg.answers', JSON.stringify(answers));
+    await setupArchive();
+
+    document.querySelector<HTMLButtonElement>('.archive-entity-chip[data-entity="answer"]')!.click();
+    const input = document.getElementById('archiveSearch') as HTMLInputElement;
+    input.value = '   ';
+    document.dispatchEvent(new CustomEvent('dg:archive:search'));
+
+    const list = document.getElementById('archiveList')!;
+    await vi.waitFor(() => {
+      // tokenizeQuery('   ') → [] → vacuous true → 전체 표시
+      expect(list.querySelectorAll('.archive-card').length).toBe(2);
+    });
+  });
+
+  it('영문 substring — 기존 회귀 없음 + case-insensitive mark', async () => {
+    const answers = [
+      { id: 'a1', text: 'React 훅 사용법', type: '분석', createdAt: '2026-05-10T10:00:00.000Z', date: '2026-05-10' },
+      { id: 'a2', text: 'Vue 컴포넌트', type: '분석', createdAt: '2026-05-10T11:00:00.000Z', date: '2026-05-10' },
+    ];
+    localStorage.setItem('dg.answers', JSON.stringify(answers));
+    await setupArchive();
+
+    document.querySelector<HTMLButtonElement>('.archive-entity-chip[data-entity="answer"]')!.click();
+    const input = document.getElementById('archiveSearch') as HTMLInputElement;
+    input.value = 'react';
+    document.dispatchEvent(new CustomEvent('dg:archive:search'));
+
+    const list = document.getElementById('archiveList')!;
+    await vi.waitFor(() => {
+      expect(list.querySelectorAll('.archive-card').length).toBe(1);
+      expect(list.textContent).toContain('React 훅 사용법');
+      expect(list.querySelector('mark')?.textContent).toBe('React');
+    });
+  });
+});

@@ -10,6 +10,7 @@ import { loadBriefings, saveBriefings, toggleScrap } from '../../state/briefings
 import { openModal } from '../modals/shared';
 import { escapeHtml } from '../../utils/escapeHtml';
 import { highlightHtml } from '../../utils/highlight';
+import { matchesAllTokens, tokenizeQuery } from '../../utils/fuzzy';
 import { showToast, showUndoToast } from '../../utils/toast';
 import { toKoType } from '../../utils/typeLabel';
 import { getSaveErrorMessage, getCachedUser, saveUser, type Insight } from '../../state/user';
@@ -21,7 +22,9 @@ import { fireArchiveRevisitTrigger } from './missions-triggers';
 import { getKSTDateIso } from '../../state/missionEngine';
 
 let currentFilter = 'all';
-let currentQuery = '';
+// v3.32 T3 (Codex 사전 P0-2): currentQuery 제거 — SoT 일원화.
+// ESLint no-unused-vars: error로 write-only state는 lint fail.
+let currentTokens: string[] = [];
 // v3.27 T2b (Codex 사전 P0-4): 1차 entity chip state — 'all' | 'answer' | 'scrap' | 'insight'.
 // scrap 분기는 currentFilter === 'scrap' (data-filter)에서 currentEntity === 'scrap'으로 전면 이전.
 type EntityFilter = 'all' | 'answer' | 'scrap' | 'insight';
@@ -81,7 +84,7 @@ export function handleArchiveFilter(filter: string): void {
 
 export function handleArchiveSearch(): void {
   const input = document.getElementById('archiveSearch') as HTMLInputElement | null;
-  currentQuery = (input?.value ?? '').trim().toLowerCase().normalize('NFC');
+  currentTokens = tokenizeQuery(input?.value ?? '');
   rerenderList();
 }
 
@@ -577,9 +580,10 @@ function renderAnswerCard(a: Answer): HTMLElement {
   const body = document.createElement('p');
   body.className = 'archive-card-body';
   // v3.29 T2: 검색 활성 시 keyword <mark> highlight (XSS-safe helper)
-  if (currentQuery) {
+  // v3.32 T3: currentTokens 직접 전달 (T2 임시 어댑테이션 정리)
+  if (currentTokens.length > 0) {
     // eslint-disable-next-line no-restricted-syntax -- highlightHtml escapeHtml + escapeRegex 적용, <mark> only inject
-    body.innerHTML = highlightHtml(a.text, currentQuery ? [currentQuery] : []);
+    body.innerHTML = highlightHtml(a.text, currentTokens);
   } else {
     body.textContent = a.text;
   }
@@ -609,9 +613,10 @@ function renderInsightCard(i: Insight): HTMLElement {
   const body = document.createElement('p');
   body.className = 'archive-card-body';
   // v3.29 T2: 검색 활성 시 keyword <mark> highlight (XSS-safe helper)
-  if (currentQuery) {
+  // v3.32 T3: currentTokens 직접 전달
+  if (currentTokens.length > 0) {
     // eslint-disable-next-line no-restricted-syntax -- highlightHtml escapeHtml + escapeRegex 적용, <mark> only inject
-    body.innerHTML = highlightHtml(i.text, currentQuery ? [currentQuery] : []);
+    body.innerHTML = highlightHtml(i.text, currentTokens);
   } else {
     body.textContent = i.text;
   }
@@ -697,10 +702,10 @@ export function rerenderList(): void {
   // v3.27 T2b (P0-4): scrap entity branch.
   if (currentEntity === 'scrap') {
     let pool = scraps;
-    if (currentQuery) {
+    if (currentTokens.length > 0) {
+      // v3.32 T3 (Codex 사전 P1-3): title+summary 결합 검색 — 토큰이 두 필드에 나뉜 항목 false negative 차단.
       pool = pool.filter((b) =>
-        (b.title?.normalize('NFC').toLowerCase().includes(currentQuery) ?? false) ||
-        (b.summary?.normalize('NFC').toLowerCase().includes(currentQuery) ?? false));
+        matchesAllTokens(`${b.title ?? ''} ${b.summary ?? ''}`, currentTokens));
     }
     if (pool.length === 0) {
       list.textContent = '아직 스크랩한 기사가 없어요.';
@@ -713,8 +718,8 @@ export function rerenderList(): void {
   // v3.27 T4: insight entity branch.
   if (currentEntity === 'insight') {
     let pool = insights;
-    if (currentQuery) {
-      pool = pool.filter((i) => i.text.normalize('NFC').toLowerCase().includes(currentQuery));
+    if (currentTokens.length > 0) {
+      pool = pool.filter((i) => matchesAllTokens(i.text, currentTokens));
     }
     if (pool.length === 0) {
       list.textContent = '아직 저장된 인사이트가 없어요.';
@@ -737,14 +742,14 @@ export function rerenderList(): void {
       ...insights.map((i) => ({ kind: 'insight' as const, insight: i, sortKey: i.createdAt, pinned: i.pinned })),
     ];
 
-    if (currentQuery) {
+    if (currentTokens.length > 0) {
+      // v3.32 T3 (Codex 사전 P1-3): briefing은 title+summary 결합 검색.
       entries = entries.filter((e) =>
         e.kind === 'answer'
-          ? e.answer.text.normalize('NFC').toLowerCase().includes(currentQuery)
+          ? matchesAllTokens(e.answer.text, currentTokens)
           : e.kind === 'insight'
-            ? e.insight.text.normalize('NFC').toLowerCase().includes(currentQuery)
-            : (e.briefing.title?.normalize('NFC').toLowerCase().includes(currentQuery) ?? false) ||
-              (e.briefing.summary?.normalize('NFC').toLowerCase().includes(currentQuery) ?? false),
+            ? matchesAllTokens(e.insight.text, currentTokens)
+            : matchesAllTokens(`${e.briefing.title ?? ''} ${e.briefing.summary ?? ''}`, currentTokens),
       );
     }
 
@@ -765,8 +770,8 @@ export function rerenderList(): void {
   // answer entity (entity='answer' or 'all' with question chip != 'all') — type 분기.
   let filtered = answers;
   if (currentFilter !== 'all') filtered = filtered.filter((a) => (a.type ?? '').includes(currentFilter));
-  if (currentQuery) {
-    filtered = filtered.filter((a) => a.text.normalize('NFC').toLowerCase().includes(currentQuery));
+  if (currentTokens.length > 0) {
+    filtered = filtered.filter((a) => matchesAllTokens(a.text, currentTokens));
   }
 
   if (filtered.length === 0) {
