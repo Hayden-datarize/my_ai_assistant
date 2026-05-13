@@ -3,6 +3,7 @@ import { openPlantDetailModal } from '../../../src/ui/modals/plant-detail';
 import { saveUser } from '../../../src/state/user';
 import { closeModal } from '../../../src/ui/modals/shared';
 import { mkUser } from '../../unit/state/userFixture';
+import type { PlantState } from '../../../src/state/plantTypes';
 
 describe('plant-detail modal shell', () => {
   beforeEach(() => {
@@ -13,7 +14,7 @@ describe('plant-detail modal shell', () => {
   it('openPlantDetailModal — modal DOM 존재', () => {
     saveUser(mkUser({
       interests: ['leadership'],
-      plantStateByInterest: { leadership: { stage: 2, cumulativeActivity: 10 } as any },
+      plantStateByInterest: { leadership: { stage: 2, cumulativeActivity: 10 } } satisfies Record<string, PlantState>,
     }));
     openPlantDetailModal('leadership');
     expect(document.querySelector('.dg-modal')).toBeTruthy();
@@ -23,7 +24,7 @@ describe('plant-detail modal shell', () => {
   it('closeModal() 호출 시 DOM 제거', () => {
     saveUser(mkUser({
       interests: ['leadership'],
-      plantStateByInterest: { leadership: { stage: 2, cumulativeActivity: 10 } as any },
+      plantStateByInterest: { leadership: { stage: 2, cumulativeActivity: 10 } } satisfies Record<string, PlantState>,
     }));
     openPlantDetailModal('leadership');
     closeModal();
@@ -41,7 +42,7 @@ describe('plant-detail content', () => {
     saveUser(mkUser({
       interests: ['leadership'],
       gardenBackfilled: true,
-      plantStateByInterest: { leadership: { stage: 1, cumulativeActivity: 3 } as any },
+      plantStateByInterest: { leadership: { stage: 1, cumulativeActivity: 3 } } satisfies Record<string, PlantState>,
     }));
     openPlantDetailModal('leadership');
     const body = document.querySelector('.plant-detail-modal')!.textContent!;
@@ -54,8 +55,8 @@ describe('plant-detail content', () => {
       interests: ['leadership'],
       gardenBackfilled: true,
       plantStateByInterest: {
-        leadership: { stage: 5, cumulativeActivity: 200, unlockedAt: '2026-04-15T00:00:00.000Z' } as any,
-      },
+        leadership: { stage: 5, cumulativeActivity: 200, unlockedAt: '2026-04-15T00:00:00.000Z' },
+      } satisfies Record<string, PlantState>,
     }));
     openPlantDetailModal('leadership');
     const body = document.querySelector('.plant-detail-modal')!.textContent!;
@@ -69,7 +70,7 @@ describe('plant-detail content', () => {
     saveUser(mkUser({
       interests: ['leadership'],
       gardenBackfilled: true,
-      plantStateByInterest: { leadership: { stage: 2, cumulativeActivity: 15 } as any },
+      plantStateByInterest: { leadership: { stage: 2, cumulativeActivity: 15 } } satisfies Record<string, PlantState>,
     }));
     openPlantDetailModal('leadership');
     const body = document.querySelector('.plant-detail-modal')!.textContent!;
@@ -80,7 +81,7 @@ describe('plant-detail content', () => {
     saveUser(mkUser({
       interests: ['leadership'],
       gardenBackfilled: true,
-      plantStateByInterest: { leadership: { stage: 3, cumulativeActivity: 50 } as any },
+      plantStateByInterest: { leadership: { stage: 3, cumulativeActivity: 50 } } satisfies Record<string, PlantState>,
     }));
     openPlantDetailModal('leadership');
     const body = document.querySelector('.plant-detail-modal')!.textContent!;
@@ -93,8 +94,8 @@ describe('plant-detail content', () => {
       interests: ['leadership'],
       gardenBackfilled: true,
       plantStateByInterest: {
-        leadership: { stage: 3, cumulativeActivity: 50, lastEngagedAt: eightDaysAgo } as any,
-      },
+        leadership: { stage: 3, cumulativeActivity: 50, lastEngagedAt: eightDaysAgo },
+      } satisfies Record<string, PlantState>,
     }));
     openPlantDetailModal('leadership');
     const body = document.querySelector('.plant-detail-modal')!.textContent!;
@@ -106,8 +107,8 @@ describe('plant-detail content', () => {
       interests: ['my_custom_interest'],
       gardenBackfilled: true,
       plantStateByInterest: {
-        my_custom_interest: { stage: 5, cumulativeActivity: 200 } as any,
-      },
+        my_custom_interest: { stage: 5, cumulativeActivity: 200 },
+      } satisfies Record<string, PlantState>,
     }));
     openPlantDetailModal('my_custom_interest');
     const body = document.querySelector('.plant-detail-modal')!.textContent!;

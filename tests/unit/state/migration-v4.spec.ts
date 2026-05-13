@@ -47,7 +47,7 @@ describe('migrateUserToV3 v4 early return (Codex S5 / P0-1 fix)', () => {
     const out = migrateUserToV3(v4);
     expect(out.schemaVersion).toBe(4);
     expect(out.missions.cumulative.dailyCount).toBe(7);  // reset 안 됨
-    expect((out as any).plantStateByInterest.recruiting.stage).toBe(3);
+    expect(out.plantStateByInterest['recruiting']?.stage).toBe(3);
   });
 
   it('v3 user는 기존 logic대로 처리 (regression 방지)', () => {
@@ -83,7 +83,7 @@ describe('migrateUserToV3 v4 early return (Codex S5 / P0-1 fix)', () => {
     expect(out.missions.active).toHaveLength(1);
     expect(out.missions.active[0]?.defId).toBe('daily-1');
     // plant 필드는 보존
-    expect((out as any).plantStateByInterest.recruiting.stage).toBe(2);
+    expect(out.plantStateByInterest['recruiting']?.stage).toBe(2);
   });
 
   it('v4 user with non-finite cumulative.dailyCount → 0 fallback', () => {
