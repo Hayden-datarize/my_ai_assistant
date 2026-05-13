@@ -74,7 +74,7 @@ describe('detectEvents — plant-stage-up (S6 fix: kind discriminant)', () => {
     const curr = makeSnap({ recruiting: 2 });
     const events = detectEvents(prev, curr);
     const e = events.find(ev => ev.kind === 'plant-stage-up');
-    expect(typeof (e as any)?.at).toBe('number');
+    expect(typeof e?.at).toBe('number');
   });
 });
 

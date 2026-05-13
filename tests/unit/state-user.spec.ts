@@ -23,7 +23,7 @@ describe('state/user', () => {
     recordDailyAnswer(20);
     const u = loadUserData()!;
     expect(u.xp).toBe(110);
-    expect((u as any).level).toBeUndefined();
+    expect((u as unknown as Record<string, unknown>).level).toBeUndefined();
   });
 
   it('recordDailyAnswer bumps streak when last active was yesterday', () => {

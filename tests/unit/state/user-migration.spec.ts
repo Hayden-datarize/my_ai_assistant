@@ -10,7 +10,7 @@ describe('user schema v2 migration', () => {
     const v1 = { name: '하든', interests: ['AI'], onboardedAt: '2026-01-01', streak: 5, lastActiveDate: '2026-04-29', xp: 250, level: 3 };
     const v2 = migrateUserToV2(v1);
     expect(v2.schemaVersion).toBe(2);
-    expect((v2 as any).level).toBeUndefined();
+    expect((v2 as unknown as Record<string, unknown>).level).toBeUndefined();
     expect(v2.earnedBadges).toEqual({});
     expect(v2.gamificationMigrated).toBe(false);
     expect(v2.streak).toBe(5);
@@ -22,7 +22,7 @@ describe('user schema v2 migration', () => {
     localStorage.setItem('user', JSON.stringify({ name: '하든', interests: [], onboardedAt: '2026-01-01', streak: 0, lastActiveDate: '', xp: 0, level: 1 }));
     const u = loadUserData()!;
     expect(u.schemaVersion).toBe(8);  // v3.27 T1: v8으로 업그레이드
-    expect((u as any).level).toBeUndefined();
+    expect((u as unknown as Record<string, unknown>).level).toBeUndefined();
     expect(u.earnedBadges).toEqual({});
     expect(u.streakFreeze.count).toBe(2);
     expect(u.streakFreeze.lastEarnedAt).toMatch(/^\d{4}-\d{2}-\d{2}$/);
@@ -157,7 +157,7 @@ describe('user schema v2 migration', () => {
   });
 
   it('migrateUserToV3: idempotent path returns new missions reference (immutable, atomic)', () => {
-    const raw: any = {
+    const raw = {
       name: 'A', interests: [], streak: 0, lastActiveDate: '', xp: 0,
       earnedBadges: {}, gamificationMigrated: true, schemaVersion: 3,
       missions: {

@@ -40,7 +40,7 @@ describe('validateInterestId (v3.25 T1)', () => {
 describe('isValidUserShape — Insight entry shape (v3.25 T2)', () => {
   beforeEach(() => { localStorage.clear(); });
 
-  function makeBaseUser(): any {
+  function makeBaseUser(): Record<string, unknown> {
     return {
       schemaVersion: 8,
       name: 'X', interests: [], onboardedAt: '2026-01-01',

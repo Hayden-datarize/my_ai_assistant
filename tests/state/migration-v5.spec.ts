@@ -48,7 +48,7 @@ describe('migrateUserToV5', () => {
     };
     const out = migrateUserToV5(v6);
     expect(out).toBe(v6);  // same reference — early return
-    expect((out as any).insights).toEqual(v6.insights);
+    expect((out as unknown as Record<string, unknown>).insights).toEqual(v6.insights);
   });
 
   describe('v3.22 T2 — KST anchor (P0-2 boundary fixture)', () => {

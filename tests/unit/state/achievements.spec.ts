@@ -22,9 +22,8 @@ function emptySnap(over: Partial<Snapshot> = {}): Snapshot {
 describe('achievements — detectEvents', () => {
   it('xp-gained: prev.xp < curr.xp → event with delta amount', () => {
     const events = detectEvents(emptySnap({ xp: 90 }), emptySnap({ xp: 100 }));
-    const xp = events.find(e => e.kind === 'xp-gained');
-    expect(xp).toBeDefined();
-    expect((xp as any).amount).toBe(10);
+    const xp = events.find((e): e is Extract<GameEvent, { kind: 'xp-gained' }> => e.kind === 'xp-gained');
+    expect(xp?.amount).toBe(10);
   });
 
   it('xp-gained: same xp → no event', () => {
@@ -34,9 +33,8 @@ describe('achievements — detectEvents', () => {
 
   it('level-up: 99 → 100 (boundary 정확) → 새잎 tier event', () => {
     const events = detectEvents(emptySnap({ xp: 99 }), emptySnap({ xp: 100 }));
-    const lv = events.find(e => e.kind === 'level-up');
-    expect(lv).toBeDefined();
-    expect((lv as any).tierId).toBe(2);
+    const lv = events.find((e): e is Extract<GameEvent, { kind: 'level-up' }> => e.kind === 'level-up');
+    expect(lv?.tierId).toBe(2);
   });
 
   it('level-up: 100 → 200 (same tier) → no event', () => {
@@ -46,9 +44,8 @@ describe('achievements — detectEvents', () => {
 
   it('streak-milestone: prev<3 && curr>=3 → 3 days event', () => {
     const events = detectEvents(emptySnap({ streak: 2 }), emptySnap({ streak: 3 }));
-    const sm = events.find(e => e.kind === 'streak-milestone');
-    expect(sm).toBeDefined();
-    expect((sm as any).days).toBe(3);
+    const sm = events.find((e): e is Extract<GameEvent, { kind: 'streak-milestone' }> => e.kind === 'streak-milestone');
+    expect(sm?.days).toBe(3);
   });
 
   it('streak-milestone: 7→8 → no event (already past 7)', () => {
@@ -59,7 +56,7 @@ describe('achievements — detectEvents', () => {
   it('streak-milestone: 0→100 → 통과한 모든 milestone emit (3/7/30/100)', () => {
     const events = detectEvents(emptySnap({ streak: 0 }), emptySnap({ streak: 100 }));
     // UI 큐 max 3 cap이므로 4번째부터 silent persist (rewards.ts에서 처리).
-    const days = events.filter(e => e.kind === 'streak-milestone').map(e => (e as any).days);
+    const days = events.filter((e): e is Extract<GameEvent, { kind: 'streak-milestone' }> => e.kind === 'streak-milestone').map(e => e.days);
     expect(days).toContain(100);
     expect(days).toContain(3);
   });
