@@ -94,6 +94,20 @@ firebase deploy --only hosting   # 사용자 명시 승인 후
    - 가치: NaN 직렬화 한계, deep semantics, cross-file invariant 등 **plan controller grep으로 못 잡는 깊이**. v3.14.3 lesson #1.
 2. **최종 review (deploy gate)** — 모든 main work commit 후, 배포 직전. `DEPLOY_APPROVED / APPROVED_WITH_NOTES / REJECT` 분류.
    - 사용자 "배포해줘" 명시 시점에 게이트로 작동.
+   - **default dispatch** (v3.33 soft 명문화):
+
+     ```bash
+     codex exec --skip-git-repo-check -o /tmp/<cycle>-codex-final.txt "<prompt>"
+     ```
+
+   - **fallback 단계 정책** (CLI 한도/권한 issue 시):
+     1. direct CLI 1차 시도 **의무** — 실패 명시 캡처.
+     2. controller `pr-review-toolkit:code-reviewer`로 대체.
+     3. **사용자에게 즉시 알림** — fallback 진입 시점 (classification 전, 검증 결과 보고와 함께).
+     4. fallback review는 **deploy gate 충족**으로 인정 (배포 차단 X).
+     5. retro §verification에 시도 결과 명시 (성공/fallback/실패 사유).
+     6. retroactive direct CLI 재시도는 **권고/carry** (필수 X — 외부 권한 회복 시 차기 사이클로).
+   - **ROI 근거** (v3.32 L2): direct CLI 성공 시 P0/P1/P2 종합 catch. controller fallback만으로는 P2 catch 부족 입증.
 
 권한 issue 시: spec self-review로 사전 대체 가능, 단 최종은 cycle wrap-up에서 별도 시점 재시도
 (v3.14.2 retro 패턴 — Codex 권한 미작동으로 review 누락된 사이클은 차기 사이클 carry-forward).
