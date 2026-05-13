@@ -1,10 +1,10 @@
 /**
  * Archive tab handlers.
- * - dg:archive:filter { filter } + dg:archive:search + dg:archive:period-change (v3.2 stub)
+ * - v3.31 C7: dg:* listeners live in archive-listeners.ts and lazy-call exported
+ *   callbacks here. mountArchiveHandlers() owns archive DOM delegation only.
  * - Direct click on each archive-card for detail modal (no event)
  */
 
-import { on } from '../events';
 import { loadAnswers, saveAnswers, deleteAnswerById, deleteAnswersByIds } from '../../state/persistence';
 import { loadBriefings, saveBriefings, toggleScrap } from '../../state/briefings';
 import { openModal } from '../modals/shared';
@@ -69,6 +69,33 @@ export function refreshEntityCounts(counts?: Record<EntityFilter, number>): void
     const id = el.getAttribute('data-entity-count') as EntityFilter | null;
     if (id && c[id] !== undefined) el.textContent = String(c[id]);
   });
+}
+
+export function handleArchiveFilter(filter: string): void {
+  currentFilter = filter;
+  rerenderList();
+  document.querySelectorAll<HTMLButtonElement>('.filter-chip').forEach((btn) => {
+    btn.classList.toggle('active', btn.dataset['filter'] === filter);
+  });
+}
+
+export function handleArchiveSearch(): void {
+  const input = document.getElementById('archiveSearch') as HTMLInputElement | null;
+  currentQuery = (input?.value ?? '').trim().toLowerCase().normalize('NFC');
+  rerenderList();
+}
+
+export function handleArchivePeriodChange(): void {
+  showToast('기간 필터는 v3.2에서 준비 중입니다');
+}
+
+export function handleArchiveUpdated(): void {
+  refreshEntityCounts();
+  rerenderList();
+}
+
+export function handleInsightsChanged(): void {
+  rerenderList();
 }
 
 // 선택 모드 상태
@@ -412,42 +439,6 @@ export function mountArchiveHandlers(): void {
   // 벌크 삭제 버튼 — 이벤트 위임
   document.addEventListener('click', (e) => {
     if ((e.target as HTMLElement).closest('#archiveBulkDelete')) handleBulkDeleteClick();
-  });
-
-  on('dg:archive:filter', ({ filter }) => {
-    currentFilter = filter;
-    rerenderList();
-    // mark active chip
-    document.querySelectorAll<HTMLButtonElement>('.filter-chip').forEach((btn) => {
-      btn.classList.toggle('active', btn.dataset['filter'] === filter);
-    });
-  });
-
-  on('dg:archive:search', () => {
-    const input = document.getElementById('archiveSearch') as HTMLInputElement | null;
-    // v3.27 T3: NFC normalize (한국어 조합형 분해/NFC 차이 흡수) + trim + lowercase.
-    currentQuery = (input?.value ?? '').trim().toLowerCase().normalize('NFC');
-    rerenderList();
-  });
-
-  on('dg:archive:period-change', () => {
-    showToast('기간 필터는 v3.2에서 준비 중입니다');
-  });
-
-  on('dg:nav:tab-changed', ({ tab }) => {
-    if (tab === 'archive') hydrateArchive();
-  });
-
-  // v3.27 T2a: insights tab 폐기 — dg:insights:* listener 흡수, archive re-render.
-  on('dg:insights:added', () => rerenderList());
-  on('dg:insights:removed', () => rerenderList());
-  on('dg:insights:updated', () => rerenderList());
-
-  // v3.27 T4: pin 토글 후 re-render (3 entity unified).
-  // v3.30 T2: count 자동 갱신도 함께 (R1 race 방어 — chip row 재생성 X, textContent만).
-  on('dg:archive:updated', () => {
-    refreshEntityCounts();
-    rerenderList();
   });
 
   // v3.27 T4: pin 버튼 click — 이벤트 위임 (rerender 후 새 button에도 wiring 유지).

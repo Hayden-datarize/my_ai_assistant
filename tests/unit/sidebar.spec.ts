@@ -1,5 +1,6 @@
 import { describe, it, expect, beforeEach, afterEach, vi } from 'vitest';
 import { mountSidebar } from '../../src/ui/sidebar';
+import { TABS } from '../../src/ui/nav';
 
 const LS_KEY = 'dg-sidebar-last-state';
 
@@ -90,6 +91,38 @@ describe('mountSidebar', () => {
     // v3.29 T3: switchTab is now async (dynamic import) — wait for chunk load + dispatch.
     await vi.waitFor(() => expect(spy).toHaveBeenCalled(), { timeout: 2000, interval: 20 });
     document.removeEventListener('dg:nav:tab-changed', spy);
+  });
+
+  it('closes drawer synchronously before delayed switchTab resolves', async () => {
+    localStorage.setItem(LS_KEY, 'open');
+    mountSidebar();
+
+    const archiveTab = TABS.find((t) => t.id === 'archive')!;
+    const originalLoad = archiveTab.load;
+    let resolveLoad!: () => void;
+    archiveTab.load = () => new Promise((resolve) => {
+      resolveLoad = () => resolve((container) => {
+        const el = document.createElement('div');
+        el.id = 'archiveTab';
+        container.append(el);
+      });
+    });
+
+    try {
+      const archiveBtn = document.querySelector<HTMLButtonElement>(
+        '#sidebarDrawer .nav-item[data-tab-id="archive"]',
+      )!;
+      archiveBtn.click();
+      const drawer = document.querySelector<HTMLElement>('#sidebarDrawer')!;
+      expect(drawer.dataset['open']).toBe('false');
+
+      resolveLoad();
+      await vi.waitFor(() => {
+        expect(document.querySelector('#archiveTab')).not.toBeNull();
+      });
+    } finally {
+      archiveTab.load = originalLoad;
+    }
   });
 
   it('restored-open drawer close refocuses toggle when no prior lastFocused', () => {

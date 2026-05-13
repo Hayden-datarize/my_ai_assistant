@@ -1,4 +1,5 @@
 import { describe, it, expect, beforeEach, afterEach, vi } from 'vitest';
+import { registerCoreHandlerListeners, resetCoreHandlerListenersForTest } from '../../src/ui/handlers/register';
 
 /**
  * v3.27 T3: archive 검색 enhancement — debounce 200ms + IME composition 가드 + NFC normalize + chip AND + 빈 결과 aria-live.
@@ -14,6 +15,7 @@ async function setupArchive(): Promise<void> {
   const container = document.getElementById('archiveTab')!;
   tab.renderArchive(container);
   handlers.mountArchiveHandlers();
+  registerCoreHandlerListeners();
 }
 
 describe('v3.27 T3: archive 검색 enhancement', () => {
@@ -27,6 +29,7 @@ describe('v3.27 T3: archive 검색 enhancement', () => {
   afterEach(() => {
     vi.useRealTimers();
     vi.restoreAllMocks();
+    resetCoreHandlerListenersForTest();
   });
 
   it('debounce 200ms — 연속 input 3회 후 단일 search 트리거', async () => {
@@ -74,11 +77,13 @@ describe('v3.27 T3: archive 검색 enhancement', () => {
     document.dispatchEvent(new CustomEvent('dg:archive:search'));
 
     const list = document.getElementById('archiveList')!;
-    const cards = list.querySelectorAll('.archive-card');
-    // a1만 만족 (entity=answer ∧ type=분석 ∧ text~'키워드')
-    expect(cards.length).toBe(1);
-    expect(list.textContent).toContain('분석 키워드 매칭');
-    expect(list.textContent).not.toContain('다른 분석 답');
+    await vi.waitFor(() => {
+      const cards = list.querySelectorAll('.archive-card');
+      // a1만 만족 (entity=answer ∧ type=분석 ∧ text~'키워드')
+      expect(cards.length).toBe(1);
+      expect(list.textContent).toContain('분석 키워드 매칭');
+      expect(list.textContent).not.toContain('다른 분석 답');
+    });
   });
 
   it('NFC normalize — NFD 분해된 한국어 검색어도 NFC 정규화 답변과 매치', async () => {
@@ -100,7 +105,9 @@ describe('v3.27 T3: archive 검색 enhancement', () => {
     document.dispatchEvent(new CustomEvent('dg:archive:search'));
 
     const list = document.getElementById('archiveList')!;
-    expect(list.querySelectorAll('.archive-card').length).toBe(1);
+    await vi.waitFor(() => {
+      expect(list.querySelectorAll('.archive-card').length).toBe(1);
+    });
   });
 
   it('빈 결과 — aria-live="polite" 메시지 + search input aria-label', async () => {
@@ -117,8 +124,10 @@ describe('v3.27 T3: archive 검색 enhancement', () => {
     document.dispatchEvent(new CustomEvent('dg:archive:search'));
 
     const list = document.getElementById('archiveList')!;
-    expect(list.getAttribute('aria-live')).toBe('polite');
-    expect(list.textContent).toBeTruthy();
+    await vi.waitFor(() => {
+      expect(list.getAttribute('aria-live')).toBe('polite');
+      expect(list.textContent).toBeTruthy();
+    });
   });
 
   it('IME composition — compositionstart/end listener 등록 (단위 검증)', async () => {

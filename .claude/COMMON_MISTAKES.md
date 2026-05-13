@@ -190,4 +190,51 @@ test('Gemini mock 호출이 실제 API에 새지 않는다', async ({ page }) =>
 
 ---
 
-**Last Updated**: 2026-05-09
+## 9. Listener wiring 변경 시 mutation path 전수 grep (2026-05-13, v3.30 → v3.31)
+
+**Symptom**: 새 listener hook은 추가했지만 production mutation path 일부가 이벤트를 거치지 않아 count/UI가 stale.
+
+**Root cause**: spec에 적힌 dispatch/listener 1:1만 확인하고, 실제 mutation caller 전체 grep을 하지 않음.
+
+**Fix/Prevention**:
+
+- listener wiring 변경 전 `rg -n "<event>|<mutator>|<rerender-helper>" src tests`를 실행한다.
+- 가능한 경우 caller별 patch보다 단일 rerender/helper 진입점에 side-effect를 추가한다.
+- review prompt에 "mutation paths 전수 grep 여부"를 포함한다.
+
+**관련 파일**: `src/ui/handlers/*`, `src/ui/events.ts`, `tests/**/*`
+
+---
+
+## 10. Playwright repeatEach는 describe-level configure가 아니다 (2026-05-13, v3.30)
+
+**Symptom**: `test.describe.configure({ repeatEach: 3 })` 권고를 적용하려 했지만 Playwright 1.59에서 지원되지 않음.
+
+**Root cause**: `repeatEach`는 project/test config 옵션이고, describe-level configure는 mode/retries/timeout 계열만 지원.
+
+**Fix/Prevention**:
+
+- 같은 spec을 N회 반복하려면 file-local `for (let i = 0; i < N; i++) test(...)` 패턴을 사용한다.
+- project-level 반복이 필요할 때만 `playwright.config.ts`의 project/testConfig `repeatEach`를 검토한다.
+
+**관련 파일**: `tests/smoke/*.spec.ts`, `playwright.config.ts`
+
+---
+
+## 11. Module 추출 시 production import와 test mock path를 함께 grep (2026-05-13, v3.30)
+
+**Symptom**: production import는 새 module로 바꿨지만 `vi.mock()` path가 old module을 계속 가리켜 stale mock이 됨.
+
+**Root cause**: module extraction에서 production import만 grep하고 tests/mock path grep을 누락.
+
+**Fix/Prevention**:
+
+- 추출 전후에 `rg -n "oldFunction|old/module|vi\\.mock" src tests`를 실행한다.
+- production import migration과 test mock path migration은 같은 task 안에서 처리한다.
+- code-reviewer 요청에는 "test mock path stale 여부"를 명시한다.
+
+**관련 파일**: `src/**/*`, `tests/**/*`
+
+---
+
+**Last Updated**: 2026-05-13

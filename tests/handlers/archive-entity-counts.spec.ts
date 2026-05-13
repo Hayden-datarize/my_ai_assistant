@@ -7,7 +7,7 @@
  *
  * 전략: vi.mock factory + vi.mocked 로 state module 격리.
  */
-import { describe, it, expect, beforeEach, vi } from 'vitest';
+import { describe, it, expect, beforeEach, afterEach, vi } from 'vitest';
 
 // ---------------------------------------------------------------------------
 // 모듈 mock 선언 — hoisted, factory 방식 (home-chat-wiring.spec.ts 패턴)
@@ -43,6 +43,14 @@ import {
   resetArchiveHandlersForTest,
   rerenderList,
 } from '../../src/ui/handlers/archive';
+import {
+  registerCoreHandlerListeners,
+  resetCoreHandlerListenersForTest,
+} from '../../src/ui/handlers/register';
+
+afterEach(() => {
+  resetCoreHandlerListenersForTest();
+});
 
 // Helper: fixture set (answers 5, scraps 4, insights 3).
 // sortPinThenDesc(rerenderList 내부) 가 b.date / a.createdAt / i.createdAt 의 localeCompare를 호출하므로
@@ -191,16 +199,19 @@ describe('v3.30 T2: dg:archive:updated hook 자동 재계산', () => {
     `;
   });
 
-  it('dg:archive:updated dispatch → refreshEntityCounts 호출 (DOM count 변경)', () => {
+  it('dg:archive:updated dispatch → refreshEntityCounts 호출 (DOM count 변경)', async () => {
     setMockState(1, 1, 1);
     mountArchiveHandlers();
+    registerCoreHandlerListeners();
     // 데이터 변경 simulate
     setMockState(3, 2, 1);
     document.dispatchEvent(new CustomEvent('dg:archive:updated', { detail: { entity: 'answer', id: 'a-new' } }));
-    expect(document.querySelector('[data-entity-count="all"]')?.textContent).toBe('6');
-    expect(document.querySelector('[data-entity-count="answer"]')?.textContent).toBe('3');
-    expect(document.querySelector('[data-entity-count="scrap"]')?.textContent).toBe('2');
-    expect(document.querySelector('[data-entity-count="insight"]')?.textContent).toBe('1');
+    await vi.waitFor(() => {
+      expect(document.querySelector('[data-entity-count="all"]')?.textContent).toBe('6');
+      expect(document.querySelector('[data-entity-count="answer"]')?.textContent).toBe('3');
+      expect(document.querySelector('[data-entity-count="scrap"]')?.textContent).toBe('2');
+      expect(document.querySelector('[data-entity-count="insight"]')?.textContent).toBe('1');
+    });
   });
 });
 
@@ -224,18 +235,22 @@ describe('v3.30 T2 review fix (P1): mountArchiveHandlers double-mount guard', ()
     `;
   });
 
-  it('두 번째 mountArchiveHandlers는 no-op — dg:archive:updated 1회 dispatch 시 DOM 1회 갱신', () => {
+  it('두 번째 mountArchiveHandlers와 core registrar는 no-op — dg:archive:updated 1회 dispatch 시 DOM 갱신', async () => {
     // 첫 mount 후 reset 안 함 — guard에 의해 두 번째 호출 차단 검증.
     resetArchiveHandlersForTest();
     mountArchiveHandlers();
     mountArchiveHandlers(); // guard에 막힘 — listener 중복 등록 안 함.
+    registerCoreHandlerListeners();
+    registerCoreHandlerListeners(); // core guard에 막힘 — dg:* listener 중복 등록 안 함.
 
     // refreshEntityCounts 호출 횟수를 side-effect로 측정: setMockState 변경 후 dispatch 1회 → DOM 1회 갱신.
     setMockState(2, 1, 0);
     document.dispatchEvent(new CustomEvent('dg:archive:updated', { detail: { entity: 'answer', id: 'x' } }));
-    expect(document.querySelector('[data-entity-count="all"]')?.textContent).toBe('3');
-    expect(document.querySelector('[data-entity-count="answer"]')?.textContent).toBe('2');
-    expect(document.querySelector('[data-entity-count="scrap"]')?.textContent).toBe('1');
+    await vi.waitFor(() => {
+      expect(document.querySelector('[data-entity-count="all"]')?.textContent).toBe('3');
+      expect(document.querySelector('[data-entity-count="answer"]')?.textContent).toBe('2');
+      expect(document.querySelector('[data-entity-count="scrap"]')?.textContent).toBe('1');
+    });
     // listener 중복 시에도 idempotent라 DOM 결과는 같지만, 본 spec은 guard가 동작함을 약하게나마 보장.
   });
 
@@ -283,9 +298,10 @@ describe('v3.30 T7 P1 fix: rerenderList → refreshEntityCounts 자동 호출', 
     expect(document.querySelector('[data-entity-count="insight"]')?.textContent).toBe('3');
   });
 
-  it('dg:insights:added dispatch → chip count 자동 갱신 (P1 stale 회귀 가드)', () => {
+  it('dg:insights:added dispatch → chip count 자동 갱신 (P1 stale 회귀 가드)', async () => {
     setMockState(0, 0, 1);
     mountArchiveHandlers();
+    registerCoreHandlerListeners();
 
     // 인사이트 추가 simulate (production: addInsight 후 dg:insights:added dispatch).
     setMockState(0, 0, 3);
@@ -293,20 +309,25 @@ describe('v3.30 T7 P1 fix: rerenderList → refreshEntityCounts 자동 호출', 
 
     // P1 fix 전: chip count 99 placeholder stale 유지 (dg:insights:added는 rerenderList만 호출, refreshEntityCounts 누락).
     // P1 fix 후: rerenderList 첫 줄에서 refreshEntityCounts 호출 → DOM 3 갱신.
-    expect(document.querySelector('[data-entity-count="insight"]')?.textContent).toBe('3');
-    expect(document.querySelector('[data-entity-count="all"]')?.textContent).toBe('3');
+    await vi.waitFor(() => {
+      expect(document.querySelector('[data-entity-count="insight"]')?.textContent).toBe('3');
+      expect(document.querySelector('[data-entity-count="all"]')?.textContent).toBe('3');
+    });
   });
 
-  it('dg:insights:removed dispatch → chip count 자동 갱신', () => {
+  it('dg:insights:removed dispatch → chip count 자동 갱신', async () => {
     setMockState(0, 0, 3);
     mountArchiveHandlers();
+    registerCoreHandlerListeners();
 
     // 인사이트 삭제 simulate.
     setMockState(0, 0, 1);
     document.dispatchEvent(new CustomEvent('dg:insights:removed'));
 
-    expect(document.querySelector('[data-entity-count="insight"]')?.textContent).toBe('1');
-    expect(document.querySelector('[data-entity-count="all"]')?.textContent).toBe('1');
+    await vi.waitFor(() => {
+      expect(document.querySelector('[data-entity-count="insight"]')?.textContent).toBe('1');
+      expect(document.querySelector('[data-entity-count="all"]')?.textContent).toBe('1');
+    });
   });
 
   it('data-entity-count span 없는 DOM (archive 탭 진입 전) → silent no-op (안전)', () => {

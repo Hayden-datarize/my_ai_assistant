@@ -106,6 +106,20 @@ firebase deploy --only hosting   # 사용자 명시 승인 후
 - **P0/P1 plan 반영 전 구현 금지**: 사전 review 결과 P0가 있으면 plan v2 in-cycle 흡수, T2 진입 X.
 - **CLI 한도 fallback**: controller self-review (`pr-review-toolkit:code-reviewer` 등) 허용 (v3.14.5 / v3.20 / v3.24 선례), 단 retro에 명시.
 
+### v3.31 L1 graduation — Codex CLI direct dispatch
+
+사전/최종 review는 subagent dispatch가 아니라 아래 CLI 직접 호출을 기본값으로 한다:
+
+```bash
+codex exec --skip-git-repo-check -o /tmp/<cycle>-codex-<pre|final>.txt "<prompt>"
+```
+
+v3.30 T0에서 subagent dispatch가 background drop되어 결과 회수에 실패했다. v3.30 T7에서는 `codex exec` 직접 호출이 production stale count P1을 catch했다. 따라서 Codex 2-pass는 direct CLI 우선, 실패 시 controller self-review fallback을 retro에 명시한다.
+
+### Single Fix Point Preference (v3.31 L5)
+
+mutation 이후 여러 caller가 같은 UI 갱신을 필요로 하면 caller마다 patch하지 말고 `rerenderList()` 같은 단일 진입점에 side-effect를 추가할 수 있는지 먼저 검토한다. v3.30 T7 P1 fix는 `rerenderList()` 1줄로 13 caller의 archive count stale 문제를 닫았다.
+
 ---
 
 ## Documentation Navigation

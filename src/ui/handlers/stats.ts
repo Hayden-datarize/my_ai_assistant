@@ -50,12 +50,20 @@ function setDefaultInfo(info: HTMLElement, total: number, streak: number): void 
 
 export function mountStatsHandlers(): void {
   // v3.23 T6: stub 교체 — openStatsRangeModal (range prop)
-  on('dg:stats:weekly-report', () => { void openStatsRangeModal({ range: 7 }); });
-  on('dg:stats:growth-analysis', () => { void openStatsRangeModal({ range: 30 }); });
+  on('dg:stats:weekly-report', handleStatsWeeklyReport);
+  on('dg:stats:growth-analysis', handleStatsGrowthAnalysis);
 
   on('dg:nav:tab-changed', ({ tab }) => {
     if (tab === 'stats') hydrateStats();
   });
+}
+
+export function handleStatsWeeklyReport(): void {
+  void openStatsRangeModal({ range: 7 });
+}
+
+export function handleStatsGrowthAnalysis(): void {
+  void openStatsRangeModal({ range: 30 });
 }
 
 export function hydrateStats(): void {

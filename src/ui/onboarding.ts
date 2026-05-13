@@ -9,6 +9,7 @@
 import { INTERESTS } from '../utils/categories';
 import { escapeHtml } from '../utils/escapeHtml';
 import { generateText } from '../services/gemini';
+import { getKstDateStr } from '../utils/dates';
 
 const STORAGE_KEY_APIKEY = 'dg_gemini_key';
 const STORAGE_KEY_USER = 'user';
@@ -225,7 +226,7 @@ function renderStep2(wrap: HTMLElement, state: OnboardingState, container: HTMLE
 function renderStep3(wrap: HTMLElement, state: OnboardingState, container: HTMLElement): void {
   // v3.12 T2 review P2-1: v2 shape 직접 사용 (lazy migrate intermediate write 회피).
   // fresh user는 answers 0개 → T13 invariant `answers >= 1` 자연 통과 → gamificationMigrated=true 안전.
-  const today = new Date().toISOString().slice(0, 10);
+  const today = getKstDateStr();
   const user = {
     name: deriveOnboardingName(state.name),
     interests: [...state.picked],

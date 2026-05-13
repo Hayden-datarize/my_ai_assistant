@@ -108,8 +108,9 @@
   /* Modal backdrop (Material 3 token — light) */
   --modal-backdrop: rgba(0, 0, 0, 0.4);
 
-  /* v3.30 T6 (v3.29 C5): <mark> highlight 토큰 (archive 검색 keyword 강조).
-     light는 amber soft, dark는 amber dim — accent와 동일 hue 유지. */
+  /* v3.31 C5: <mark> highlight keeps semantic tokens separate from --accent-light.
+     Light --mark-bg equals light --accent-light (#FEF3C7), but dark mark uses
+     #78350F + #FDE68A for AA contrast while dark --accent-light stays #422006. */
   --mark-bg: #FEF3C7;          /* amber-100 — same as --accent-light (light) */
   --mark-fg: var(--text-primary);
 }
@@ -121,8 +122,7 @@
   --heatmap-l2: #6366F1;
   --heatmap-l3: var(--primary);
 
-  /* v3.30 T6 (v3.29 C5): <mark> highlight (dark) — amber dim background +
-     bright fg for contrast. */
+  /* v3.31 C5: dark <mark> uses a brighter amber pair than --accent-light. */
   --mark-bg: #78350F;          /* amber-900 — readable dim, not too bright */
   --mark-fg: #FDE68A;          /* amber-200 — high contrast on dark amber */
 }

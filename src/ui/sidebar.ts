@@ -43,13 +43,15 @@ export function mountSidebar(): void {
     label.textContent = t.label;
     btn.append(label);
 
-    btn.addEventListener('click', () => {
+    btn.addEventListener('click', async () => {
       // v3.29 T3 review fix (I2): silent dynamic-import failure 차단 — chunk
       // load fail 시 console.warn으로 진단 가능화 (post-deploy stale SW 등).
-      switchTab(t.id).catch((err) => {
-        console.warn('[sidebar] switchTab failed', t.id, err);
-      });
       close();
+      try {
+        await switchTab(t.id);
+      } catch (err) {
+        console.warn('[sidebar] switchTab failed', t.id, err);
+      }
     });
     nav.append(btn);
   }
