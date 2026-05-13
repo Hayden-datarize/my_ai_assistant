@@ -579,7 +579,7 @@ function renderAnswerCard(a: Answer): HTMLElement {
   // v3.29 T2: 검색 활성 시 keyword <mark> highlight (XSS-safe helper)
   if (currentQuery) {
     // eslint-disable-next-line no-restricted-syntax -- highlightHtml escapeHtml + escapeRegex 적용, <mark> only inject
-    body.innerHTML = highlightHtml(a.text, currentQuery);
+    body.innerHTML = highlightHtml(a.text, currentQuery ? [currentQuery] : []);
   } else {
     body.textContent = a.text;
   }
@@ -611,7 +611,7 @@ function renderInsightCard(i: Insight): HTMLElement {
   // v3.29 T2: 검색 활성 시 keyword <mark> highlight (XSS-safe helper)
   if (currentQuery) {
     // eslint-disable-next-line no-restricted-syntax -- highlightHtml escapeHtml + escapeRegex 적용, <mark> only inject
-    body.innerHTML = highlightHtml(i.text, currentQuery);
+    body.innerHTML = highlightHtml(i.text, currentQuery ? [currentQuery] : []);
   } else {
     body.textContent = i.text;
   }
