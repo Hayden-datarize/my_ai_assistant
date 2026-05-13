@@ -10,7 +10,7 @@ import { describe, it, expect } from 'vitest';
 import { migrateUserToV7 } from '../../src/state/migration';
 
 describe('migrateUserToV7 (v3.25 T2)', () => {
-  function makeV6Base(): any {
+  function makeV6Base(): Record<string, unknown> & { schemaVersion: 6 | 7; insights: unknown[] } {
     return {
       schemaVersion: 6,
       name: 'X', interests: [], onboardedAt: '2026-01-01',
