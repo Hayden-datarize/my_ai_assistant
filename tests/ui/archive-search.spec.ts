@@ -276,4 +276,50 @@ describe('v3.32 T3: archive 검색 다중 토큰 + 초성', () => {
       expect(list.querySelector('mark')?.textContent).toBe('React');
     });
   });
+
+  // v3.32 T7 fix-B (Codex 최종 P2-2): scrap/briefing title+summary 결합 검색 회귀 spec.
+  // Codex 사전 P1-3 흡수 효과 직접 검증 — 토큰이 title/summary에 나뉘면 결합 검색으로 hit.
+  it('scrap entity — 토큰이 title/summary 분리된 항목도 결합 검색으로 hit (P1-3)', async () => {
+    const briefings = [
+      { id: 'b1', date: '2026-05-10', url: 'https://x/1', title: '리액트 가이드', summary: '훅 사용법 정리', scrapped: true, read: false, memo: '', pinned: false },
+      { id: 'b2', date: '2026-05-10', url: 'https://x/2', title: '리액트 컴포넌트', summary: '구조화', scrapped: true, read: false, memo: '', pinned: false },
+    ];
+    localStorage.setItem('briefings', JSON.stringify(briefings));
+    await setupArchive();
+
+    document.querySelector<HTMLButtonElement>('.archive-entity-chip[data-entity="scrap"]')!.click();
+    const input = document.getElementById('archiveSearch') as HTMLInputElement;
+    // "리액트"는 b1/b2 title 둘 다, "훅"은 b1 summary만 → 결합 검색 시 b1만 hit
+    input.value = '리액트 훅';
+    document.dispatchEvent(new CustomEvent('dg:archive:search'));
+
+    const list = document.getElementById('archiveList')!;
+    await vi.waitFor(() => {
+      expect(list.querySelectorAll('.archive-card').length).toBe(1);
+      expect(list.textContent).toContain('리액트 가이드');
+      expect(list.textContent).not.toContain('리액트 컴포넌트');
+    });
+  });
+
+  it('all merge — briefing title/summary 분리 토큰도 결합 검색 hit (P1-3)', async () => {
+    // answers 없고 briefings만 — 'all' merge에서 briefing 분기 검증
+    const briefings = [
+      { id: 'b1', date: '2026-05-10', url: 'https://x/1', title: '리액트 정리', summary: '훅 활용', scrapped: true, read: false, memo: '', pinned: false },
+      { id: 'b2', date: '2026-05-10', url: 'https://x/2', title: 'Vue 가이드', summary: '컴포지션 API', scrapped: true, read: false, memo: '', pinned: false },
+    ];
+    localStorage.setItem('briefings', JSON.stringify(briefings));
+    await setupArchive();
+
+    // entity='all' (기본) + question chip='all' → 'all' merge 분기 진입
+    const input = document.getElementById('archiveSearch') as HTMLInputElement;
+    input.value = '리액트 훅';
+    document.dispatchEvent(new CustomEvent('dg:archive:search'));
+
+    const list = document.getElementById('archiveList')!;
+    await vi.waitFor(() => {
+      expect(list.querySelectorAll('.archive-card').length).toBe(1);
+      expect(list.textContent).toContain('리액트 정리');
+      expect(list.textContent).not.toContain('Vue 가이드');
+    });
+  });
 });

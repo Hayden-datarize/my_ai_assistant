@@ -104,4 +104,10 @@ describe('matchesAllTokens (v3.32 T1)', () => {
     const textNfd = '한국'.normalize('NFD');
     expect(matchesAllTokens(textNfd, ['한국'])).toBe(true);
   });
+
+  // v3.32 T7 fix-A (Codex 최종 P2-1): token 정규화 — helper 단독 호출 시에도 case/NFC 정합.
+  it('token 정규화 — 대소문자/NFD raw token도 매칭', () => {
+    expect(matchesAllTokens('Hello World', ['Hello'])).toBe(true); // raw token case-insensitive
+    expect(matchesAllTokens('한국', ['한국'.normalize('NFD')])).toBe(true); // raw token NFD 입력
+  });
 });

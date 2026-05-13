@@ -42,9 +42,13 @@ export function isInitialOnlyToken(t: string): boolean {
 
 export function matchesAllTokens(text: string, tokens: string[]): boolean {
   if (tokens.length === 0) return true;
+  // v3.32 T7 fix-A (Codex 최종 P2-1): token도 NFC + lowercase 정규화.
+  // 프로덕션은 tokenizeQuery 거쳐 idempotent하지만, exported helper 단독 호출
+  // (matchesAllTokens('Hello', ['Hello']))도 안전하게 매칭.
   const normalized = text.normalize('NFC').toLowerCase();
   const initials = getInitialConsonants(normalized);
-  return tokens.every((token) =>
-    isInitialOnlyToken(token) ? initials.includes(token) : normalized.includes(token),
-  );
+  return tokens.every((rawToken) => {
+    const token = rawToken.normalize('NFC').toLowerCase();
+    return isInitialOnlyToken(token) ? initials.includes(token) : normalized.includes(token);
+  });
 }

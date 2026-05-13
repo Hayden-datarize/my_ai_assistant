@@ -1,7 +1,8 @@
 import { describe, it, expect, beforeEach, afterEach } from 'vitest';
 import { mountNav, switchTab, TABS } from '../../src/ui/nav';
 // v3.32 T6 (v3.30 T5 P2 carry): controlled deferred loader 헬퍼는 tests/helpers/로 추출됨.
-// Generic <T>로 일반화 — 호출부 시그니처 무변경 (render 콜백을 payload로 전달).
+// 호출부 시그니처 무변경 ((c: HTMLElement) => void 콜백을 payload로 전달).
+// 추후 다른 spec이 다른 payload 타입을 요구하면 그때 generic 격상 (YAGNI).
 import { createDeferredLoader } from '../helpers/deferred-loader';
 
 beforeEach(() => {
