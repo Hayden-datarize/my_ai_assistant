@@ -11,6 +11,8 @@ import { openModal } from '../modals/shared';
 import { escapeHtml } from '../../utils/escapeHtml';
 import { highlightHtml } from '../../utils/highlight';
 import { matchesAllTokens, tokenizeQuery } from '../../utils/fuzzy';
+import { scoreEntry } from '../../utils/ranking';
+import { sortPinThenScoreDesc } from '../../utils/archiveSort';
 import { showToast, showUndoToast } from '../../utils/toast';
 import { toKoType } from '../../utils/typeLabel';
 import { getSaveErrorMessage, getCachedUser, saveUser, type Insight } from '../../state/user';
@@ -711,7 +713,20 @@ export function rerenderList(): void {
       list.textContent = '아직 스크랩한 기사가 없어요.';
       return;
     }
-    sortPinThenDesc(pool, (b) => b.pinned, (b) => b.date).forEach((b) => appendScrapCard(b));
+    // v3.34 T3: 검색 시 3-tier ranking (pinned > score > date), 미검색 시 기존 2-tier.
+    if (currentTokens.length > 0) {
+      sortPinThenScoreDesc(
+        pool,
+        (b) => b.pinned,
+        (b) => scoreEntry(
+          [{ text: b.title ?? '', weight: 2 }, { text: b.summary ?? '', weight: 1 }],
+          currentTokens,
+        ),
+        (b) => b.date,
+      ).forEach((b) => appendScrapCard(b));
+    } else {
+      sortPinThenDesc(pool, (b) => b.pinned, (b) => b.date).forEach((b) => appendScrapCard(b));
+    }
     return;
   }
 
@@ -725,7 +740,17 @@ export function rerenderList(): void {
       list.textContent = '아직 저장된 인사이트가 없어요.';
       return;
     }
-    sortPinThenDesc(pool, (i) => i.pinned, (i) => i.createdAt).forEach((i) => list.append(renderInsightCard(i)));
+    // v3.34 T3: 검색 시 3-tier ranking, 미검색 시 기존 2-tier.
+    if (currentTokens.length > 0) {
+      sortPinThenScoreDesc(
+        pool,
+        (i) => i.pinned,
+        (i) => scoreEntry([{ text: i.text, weight: 1 }], currentTokens),
+        (i) => i.createdAt,
+      ).forEach((i) => list.append(renderInsightCard(i)));
+    } else {
+      sortPinThenDesc(pool, (i) => i.pinned, (i) => i.createdAt).forEach((i) => list.append(renderInsightCard(i)));
+    }
     return;
   }
 
@@ -743,10 +768,10 @@ export function rerenderList(): void {
     ];
 
     if (currentTokens.length > 0) {
-      // v3.32 T3 (Codex 사전 P1-3): briefing은 title+summary 결합 검색.
+      // v3.34 T3: answer는 questionText+text 결합 (ranking weight 정합). briefing은 title+summary.
       entries = entries.filter((e) =>
         e.kind === 'answer'
-          ? matchesAllTokens(e.answer.text, currentTokens)
+          ? matchesAllTokens(`${e.answer.questionText ?? ''} ${e.answer.text}`, currentTokens)
           : e.kind === 'insight'
             ? matchesAllTokens(e.insight.text, currentTokens)
             : matchesAllTokens(`${e.briefing.title ?? ''} ${e.briefing.summary ?? ''}`, currentTokens),
@@ -758,7 +783,26 @@ export function rerenderList(): void {
       return;
     }
 
-    const sorted = sortPinThenDesc(entries, (e) => e.pinned, (e) => e.sortKey);
+    // v3.34 T3: 검색 시 3-tier ranking (pinned > score > date), 미검색 시 기존 2-tier.
+    const entryScore = (e: Entry): number => {
+      if (e.kind === 'answer') {
+        return scoreEntry(
+          [{ text: e.answer.questionText ?? '', weight: 2 }, { text: e.answer.text, weight: 1 }],
+          currentTokens,
+        );
+      }
+      if (e.kind === 'insight') {
+        return scoreEntry([{ text: e.insight.text, weight: 1 }], currentTokens);
+      }
+      return scoreEntry(
+        [{ text: e.briefing.title ?? '', weight: 2 }, { text: e.briefing.summary ?? '', weight: 1 }],
+        currentTokens,
+      );
+    };
+
+    const sorted = currentTokens.length > 0
+      ? sortPinThenScoreDesc(entries, (e) => e.pinned, entryScore, (e) => e.sortKey)
+      : sortPinThenDesc(entries, (e) => e.pinned, (e) => e.sortKey);
     for (const e of sorted) {
       if (e.kind === 'answer') list.append(renderAnswerCard(e.answer));
       else if (e.kind === 'insight') list.append(renderInsightCard(e.insight));
@@ -771,7 +815,9 @@ export function rerenderList(): void {
   let filtered = answers;
   if (currentFilter !== 'all') filtered = filtered.filter((a) => (a.type ?? '').includes(currentFilter));
   if (currentTokens.length > 0) {
-    filtered = filtered.filter((a) => matchesAllTokens(a.text, currentTokens));
+    // v3.34 T3: filter 대상에 questionText 결합 (ranking weight 활성화 정합).
+    filtered = filtered.filter((a) =>
+      matchesAllTokens(`${a.questionText ?? ''} ${a.text}`, currentTokens));
   }
 
   if (filtered.length === 0) {
@@ -779,7 +825,20 @@ export function rerenderList(): void {
     return;
   }
 
-  sortPinThenDesc(filtered, (a) => a.pinned, (a) => a.createdAt).forEach((a) => list.append(renderAnswerCard(a)));
+  // v3.34 T3: 검색 시 3-tier ranking (pinned > score > date), 미검색 시 기존 2-tier.
+  if (currentTokens.length > 0) {
+    sortPinThenScoreDesc(
+      filtered,
+      (a) => a.pinned,
+      (a) => scoreEntry(
+        [{ text: a.questionText ?? '', weight: 2 }, { text: a.text, weight: 1 }],
+        currentTokens,
+      ),
+      (a) => a.createdAt,
+    ).forEach((a) => list.append(renderAnswerCard(a)));
+  } else {
+    sortPinThenDesc(filtered, (a) => a.pinned, (a) => a.createdAt).forEach((a) => list.append(renderAnswerCard(a)));
+  }
 }
 
 type DetailPayload =
