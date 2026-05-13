@@ -109,8 +109,7 @@ firebase deploy --only hosting   # 사용자 명시 승인 후
      6. retroactive direct CLI 재시도는 **권고/carry** (필수 X — 외부 권한 회복 시 차기 사이클로).
    - **ROI 근거** (v3.32 L2): direct CLI 성공 시 P0/P1/P2 종합 catch. controller fallback만으로는 P2 catch 부족 입증.
 
-권한 issue 시: spec self-review로 사전 대체 가능, 단 최종은 cycle wrap-up에서 별도 시점 재시도
-(v3.14.2 retro 패턴 — Codex 권한 미작동으로 review 누락된 사이클은 차기 사이클 carry-forward).
+권한 issue 시: spec self-review로 사전 대체 가능. 최종은 위 6단계 fallback 정책 적용 — controller fallback review를 받았으면 deploy gate 충족. **fallback review조차 못 받은 사이클만** 차기 사이클 carry-forward (v3.14.2 retro 패턴 — Codex 권한 완전 미작동 case).
 
 ### graduate 명문화 (v3.18~v3.23 7사이클 ROI)
 
