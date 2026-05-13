@@ -8,7 +8,7 @@ describe('v3.27 T2b: entity chip 1차 row', () => {
   beforeEach(async () => {
     localStorage.clear();
     sessionStorage.clear();
-    document.body.innerHTML = '';
+    document.body.replaceChildren();
   });
 
   it('entity chip row — 4개 chip [전체/답변/스크랩/인사이트] 노출', async () => {

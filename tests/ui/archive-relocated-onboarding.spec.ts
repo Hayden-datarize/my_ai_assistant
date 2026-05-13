@@ -9,7 +9,7 @@ describe('v3.27 T2b: archive 통합 onboarding', () => {
   beforeEach(async () => {
     localStorage.clear();
     sessionStorage.clear();
-    document.body.innerHTML = '';
+    document.body.replaceChildren();
   });
 
   it('첫 진입 시 NEW 배지 + tutorial overlay 노출', async () => {
