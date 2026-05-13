@@ -1,17 +1,8 @@
 import { describe, it, expect, beforeEach, afterEach } from 'vitest';
 import { mountNav, switchTab, TABS } from '../../src/ui/nav';
-
-// v3.30 T5 (v3.29 carry C6): controlled deferred loader 헬퍼 — Promise resolver를
-// 외부 노출하여 out-of-order chunk resolve를 결정론적으로 simulate.
-function createDeferredLoader(
-  render: (c: HTMLElement) => void,
-): { load: () => Promise<(c: HTMLElement) => void>; resolve: () => void } {
-  let resolveFn!: () => void;
-  const pending = new Promise<(c: HTMLElement) => void>((res) => {
-    resolveFn = () => res(render);
-  });
-  return { load: () => pending, resolve: resolveFn };
-}
+// v3.32 T6 (v3.30 T5 P2 carry): controlled deferred loader 헬퍼는 tests/helpers/로 추출됨.
+// Generic <T>로 일반화 — 호출부 시그니처 무변경 (render 콜백을 payload로 전달).
+import { createDeferredLoader } from '../helpers/deferred-loader';
 
 beforeEach(() => {
   document.body.replaceChildren();

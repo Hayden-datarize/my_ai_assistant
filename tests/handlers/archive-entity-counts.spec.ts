@@ -261,6 +261,31 @@ describe('v3.30 T2 review fix (P1): mountArchiveHandlers double-mount guard', ()
     resetArchiveHandlersForTest();
     expect(() => mountArchiveHandlers()).not.toThrow();
   });
+
+  // v3.32 T4 (v3.30 T2 P2-3 carry, Codex 사전 P1-1 흡수): listener-count invariant.
+  // 기존 DOM count side-effect (dg:archive:updated 1회 → DOM 1회 갱신) 보강 — listener 수 직접 측정.
+  // baseline 9 (handleCardDeleteClick / handleCardClick / select toggle / bulk delete / pin toggle /
+  // other-pin-counter / scrap modal close / archive-card detail / answer-modal-edit 9 inline).
+  // 신규 listener 추가/삭제 시 baseline 갱신 의무.
+  it('mountArchiveHandlers는 9 click listener를 단 1회만 등록 (idempotent)', () => {
+    resetArchiveHandlersForTest();
+    document.body.replaceChildren();
+    // eslint-disable-next-line no-restricted-syntax -- jsdom fixture, no user interpolation
+    document.body.innerHTML = '<div id="archiveTab"><div id="archiveList"></div></div>';
+
+    const spy = vi.spyOn(document, 'addEventListener');
+
+    mountArchiveHandlers();
+    const firstClickCalls = spy.mock.calls.filter(([type]) => type === 'click').length;
+    expect(firstClickCalls).toBe(9);
+
+    // 두 번째 호출 — __archiveMounted guard로 early return → 0 추가
+    mountArchiveHandlers();
+    const totalClickCalls = spy.mock.calls.filter(([type]) => type === 'click').length;
+    expect(totalClickCalls).toBe(9);
+
+    spy.mockRestore();
+  });
 });
 
 // ---------------------------------------------------------------------------

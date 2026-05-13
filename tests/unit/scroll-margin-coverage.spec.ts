@@ -27,13 +27,16 @@ describe('v3.18 T6 (G3-2) — scroll-margin coverage for scrollIntoView targets'
     expect(statsTabTs).toMatch(/id=["']gardenSection["'][^>]*data-scroll-target/);
   });
 
-  it('scrollIntoView call site count baseline = 3 (regression guard)', () => {
+  it('scrollIntoView call site count baseline = 3 (per-file 강화 — v3.32 T5)', () => {
     // 회귀 가드: scrollIntoView 호출 site 수 = 3 (현 baseline).
-    // 4번째 추가 시 plan 갱신 + scroll-margin 적용 검토 필요.
-    // v3.30 T3: stats.ts의 scrollToGardenSection이 stats-shared.ts로 분리됨 (총합 동일).
+    // v3.30 T3에서 stats.ts의 scrollToGardenSection이 stats-shared.ts로 분리됨.
+    // v3.32 T5 (v3.30 T3 P2 carry): per-file 분포 invariant까지 강화.
+    // stats.ts에 scrollIntoView 회귀 추가 시 즉시 fail로 감지.
     const homeMatches = (homeHandlersTs.match(/scrollIntoView/g) ?? []).length;
     const statsMatches = (statsHandlersTs.match(/scrollIntoView/g) ?? []).length;
     const sharedMatches = (statsSharedTs.match(/scrollIntoView/g) ?? []).length;
-    expect(homeMatches + statsMatches + sharedMatches).toBe(3);
+    expect(homeMatches).toBeGreaterThan(0); // home에는 scrollIntoView 호출 존재
+    expect(statsMatches).toBe(0); // v3.30 T3 분리 후 stats.ts 0건 invariant
+    expect(homeMatches + statsMatches + sharedMatches).toBe(3); // 총합 baseline 유지
   });
 });
