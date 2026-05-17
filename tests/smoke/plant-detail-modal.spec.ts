@@ -93,3 +93,69 @@ test('v3.36: plant action chip → archive 탭 + 검색어 prefill', async ({ pa
   await expect(page.locator('#bottomNav button[data-tab-id="archive"]')).toHaveClass(/active/);
   await expect(page.locator('#archiveSearch')).toHaveValue('리더십');
 });
+
+// v3.37 T3: stale filter setup → plant action → entity/filter all reset + #archiveSearch focus 회귀 가드.
+// (v3.36 P2-1 + P2-2 carry-forward 청산. T2 reviewer I-2 흡수 — switchTab race + tab-changed listener
+//  race end-to-end 검증. Production switchTab은 pendingSwitchToken race guard + dg:nav:tab-changed
+//  dispatch + hydrateArchive listener를 동반하므로, unit spec mock으로는 다 cover 못 함.)
+test('v3.37: stale filter setup 후 plant action → archive entity/filter all reset + focus', async ({ page }) => {
+  // 1) 사전 시드 (test 2 패턴 복제)
+  await primeOnboardedUser(page, { interests: ['leadership'], schemaVersion: 4 });
+  await page.addInitScript(() => {
+    const userRaw = localStorage.getItem('user');
+    if (!userRaw) return;
+    const u = JSON.parse(userRaw);
+    u.plantStateByInterest = {
+      leadership: { stage: 2, cumulativeActivity: 10, lastEngagedAt: new Date().toISOString() },
+    };
+    u.gardenBackfilled = true;
+    u.gardenIntroduced = true;
+    localStorage.setItem('user', JSON.stringify(u));
+    sessionStorage.setItem('dg.briefings.auto-refresh-tried', '1');
+  });
+
+  await page.goto('/');
+
+  // 2) archive 탭 사전 진입 → entity '답변' chip → filter '분석' chip 활성화
+  // (Codex 사전 P1-3 정정: production filter 값은 all/분석/전환/실무/성장/트렌드.)
+  await page.locator('#bottomNav button[data-tab-id="archive"]').click();
+  await page.locator('.archive-entity-chip[data-entity="answer"]').click();
+  await expect(page.locator('.archive-entity-chip[data-entity="answer"]')).toHaveClass(/active/);
+
+  // filter chip '분석' 클릭 — production 행동 (UI 클릭으로 사전 setup)
+  const filterAnalysis = page.locator('.filter-chip[data-filter="분석"]');
+  await filterAnalysis.click();
+  await expect(filterAnalysis).toHaveClass(/active/);
+
+  // 3) 정원 (stats 탭) 이동 → 식물 카드 클릭 → modal open
+  await page.locator('#bottomNav button[data-tab-id="stats"]').click();
+  await page.locator('.garden-card[data-interest-id="leadership"]').click();
+  await expect(page.locator('.plant-detail-modal')).toBeVisible();
+
+  // 4) "📚 이 분야로 archive 탐색" chip 클릭
+  await page.locator('.plant-action-chip').click();
+
+  // 5) 검증 — archive 탭 활성 + modal 제거
+  await expect(page.locator('#bottomNav button[data-tab-id="archive"]')).toHaveClass(/active/);
+  await expect(page.locator('.plant-detail-modal')).not.toBeVisible();
+
+  // entity chip 'all' active + aria-checked='true' (사전 'answer'에서 복귀)
+  const entityAll = page.locator('.archive-entity-chip[data-entity="all"]');
+  await expect(entityAll).toHaveClass(/active/);
+  await expect(entityAll).toHaveAttribute('aria-checked', 'true');
+
+  // 사전 활성화했던 'answer' chip은 inactive로 복귀
+  await expect(page.locator('.archive-entity-chip[data-entity="answer"]')).not.toHaveClass(/active/);
+
+  // filter chip 'all' active (사전 '분석'에서 복귀)
+  await expect(page.locator('.filter-chip[data-filter="all"]')).toHaveClass(/active/);
+  await expect(page.locator('.filter-chip[data-filter="분석"]')).not.toHaveClass(/active/);
+
+  // question type row 표시 (entity='all' 이므로 visible)
+  await expect(page.locator('#archiveFilters')).toBeVisible();
+
+  // search input value + focus (T2 unit spec end-to-end 검증)
+  const searchInput = page.locator('#archiveSearch');
+  await expect(searchInput).toHaveValue('리더십');
+  await expect(searchInput).toBeFocused();
+});
