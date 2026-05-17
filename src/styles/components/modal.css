@@ -35,3 +35,29 @@
   padding: var(--space-2, 8px);
   border-radius: var(--radius-sm);
 }
+
+/* v3.36 T2: plant detail modal action chip (이 분야로 archive 탐색) */
+.plant-action-chip {
+  margin-top: var(--space-4);
+  padding: var(--space-2) var(--space-4);
+  background: var(--primary-ultra-light);
+  color: var(--primary);
+  border: 1px solid var(--primary);
+  border-radius: 999px;
+  font-size: var(--font-size-sm);
+  font-weight: 600;
+  cursor: pointer;
+  width: 100%;
+  text-align: center;
+  transition: background var(--duration-fast) var(--ease-spring);
+}
+
+.plant-action-chip:hover {
+  background: var(--primary);
+  color: white;
+}
+
+.plant-action-chip:focus-visible {
+  box-shadow: var(--focus-ring);
+  outline: none;
+}
