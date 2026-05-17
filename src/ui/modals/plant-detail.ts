@@ -107,6 +107,7 @@ export async function navigateToInterestArchive(interestId: string): Promise<voi
   closeModal();
   // Codex v3.36 P1-1 흡수: 동적 import — plant-detail이 stats chunk이라 archive handler를 끌어오지 않도록.
   const { resetArchiveFilters, handleArchiveSearch } = await import('../handlers/archive');
+  // v3.37 T2 (reviewer M-1): reset BEFORE switchTab — module state must be 'all' when hydrateArchive's rerenderList fires post-tab-change.
   resetArchiveFilters();
   await switchTab('archive');
 
@@ -125,7 +126,8 @@ export async function navigateToInterestArchive(interestId: string): Promise<voi
 function tryFocusWithPreventScroll(input: HTMLInputElement): void {
   try {
     input.focus({ preventScroll: true });
-  } catch {
+  } catch (err) {
+    console.warn('[plant-detail] focus({preventScroll}) fallback', err);
     input.focus();
   }
 }
