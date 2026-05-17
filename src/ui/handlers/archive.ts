@@ -170,6 +170,67 @@ function updateBulkButton(): void {
   bulk.textContent = `선택 항목 삭제 (${selectedIds.size})`;
 }
 
+/**
+ * v3.37 T1: archive module state + DOM chip ARIA 일괄 default('all') 복귀.
+ * 진입점: counter-click handler / plant-detail navigateToInterestArchive (T2).
+ *
+ * Reset 대상:
+ *   - currentFilter / currentTokens / currentEntity / selectedIds / selectMode
+ *
+ * DOM 동기화:
+ *   - .archive-entity-chip → 'all'만 active + aria-checked='true'
+ *   - .filter-chip → 'all'만 active + disabled=false (selectMode 중간 lock 해제)
+ *   - #archiveFilters question type row → display='' (entity 'scrap'/'insight' 시 숨김 상태 복구)
+ *   - #archiveSelectToggle aria-pressed='false'
+ *   - #archiveTab .archive--select-mode 제거
+ *   - .archive-card.selected 클래스 제거
+ *
+ * 명시적 호출 (v2 — Codex 사전 P1-1 흡수):
+ *   - updateBulkButton() — selectedIds.clear() 직후. select mode 중간에 reset 진입 시
+ *     "선택 항목 삭제 (N)" 버튼이 enabled+stale count 잔존 방지.
+ *
+ * 명시적 비-호출:
+ *   - rerenderList() — caller가 명시 호출 (counter-click rerenderList / plant-action handleArchiveSearch).
+ *
+ * `__archiveMounted`는 reset 대상 아님 — mount 가드는 1회성.
+ */
+export function resetArchiveFilters(): void {
+  // Module state
+  currentFilter = 'all';
+  currentTokens = [];
+  currentEntity = 'all';
+  selectedIds.clear();
+  selectMode = false;
+
+  // Entity chip ARIA
+  document.querySelectorAll<HTMLButtonElement>('.archive-entity-chip').forEach((b) => {
+    const active = b.dataset['entity'] === 'all';
+    b.classList.toggle('active', active);
+    b.setAttribute('aria-checked', active ? 'true' : 'false');
+  });
+
+  // Filter chip active + selectMode lock 해제
+  document.querySelectorAll<HTMLButtonElement>('.filter-chip').forEach((chip) => {
+    chip.classList.toggle('active', chip.dataset['filter'] === 'all');
+    chip.disabled = false;
+    chip.removeAttribute('aria-disabled');
+  });
+
+  // Question type row 표시 복구 (entity 'scrap'/'insight'에서 display:none 상태 가능)
+  const q = document.getElementById('archiveFilters');
+  if (q) q.style.display = '';
+
+  // Select mode UI 흔적 제거
+  document.getElementById('archiveSelectToggle')?.setAttribute('aria-pressed', 'false');
+  document.getElementById('archiveTab')?.classList.remove('archive--select-mode');
+  document.querySelectorAll('.archive-card.selected').forEach((c) =>
+    c.classList.remove('selected')
+  );
+
+  // v2 (Codex 사전 P1-1): bulk delete button 동기화 — selectedIds 비웠으니 disabled + count=0
+  updateBulkButton();
+}
+
 function handleCardClickInSelectMode(e: Event): void {
   const card = (e.target as HTMLElement).closest<HTMLElement>('.archive-card');
   if (!card) return;
@@ -457,24 +518,11 @@ export function mountArchiveHandlers(): void {
     togglePin(entity, id);
   });
 
-  // v3.27 T4: counter click → entity 'all' 전환 (다른 카테고리 핀 가시화 후 진입).
+  // v3.27 T4 → v3.37 T1: counter click → resetArchiveFilters() 진입점 통합.
+  // plant-detail navigateToInterestArchive과 동일 reset 시맨틱 공유 (T2에서 추가).
   document.addEventListener('click', (e) => {
     if (!(e.target as HTMLElement).closest('.other-pin-counter')) return;
-    currentEntity = 'all';
-    // v3.27 T4 (Codex P1-2): currentFilter 도 'all' 리셋 — 질문 chip 활성 상태에서 진입 시
-    // 'all' merge가 아닌 type 분기로 빠져 다른 카테고리 핀 항목이 여전히 숨김 상태가 되는 버그 방지.
-    currentFilter = 'all';
-    document.querySelectorAll<HTMLButtonElement>('.archive-entity-chip').forEach((b) => {
-      const active = b.dataset['entity'] === 'all';
-      b.classList.toggle('active', active);
-      b.setAttribute('aria-checked', active ? 'true' : 'false');
-    });
-    document.querySelectorAll<HTMLButtonElement>('.filter-chip').forEach((btn) => {
-      btn.classList.toggle('active', btn.dataset['filter'] === 'all');
-    });
-    // 2차 row(질문 type) 숨김 해제
-    const q = document.getElementById('archiveFilters');
-    if (q) q.style.display = '';
+    resetArchiveFilters();
     rerenderList();
   });
 
