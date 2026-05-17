@@ -117,3 +117,58 @@ describe('plant-detail content', () => {
     expect(body).toContain('0개 스크랩');
   });
 });
+
+// v3.36 T1: Plant action chip (navigation to archive)
+import { interestKeywords } from '../../../src/utils/interestKeywords';
+
+describe('plant-detail action chip (v3.36)', () => {
+  beforeEach(() => {
+    document.body.replaceChildren();
+    localStorage.clear();
+  });
+
+  it('chip render — .plant-action-chip button DOM 존재 + aria-label', () => {
+    saveUser(mkUser({
+      interests: ['leadership'],
+      plantStateByInterest: { leadership: { stage: 2, cumulativeActivity: 10 } } satisfies Record<string, PlantState>,
+    }));
+    openPlantDetailModal('leadership');
+    const chip = document.querySelector<HTMLButtonElement>('.plant-action-chip');
+    expect(chip).toBeTruthy();
+    expect(chip!.tagName).toBe('BUTTON');
+    expect(chip!.getAttribute('aria-label')).toBe('이 분야 키워드로 archive 검색');
+    expect(chip!.textContent).toContain('archive 탐색');
+  });
+
+  it('chip click → modal 제거 + #archiveTab 활성 + #archiveSearch에 한국어 keyword prefill', async () => {
+    // eslint-disable-next-line no-restricted-syntax -- jsdom fixture container, no user interpolation
+    document.body.innerHTML = '<div id="app"></div>';
+    saveUser(mkUser({
+      interests: ['leadership'],
+      plantStateByInterest: { leadership: { stage: 2, cumulativeActivity: 10 } } satisfies Record<string, PlantState>,
+    }));
+    openPlantDetailModal('leadership');
+    const chip = document.querySelector<HTMLButtonElement>('.plant-action-chip')!;
+    chip.click();
+    // void Promise + switchTab dynamic import + render → flush until input mount
+    for (let i = 0; i < 30; i++) {
+      await new Promise((r) => setTimeout(r, 5));
+      if (document.querySelector('#archiveSearch')) break;
+    }
+
+    expect(document.querySelector('.dg-modal')).toBeFalsy();
+    const input = document.querySelector<HTMLInputElement>('#archiveSearch');
+    expect(input).toBeTruthy();
+    expect(input!.value).toBe('리더십');
+  });
+
+  it('pickSearchKeyword fallback — 한국어 token 없을 때 첫 영문 id 사용 (interestKeywords invariant)', () => {
+    const tokens = interestKeywords('leadership');
+    const koreanFirst = tokens.find((t) => /[가-힯]/.test(t));
+    expect(koreanFirst).toBe('리더십');
+
+    const unknownTokens = interestKeywords('xyz_unknown');
+    const unknownFallback = unknownTokens.find((t) => /[가-힯]/.test(t)) ?? unknownTokens[0];
+    expect(unknownFallback).toBe('xyz_unknown');
+  });
+});
