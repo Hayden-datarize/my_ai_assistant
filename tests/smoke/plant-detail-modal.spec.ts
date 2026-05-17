@@ -63,3 +63,33 @@ test('plant-detail modal opens and shows Standard content', async ({ page }) => 
   await page.keyboard.press('Escape');
   await expect(modal).not.toBeVisible();
 });
+
+// v3.36 T3: plant action chip → archive 검색어 prefill (Codex Coverage Gap 흡수)
+test('v3.36: plant action chip → archive 탭 + 검색어 prefill', async ({ page }) => {
+  await primeOnboardedUser(page, { interests: ['leadership'], schemaVersion: 4 });
+  await page.addInitScript(() => {
+    const userRaw = localStorage.getItem('user');
+    if (!userRaw) return;
+    const u = JSON.parse(userRaw);
+    u.plantStateByInterest = {
+      leadership: { stage: 2, cumulativeActivity: 10, lastEngagedAt: new Date().toISOString() },
+    };
+    u.gardenBackfilled = true;
+    u.gardenIntroduced = true;
+    localStorage.setItem('user', JSON.stringify(u));
+    sessionStorage.setItem('dg.briefings.auto-refresh-tried', '1');
+  });
+
+  await page.goto('/');
+  await page.locator('#bottomNav button[data-tab-id="stats"]').click();
+  await page.locator('.garden-card[data-interest-id="leadership"]').click();
+  await expect(page.locator('.plant-detail-modal')).toBeVisible();
+
+  // chip click
+  await page.locator('.plant-action-chip').click();
+
+  // modal 제거 + archive 탭 활성 + search input prefill
+  await expect(page.locator('.plant-detail-modal')).not.toBeVisible();
+  await expect(page.locator('#bottomNav button[data-tab-id="archive"]')).toHaveClass(/active/);
+  await expect(page.locator('#archiveSearch')).toHaveValue('리더십');
+});
