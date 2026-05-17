@@ -7,6 +7,72 @@
  */
 import { describe, it, expect, beforeEach, afterEach, vi } from 'vitest';
 
+/**
+ * v3.37 T1 fix (review I-1 + M-1): module-scope helper로 격상.
+ * - DOM 동기화 describe + counter-click 통합 describe 양쪽이 동일 fixture 토대 위에서 검증.
+ * - ESLint no-restricted-syntax(innerHTML)를 피하기 위해 createElement 조합으로 구성.
+ *
+ * Fixture 구성:
+ *   - #archiveTab.archive--select-mode (select mode 진입 상태)
+ *   - #entityChips > .archive-entity-chip[data-entity="scrap"](active) + [data-entity="all"](inactive)
+ *   - #archiveFilters[style.display="none"] > .filter-chip[data-filter="memo"](active+disabled) + [data-filter="all"](disabled)
+ *   - #archiveSelectToggle[aria-pressed="true"]
+ *   - .archive-card.selected
+ */
+function setupArchiveDom(): void {
+  const tab = document.createElement('div');
+  tab.id = 'archiveTab';
+  tab.classList.add('archive--select-mode');
+
+  const entityChips = document.createElement('div');
+  entityChips.id = 'entityChips';
+  const entityScrap = document.createElement('button');
+  entityScrap.className = 'archive-entity-chip active';
+  entityScrap.dataset['entity'] = 'scrap';
+  entityScrap.setAttribute('aria-checked', 'true');
+  entityScrap.textContent = '스크랩';
+  const entityAll = document.createElement('button');
+  entityAll.className = 'archive-entity-chip';
+  entityAll.dataset['entity'] = 'all';
+  entityAll.setAttribute('aria-checked', 'false');
+  entityAll.textContent = '전체';
+  entityChips.appendChild(entityScrap);
+  entityChips.appendChild(entityAll);
+
+  const filters = document.createElement('div');
+  filters.id = 'archiveFilters';
+  filters.style.display = 'none';
+  const filterMemo = document.createElement('button');
+  filterMemo.className = 'filter-chip active';
+  filterMemo.dataset['filter'] = 'memo';
+  filterMemo.disabled = true;
+  filterMemo.setAttribute('aria-disabled', 'true');
+  filterMemo.textContent = '메모';
+  const filterAll = document.createElement('button');
+  filterAll.className = 'filter-chip';
+  filterAll.dataset['filter'] = 'all';
+  filterAll.disabled = true;
+  filterAll.setAttribute('aria-disabled', 'true');
+  filterAll.textContent = '전체';
+  filters.appendChild(filterMemo);
+  filters.appendChild(filterAll);
+
+  const selectToggle = document.createElement('button');
+  selectToggle.id = 'archiveSelectToggle';
+  selectToggle.setAttribute('aria-pressed', 'true');
+  selectToggle.textContent = '선택';
+
+  const card = document.createElement('div');
+  card.className = 'archive-card selected';
+  card.dataset['answerId'] = 'a1';
+
+  tab.appendChild(entityChips);
+  tab.appendChild(filters);
+  tab.appendChild(selectToggle);
+  tab.appendChild(card);
+  document.body.appendChild(tab);
+}
+
 beforeEach(() => {
   localStorage.clear();
   document.body.replaceChildren();
@@ -37,61 +103,6 @@ describe('resetArchiveFilters — module state', () => {
 });
 
 describe('resetArchiveFilters — DOM 동기화', () => {
-  /** ESLint no-restricted-syntax(innerHTML)를 피하기 위해 createElement 조합으로 구성. */
-  function setupArchiveDom(): void {
-    const tab = document.createElement('div');
-    tab.id = 'archiveTab';
-    tab.classList.add('archive--select-mode');
-
-    const entityChips = document.createElement('div');
-    entityChips.id = 'entityChips';
-    const entityScrap = document.createElement('button');
-    entityScrap.className = 'archive-entity-chip active';
-    entityScrap.dataset['entity'] = 'scrap';
-    entityScrap.setAttribute('aria-checked', 'true');
-    entityScrap.textContent = '스크랩';
-    const entityAll = document.createElement('button');
-    entityAll.className = 'archive-entity-chip';
-    entityAll.dataset['entity'] = 'all';
-    entityAll.setAttribute('aria-checked', 'false');
-    entityAll.textContent = '전체';
-    entityChips.appendChild(entityScrap);
-    entityChips.appendChild(entityAll);
-
-    const filters = document.createElement('div');
-    filters.id = 'archiveFilters';
-    filters.style.display = 'none';
-    const filterMemo = document.createElement('button');
-    filterMemo.className = 'filter-chip active';
-    filterMemo.dataset['filter'] = 'memo';
-    filterMemo.disabled = true;
-    filterMemo.setAttribute('aria-disabled', 'true');
-    filterMemo.textContent = '메모';
-    const filterAll = document.createElement('button');
-    filterAll.className = 'filter-chip';
-    filterAll.dataset['filter'] = 'all';
-    filterAll.disabled = true;
-    filterAll.setAttribute('aria-disabled', 'true');
-    filterAll.textContent = '전체';
-    filters.appendChild(filterMemo);
-    filters.appendChild(filterAll);
-
-    const selectToggle = document.createElement('button');
-    selectToggle.id = 'archiveSelectToggle';
-    selectToggle.setAttribute('aria-pressed', 'true');
-    selectToggle.textContent = '선택';
-
-    const card = document.createElement('div');
-    card.className = 'archive-card selected';
-    card.dataset['answerId'] = 'a1';
-
-    tab.appendChild(entityChips);
-    tab.appendChild(filters);
-    tab.appendChild(selectToggle);
-    tab.appendChild(card);
-    document.body.appendChild(tab);
-  }
-
   it('entity chip 동기화 — all만 active + aria-checked=true', async () => {
     setupArchiveDom();
     const mod = await import('../../../src/ui/handlers/archive');
@@ -155,44 +166,52 @@ describe('resetArchiveFilters — DOM 동기화', () => {
 });
 
 describe('counter-click → resetArchiveFilters 통합', () => {
-  it('.other-pin-counter click → entity/filter all active 복귀 + question row 표시', async () => {
-    const tab = document.createElement('div');
-    tab.id = 'archiveTab';
+  // v3.37 T1 review fix (I-1): 모든 P1-1 invariant가 counter-click 진입점에서도 동일하게 작동함을 가드.
+  // 만약 누군가 counter-click handler에서 resetArchiveFilters() 호출을 다시 inline reset으로 되돌리고
+  // updateBulkButton() 호출을 누락하면 본 spec이 FAIL해야 한다.
+  it('.other-pin-counter click → P1-1 invariant 전체 적용 (entity/filter + select mode + bulk button)', async () => {
+    setupArchiveDom();
 
-    const entityScrap = document.createElement('button');
-    entityScrap.className = 'archive-entity-chip active';
-    entityScrap.dataset['entity'] = 'scrap';
-    entityScrap.setAttribute('aria-checked', 'true');
-    entityScrap.textContent = '스크랩';
-
-    const entityAll = document.createElement('button');
-    entityAll.className = 'archive-entity-chip';
-    entityAll.dataset['entity'] = 'all';
-    entityAll.setAttribute('aria-checked', 'false');
-    entityAll.textContent = '전체';
-
-    const filters = document.createElement('div');
-    filters.id = 'archiveFilters';
-    filters.style.display = 'none';
-
+    // counter (click target) + bulk button (P1-1 invariant 검증 대상) 추가 append.
     const counter = document.createElement('div');
     counter.className = 'other-pin-counter';
     counter.textContent = '다른 카테고리 보기';
+    document.getElementById('archiveTab')!.appendChild(counter);
 
-    tab.appendChild(entityScrap);
-    tab.appendChild(entityAll);
-    tab.appendChild(filters);
-    tab.appendChild(counter);
-    document.body.appendChild(tab);
+    const bulk = document.createElement('button');
+    bulk.id = 'archiveBulkDelete';
+    bulk.textContent = '선택 항목 삭제 (3)';
+    bulk.disabled = false;
+    document.body.appendChild(bulk);
 
     const mod = await import('../../../src/ui/handlers/archive');
     mod.mountArchiveHandlers();
 
     document.querySelector<HTMLElement>('.other-pin-counter')!.click();
 
-    const all = document.querySelector<HTMLButtonElement>('.archive-entity-chip[data-entity="all"]')!;
-    expect(all.classList.contains('active')).toBe(true);
-    expect(all.getAttribute('aria-checked')).toBe('true');
+    // Entity chip — all active + aria-checked=true
+    const entityAll = document.querySelector<HTMLButtonElement>('.archive-entity-chip[data-entity="all"]')!;
+    expect(entityAll.classList.contains('active')).toBe(true);
+    expect(entityAll.getAttribute('aria-checked')).toBe('true');
+
+    // Question type row 표시 복구
     expect(document.getElementById('archiveFilters')!.style.display).toBe('');
+
+    // Filter chip — all active + memo inactive + disabled 해제 + aria-disabled 제거
+    const filterAll = document.querySelector<HTMLButtonElement>('.filter-chip[data-filter="all"]')!;
+    const filterMemo = document.querySelector<HTMLButtonElement>('.filter-chip[data-filter="memo"]')!;
+    expect(filterAll.classList.contains('active')).toBe(true);
+    expect(filterMemo.classList.contains('active')).toBe(false);
+    expect(filterMemo.disabled).toBe(false);
+    expect(filterMemo.hasAttribute('aria-disabled')).toBe(false);
+
+    // Select mode UI 흔적 제거
+    expect(document.getElementById('archiveSelectToggle')!.getAttribute('aria-pressed')).toBe('false');
+    expect(document.getElementById('archiveTab')!.classList.contains('archive--select-mode')).toBe(false);
+    expect(document.querySelectorAll('.archive-card.selected').length).toBe(0);
+
+    // P1-1 core: bulk delete button disabled + count textContent === 0
+    expect(bulk.disabled).toBe(true);
+    expect(bulk.textContent).toContain('(0)');
   });
 });
