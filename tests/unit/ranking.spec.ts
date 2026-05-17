@@ -56,4 +56,16 @@ describe('scoreEntry (v3.34 T1)', () => {
   it('중복 토큰 — raw 가산 (dedupe 안 함)', () => {
     expect(scoreEntry([{ text: 'react hooks', weight: 2 }], ['react', 'react'])).toBe(4);
   });
+
+  // v3.35 T3 (C6): 다중 field × 다중 token cross-product invariant — 토큰별 max(field weight) 명시.
+  it('다중 field × 다중 token cross-product max', () => {
+    const fields = [
+      { text: 'TypeScript best practices', weight: 2 },
+      { text: 'React hooks rules', weight: 1 },
+    ];
+    // typescript → field 1 hit (weight 2) → max 2
+    // react      → field 2 hit (weight 1) → max 1
+    // total = 3
+    expect(scoreEntry(fields, ['typescript', 'react'])).toBe(3);
+  });
 });
