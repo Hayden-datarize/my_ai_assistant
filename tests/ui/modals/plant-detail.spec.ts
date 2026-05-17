@@ -1,4 +1,4 @@
-import { describe, it, expect, beforeEach } from 'vitest';
+import { describe, it, expect, beforeEach, vi } from 'vitest';
 import { openPlantDetailModal } from '../../../src/ui/modals/plant-detail';
 import { saveUser } from '../../../src/state/user';
 import { closeModal } from '../../../src/ui/modals/shared';
@@ -170,5 +170,166 @@ describe('plant-detail action chip (v3.36)', () => {
     const unknownTokens = interestKeywords('xyz_unknown');
     const unknownFallback = unknownTokens.find((t) => /[가-힯]/.test(t)) ?? unknownTokens[0];
     expect(unknownFallback).toBe('xyz_unknown');
+  });
+});
+
+describe('navigateToInterestArchive sequence (v3.37 T2)', () => {
+  beforeEach(() => {
+    document.body.replaceChildren();
+    localStorage.clear();
+    vi.resetModules();
+    vi.doUnmock('../../../src/ui/handlers/archive');
+    vi.doUnmock('../../../src/ui/nav');
+    vi.doUnmock('../../../src/ui/modals/shared');
+    vi.doUnmock('../../../src/utils/interestKeywords');
+  });
+
+  // Codex 사전 P1-4: switchTab fidelity — real switchTab은 #app innerHTML 교체.
+  // closeModal restore가 switchTab 후 사라지는 race를 spec이 정확히 재현해야 함.
+  function setupSwitchTabFidelity(callOrder: string[]) {
+    const closeModalSpy = vi.fn(() => { callOrder.push('closeModal'); });
+    const resetSpy = vi.fn(() => { callOrder.push('reset'); });
+    const handleSearchSpy = vi.fn(() => { callOrder.push('handleArchiveSearch'); });
+    const switchTabSpy = vi.fn(async () => {
+      callOrder.push('switchTab');
+      // 실제 switchTab은 #app innerHTML 교체 — archive DOM을 새로 마운트
+      const app = document.getElementById('app');
+      if (app) {
+        app.replaceChildren();
+        const input = document.createElement('input');
+        input.id = 'archiveSearch';
+        app.appendChild(input);
+      }
+    });
+
+    vi.doMock('../../../src/ui/handlers/archive', () => ({
+      resetArchiveFilters: resetSpy,
+      handleArchiveSearch: handleSearchSpy,
+    }));
+    vi.doMock('../../../src/ui/nav', () => ({ switchTab: switchTabSpy }));
+    vi.doMock('../../../src/ui/modals/shared', () => ({ openModal: vi.fn(), closeModal: closeModalSpy }));
+    vi.doMock('../../../src/utils/interestKeywords', () => ({
+      interestKeywords: () => ['전략', 'strategy'],
+    }));
+
+    return { closeModalSpy, resetSpy, handleSearchSpy, switchTabSpy };
+  }
+
+  it('closeModal → reset → switchTab → handleArchiveSearch 순서 호출 + 새 input에 focus', async () => {
+    document.body.replaceChildren();
+    const app = document.createElement('div');
+    app.id = 'app';
+    document.body.appendChild(app);
+
+    const callOrder: string[] = [];
+    setupSwitchTabFidelity(callOrder);
+
+    const { navigateToInterestArchive } = await import('../../../src/ui/modals/plant-detail');
+    await navigateToInterestArchive('investing');
+
+    // call order
+    expect(callOrder).toEqual([
+      'closeModal',
+      'reset',
+      'switchTab',
+      'handleArchiveSearch',
+    ]);
+
+    // switchTab으로 새 mount된 input이 document.activeElement
+    const input = document.getElementById('archiveSearch') as HTMLInputElement;
+    expect(input).not.toBeNull();
+    expect(input.value).toBe('전략');
+    expect(document.activeElement).toBe(input);
+  });
+
+  it('focus 옵션 preventScroll=true로 호출', async () => {
+    document.body.replaceChildren();
+    const app = document.createElement('div');
+    app.id = 'app';
+    document.body.appendChild(app);
+
+    const callOrder: string[] = [];
+    setupSwitchTabFidelity(callOrder);
+
+    // input이 mount된 후 focus를 spy로 교체 — switchTab 후
+    const focusArgs: unknown[][] = [];
+    const origFocus = HTMLInputElement.prototype.focus;
+    HTMLInputElement.prototype.focus = function (opts?: FocusOptions) {
+      focusArgs.push([opts]);
+      return origFocus.call(this, opts);
+    };
+
+    try {
+      const { navigateToInterestArchive } = await import('../../../src/ui/modals/plant-detail');
+      await navigateToInterestArchive('investing');
+
+      expect(focusArgs).toContainEqual([{ preventScroll: true }]);
+    } finally {
+      HTMLInputElement.prototype.focus = origFocus;
+    }
+  });
+
+  // Codex 사전 P2-1: focus({ preventScroll }) throw → 일반 focus fallback
+  it('focus({ preventScroll }) throw 시 일반 focus()로 fallback', async () => {
+    document.body.replaceChildren();
+    const app = document.createElement('div');
+    app.id = 'app';
+    document.body.appendChild(app);
+
+    const callOrder: string[] = [];
+    setupSwitchTabFidelity(callOrder);
+
+    const focusCalls: Array<{ withOptions: boolean }> = [];
+    const origFocus = HTMLInputElement.prototype.focus;
+    HTMLInputElement.prototype.focus = function (opts?: FocusOptions) {
+      if (opts !== undefined) {
+        focusCalls.push({ withOptions: true });
+        throw new TypeError('preventScroll not supported');
+      }
+      focusCalls.push({ withOptions: false });
+      return origFocus.call(this);
+    };
+
+    try {
+      const { navigateToInterestArchive } = await import('../../../src/ui/modals/plant-detail');
+      await navigateToInterestArchive('investing');
+
+      // 1) 옵션 있는 호출 (throw됨)
+      // 2) catch 후 옵션 없는 호출
+      expect(focusCalls).toEqual([
+        { withOptions: true },
+        { withOptions: false },
+      ]);
+    } finally {
+      HTMLInputElement.prototype.focus = origFocus;
+    }
+  });
+
+  it('#archiveSearch 미존재 시 silent return (handleArchiveSearch 호출 안 함)', async () => {
+    document.body.replaceChildren();
+    const app = document.createElement('div');
+    app.id = 'app';
+    document.body.appendChild(app);
+
+    const callOrder: string[] = [];
+    const closeModalSpy = vi.fn(() => { callOrder.push('closeModal'); });
+    const resetSpy = vi.fn(() => { callOrder.push('reset'); });
+    const handleSearchSpy = vi.fn(() => { callOrder.push('handleArchiveSearch'); });
+    // switchTab이 input을 mount하지 않음 — race 시뮬레이션
+    const switchTabSpy = vi.fn(async () => { callOrder.push('switchTab'); });
+
+    vi.doMock('../../../src/ui/handlers/archive', () => ({
+      resetArchiveFilters: resetSpy,
+      handleArchiveSearch: handleSearchSpy,
+    }));
+    vi.doMock('../../../src/ui/nav', () => ({ switchTab: switchTabSpy }));
+    vi.doMock('../../../src/ui/modals/shared', () => ({ openModal: vi.fn(), closeModal: closeModalSpy }));
+    vi.doMock('../../../src/utils/interestKeywords', () => ({ interestKeywords: () => ['전략'] }));
+
+    const { navigateToInterestArchive } = await import('../../../src/ui/modals/plant-detail');
+    await expect(navigateToInterestArchive('investing')).resolves.toBeUndefined();
+
+    // handleArchiveSearch는 input null 검사 이후라 호출 안 됨
+    expect(handleSearchSpy).not.toHaveBeenCalled();
   });
 });

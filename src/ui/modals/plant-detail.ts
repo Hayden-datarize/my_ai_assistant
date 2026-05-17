@@ -95,20 +95,39 @@ function pickSearchKeyword(interestId: string): string | undefined {
   return tokens.find((t) => /[가-힯]/.test(t)) ?? tokens[0];
 }
 
-async function navigateToInterestArchive(interestId: string): Promise<void> {
+/**
+ * v3.37 T2: action chip → archive 진입 시 stale filter reset + focus 부여.
+ * 시퀀스: closeModal → (dynamic import) resetArchiveFilters → switchTab → input.value=keyword → handleArchiveSearch → tryFocusWithPreventScroll(input)
+ * @internal — spec 직접 호출용 export.
+ */
+export async function navigateToInterestArchive(interestId: string): Promise<void> {
   const keyword = pickSearchKeyword(interestId);
   if (!keyword) return;
 
   closeModal();
+  // Codex v3.36 P1-1 흡수: 동적 import — plant-detail이 stats chunk이라 archive handler를 끌어오지 않도록.
+  const { resetArchiveFilters, handleArchiveSearch } = await import('../handlers/archive');
+  resetArchiveFilters();
   await switchTab('archive');
 
   const input = document.querySelector<HTMLInputElement>('#archiveSearch');
   if (!input) return;
   input.value = keyword;
-
-  // Codex P1-1 흡수: 동적 import — plant-detail이 stats chunk이라 archive handler를 끌어오지 않도록
-  const { handleArchiveSearch } = await import('../handlers/archive');
   handleArchiveSearch();
+  tryFocusWithPreventScroll(input);
+}
+
+/**
+ * v3.37 T2 (Codex 사전 P2-1): `focus({ preventScroll })`이 throw하는 환경(구형 iOS Safari 14 이전, 일부 JSDOM-like)
+ * 에서 옵션 없는 일반 focus로 graceful degrade.
+ * @internal — spec 직접 호출 대상은 아니지만 navigateToInterestArchive 통해 간접 검증.
+ */
+function tryFocusWithPreventScroll(input: HTMLInputElement): void {
+  try {
+    input.focus({ preventScroll: true });
+  } catch {
+    input.focus();
+  }
 }
 
 /**
