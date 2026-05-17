@@ -15,11 +15,14 @@ export interface ScoredField {
 
 export function scoreEntry(fields: ScoredField[], tokens: string[]): number {
   if (tokens.length === 0) return 0;
-  const normalized = fields.map((f) => ({
-    weight: f.weight,
-    body: f.text.normalize('NFC').toLowerCase(),
-    initials: getInitialConsonants(f.text.normalize('NFC').toLowerCase()),
-  }));
+  const normalized = fields.map((f) => {
+    const text = f.text.normalize('NFC').toLowerCase();
+    return {
+      weight: f.weight,
+      body: text,
+      initials: getInitialConsonants(text),
+    };
+  });
   let total = 0;
   for (const rawToken of tokens) {
     const token = rawToken.normalize('NFC').toLowerCase();
