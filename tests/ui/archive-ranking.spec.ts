@@ -150,4 +150,69 @@ describe('v3.34 T3: archive ranking integration (DOM-level)', () => {
       .map((c) => c.dataset['answerId']);
     expect(ids).toEqual(['pin-low', 'unpin-high', 'unpin-low']);
   });
+
+  // v3.35 T2 (C2): questionText hit 시 archive-card-question 영역에 <mark> 적용.
+  it('v3.35 C2: questionText hit 시 archive-card-question에 <mark> 적용', () => {
+    saveAnswers([
+      mkAnswer({
+        id: 'q-hit-only',
+        questionText: 'TypeScript best practices',
+        text: '답변 본문은 매칭 안 됨',
+        createdAt: '2026-05-15T00:00:00.000Z',
+      }),
+    ]);
+    setup();
+    clickEntity('answer');
+    search('typescript');
+
+    const card = document.querySelector('[data-answer-id="q-hit-only"]');
+    expect(card).toBeTruthy();
+    const question = card!.querySelector('.archive-card-question');
+    const mark = question?.querySelector('mark');
+    expect(mark).not.toBeNull();
+    expect(mark?.textContent?.toLowerCase()).toBe('typescript');
+    expect(question?.textContent).toContain('❓');
+  });
+
+  it('v3.35 C2: currentTokens 0일 때 archive-card-question은 textContent 유지 (<mark> 없음)', () => {
+    saveAnswers([
+      mkAnswer({
+        id: 'no-tokens',
+        questionText: '질문 본문',
+        text: '본문 답변',
+        createdAt: '2026-05-15T00:00:00.000Z',
+      }),
+    ]);
+    setup();
+    clickEntity('answer');
+    search('');  // 빈 검색 — currentTokens 0 상태로 list render 트리거
+
+    const card = document.querySelector('[data-answer-id="no-tokens"]');
+    const question = card!.querySelector('.archive-card-question');
+    expect(question?.querySelector('mark')).toBeNull();
+    expect(question?.textContent).toBe('❓ 질문 본문');
+  });
+
+  it('v3.35 C2 XSS guard: questionText에 <img onerror>가 있어도 escape 후 inject', () => {
+    saveAnswers([
+      mkAnswer({
+        id: 'xss-q',
+        questionText: '<img src=x onerror=alert(1)> typescript test',
+        text: '답변',
+        createdAt: '2026-05-15T00:00:00.000Z',
+      }),
+    ]);
+    setup();
+    clickEntity('answer');
+    search('typescript');
+
+    const card = document.querySelector('[data-answer-id="xss-q"]');
+    const question = card!.querySelector('.archive-card-question')!;
+    // raw <img>는 절대 inject되지 않음
+    expect(question.querySelector('img')).toBeNull();
+    // <mark>는 정상 inject
+    expect(question.querySelector('mark')).not.toBeNull();
+    // textContent에는 raw `<img`가 보임 (innerHTML은 &lt;img로 escape됨)
+    expect(question.textContent).toContain('<img');
+  });
 });

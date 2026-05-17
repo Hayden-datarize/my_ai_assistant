@@ -568,10 +568,16 @@ function renderAnswerCard(a: Answer): HTMLElement {
   card.append(header);
 
   // Question preview (1줄)
+  // v3.35 T2 (C2): questionText hit 시 <mark> highlight 적용 — body 와 동일 pattern.
   const q = document.createElement('p');
   if (a.questionText) {
     q.className = 'archive-card-question';
-    q.textContent = `❓ ${a.questionText}`;
+    if (currentTokens.length > 0) {
+      // eslint-disable-next-line no-restricted-syntax -- highlightHtml escapeHtml + escapeRegex 적용, <mark> only inject
+      q.innerHTML = `❓ ${highlightHtml(a.questionText, currentTokens)}`;
+    } else {
+      q.textContent = `❓ ${a.questionText}`;
+    }
   } else {
     q.className = 'archive-card-question archive-card-question--missing';
     q.textContent = '질문 정보 없음 (이전 버전 답변)';
