@@ -82,7 +82,10 @@ test('v3.36: plant action chip → archive 탭 + 검색어 prefill', async ({ pa
 
   await page.goto('/');
   await page.locator('#bottomNav button[data-tab-id="stats"]').click();
-  await page.locator('.garden-card[data-interest-id="leadership"]').click();
+  // v3.38 T2 (v3.37 T3 reviewer M-1 흡수): garden-card visibility wait — cold-start race click-before-paint flake 차단.
+  const card2 = page.locator('.garden-card[data-interest-id="leadership"]');
+  await expect(card2).toBeVisible();
+  await card2.click();
   await expect(page.locator('.plant-detail-modal')).toBeVisible();
 
   // chip click
@@ -129,7 +132,10 @@ test('v3.37: stale filter setup 후 plant action → archive entity/filter all r
 
   // 3) 정원 (stats 탭) 이동 → 식물 카드 클릭 → modal open
   await page.locator('#bottomNav button[data-tab-id="stats"]').click();
-  await page.locator('.garden-card[data-interest-id="leadership"]').click();
+  // v3.38 T2 (v3.37 T3 reviewer M-1 흡수): garden-card visibility wait — cold-start race click-before-paint flake 차단.
+  const card3 = page.locator('.garden-card[data-interest-id="leadership"]');
+  await expect(card3).toBeVisible();
+  await card3.click();
   await expect(page.locator('.plant-detail-modal')).toBeVisible();
 
   // 4) "📚 이 분야로 archive 탐색" chip 클릭
