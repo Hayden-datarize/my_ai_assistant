@@ -52,3 +52,80 @@ export function matchesAllTokens(text: string, tokens: string[]): boolean {
     return isInitialOnlyToken(token) ? initials.includes(token) : normalized.includes(token);
   });
 }
+
+/**
+ * v3.38 T5a (C4): Levenshtein distance — 표준 DP O(NM).
+ * NFC normalize는 caller 의무 (`fuzzyMatchesToken` 등 wrapper에서 정규화).
+ */
+export function levenshteinDistance(a: string, b: string): number {
+  if (a === b) return 0;
+  const m = a.length;
+  const n = b.length;
+  if (m === 0) return n;
+  if (n === 0) return m;
+
+  let prev: number[] = Array.from({ length: n + 1 }, (_, i) => i);
+  let curr: number[] = Array.from({ length: n + 1 }, () => 0);
+
+  for (let i = 1; i <= m; i++) {
+    curr[0] = i;
+    const ai = a[i - 1];
+    for (let j = 1; j <= n; j++) {
+      const cost = ai === b[j - 1] ? 0 : 1;
+      const insert = (curr[j - 1] ?? 0) + 1;
+      const del = (prev[j] ?? 0) + 1;
+      const sub = (prev[j - 1] ?? 0) + cost;
+      curr[j] = Math.min(insert, del, sub);
+    }
+    [prev, curr] = [curr, prev];
+  }
+  return prev[n] ?? 0;
+}
+
+/**
+ * v3.38 T5a (C4): fuzzy token matching with adaptive threshold.
+ *
+ * - token length ≤ 2: exact substring only (distance 0).
+ * - token length 3-4: distance ≤ 1.
+ * - token length ≥ 5: distance ≤ 2.
+ *
+ * 검색 token이 text의 부분 문자열에 fuzzy match되면 true.
+ * sliding window로 text를 훑으며 token.length ± 1 윈도우의 최소 distance ≤ threshold 여부.
+ *
+ * **Codex P1-4 흡수**:
+ * - per-record cap: text.length × token.length > 100_000 이면 exact substring fallback only (UI freeze 차단).
+ * - 초성 token (`isInitialOnlyToken`) 은 fuzzy skip — 기존 matchesAllTokens initial 매칭이 처리.
+ * - archive-wide guard (pool.length > 5000)는 T5b caller에서 적용.
+ * - banded early-exit는 P3 carry (v3.39+).
+ */
+export function fuzzyMatchesToken(text: string, rawToken: string): boolean {
+  const t = text.normalize('NFC').toLowerCase();
+  const k = rawToken.normalize('NFC').toLowerCase();
+
+  if (k.length === 0) return true;
+  if (t.includes(k)) return true;
+  if (k.length <= 2) return false;
+
+  // 초성 token은 fuzzy 대상 외 — matchesAllTokens가 initial 매칭으로 처리.
+  if (isInitialOnlyToken(k)) return false;
+
+  // per-record cap
+  if (t.length * k.length > 100_000) {
+    return false;
+  }
+
+  const threshold = k.length <= 4 ? 1 : 2;
+  const baseWin = k.length;
+
+  // sliding window: 정확 길이 + ±1 (insertion/deletion fuzzy)
+  for (let delta = -1; delta <= 1; delta++) {
+    const w = baseWin + delta;
+    if (w < 1) continue;
+    for (let i = 0; i + w <= t.length; i++) {
+      const sub = t.slice(i, i + w);
+      if (levenshteinDistance(sub, k) <= threshold) return true;
+    }
+  }
+
+  return false;
+}
