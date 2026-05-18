@@ -269,22 +269,16 @@ function applyEntity(entity: EntityFilter): void {
 }
 
 /**
- * v3.38 T7b (C1): summary chip click delegated listener 1회 wire.
- * - slot.dataset.wired flag로 중복 등록 차단 (replaceChildren로 안쪽만 갈아끼움 — slot 자체 보존).
- * - rerenderList()가 매 호출마다 slot innerChildren를 갈아치워도 slot 노드 ref + listener 보존됨.
+ * v3.38 T7b fix (Codex 최종 P1-2): summary chip click handler.
+ * 기존 slot-level delegation은 switchTab이 #app을 replace할 때 slot이 destroy되어 listener loss.
+ * main entity chip handler (mountArchiveHandlers 내부) 패턴 따라 document-level delegation으로 이전 — slot 재생성 무관 영구 작동.
  */
-function wireSearchSummaryClickOnce(): void {
-  const slot = document.getElementById('archiveSearchSummary');
-  if (!slot || slot.dataset['wired'] === '1') return;
-  slot.dataset['wired'] = '1';
-  slot.addEventListener('click', (ev) => {
-    const target = ev.target as HTMLElement;
-    const chip = target.closest<HTMLButtonElement>('button.entity-summary-chip[data-entity]');
-    if (!chip) return;
-    const entity = chip.dataset['entity'] as EntityFilter | undefined;
-    if (!entity) return;
-    applyEntity(entity);
-  });
+function handleSearchSummaryChipClick(e: Event): void {
+  const chip = (e.target as HTMLElement).closest<HTMLButtonElement>('button.entity-summary-chip[data-entity]');
+  if (!chip) return;
+  const entity = chip.dataset['entity'] as EntityFilter | undefined;
+  if (!entity) return;
+  applyEntity(entity);
 }
 
 function handleCardClickInSelectMode(e: Event): void {
@@ -604,8 +598,8 @@ export function mountArchiveHandlers(): void {
     applyEntity(entity);
   });
 
-  // v3.38 T7b (C1): summary chip click — delegated listener 1회 wire (slot.dataset.wired gate).
-  wireSearchSummaryClickOnce();
+  // v3.38 T7b fix (Codex 최종 P1-2): summary chip click — document-level delegation (slot 재생성 무관 영구).
+  document.addEventListener('click', handleSearchSummaryChipClick);
 
   // v3.27 T2b: onboarding banner dismiss — sessionStorage stamp + remove.
   document.addEventListener('click', (e) => {

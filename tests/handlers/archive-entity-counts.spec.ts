@@ -267,7 +267,8 @@ describe('v3.30 T2 review fix (P1): mountArchiveHandlers double-mount guard', ()
   // baseline 9 (handleCardDeleteClick / handleCardClick / select toggle / bulk delete / pin toggle /
   // other-pin-counter / scrap modal close / archive-card detail / answer-modal-edit 9 inline).
   // 신규 listener 추가/삭제 시 baseline 갱신 의무.
-  it('mountArchiveHandlers는 9 click listener를 단 1회만 등록 (idempotent)', () => {
+  it('mountArchiveHandlers는 10 click listener를 단 1회만 등록 (idempotent)', () => {
+    // v3.38 T7b fix (Codex 최종 P1-2): summary chip click이 document-level delegation으로 이전 — listener count 9→10.
     resetArchiveHandlersForTest();
     document.body.replaceChildren();
     // eslint-disable-next-line no-restricted-syntax -- jsdom fixture, no user interpolation
@@ -277,12 +278,12 @@ describe('v3.30 T2 review fix (P1): mountArchiveHandlers double-mount guard', ()
 
     mountArchiveHandlers();
     const firstClickCalls = spy.mock.calls.filter(([type]) => type === 'click').length;
-    expect(firstClickCalls).toBe(9);
+    expect(firstClickCalls).toBe(10);
 
     // 두 번째 호출 — __archiveMounted guard로 early return → 0 추가
     mountArchiveHandlers();
     const totalClickCalls = spy.mock.calls.filter(([type]) => type === 'click').length;
-    expect(totalClickCalls).toBe(9);
+    expect(totalClickCalls).toBe(10);
 
     spy.mockRestore();
   });

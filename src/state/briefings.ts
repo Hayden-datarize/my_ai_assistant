@@ -43,6 +43,9 @@ export function loadBriefings(): Briefing[] {
       const normalized: Briefing = {
         ...briefing,
         pinned: typeof briefing.pinned === 'boolean' ? briefing.pinned : false,
+        // v3.38 T4 fix (Codex 최종 P1-1): legacy 데이터 memo undefined 백필 — saveBriefings strict가
+        // toggleScrap 등 read→write 경로에서 throw하는 회귀 차단.
+        memo: typeof briefing.memo === 'string' ? briefing.memo : '',
       };
       // Drop imageUrl only if present-but-invalid; leave undefined alone.
       if (normalized.imageUrl !== undefined && !isHttpsUrl(normalized.imageUrl)) {

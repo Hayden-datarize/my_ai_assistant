@@ -100,14 +100,24 @@ export async function fetchFeed(
           items?: RawFeedItem[];
           feed?: { title?: string };
         };
+        // v3.38 T4 fix (Codex 최종 P1-1): empty title/description item 거절 — saveBriefings strict와 정합.
+        // 빈 string이 storage에 흘러들면 후속 read→write에서 typeof guard만 통과 + 검색 매칭 silent fail.
         const items: FeedItem[] = Array.isArray(data.items)
-          ? data.items.map((rawItem) => ({
-              title: rawItem.title ?? '',
-              link: rawItem.link ?? '',
-              description: rawItem.description ?? '',
-              pubDate: rawItem.pubDate ?? '',
-              image: extractImage(rawItem),
-            }))
+          ? data.items.flatMap((rawItem) => {
+              const title = (rawItem.title ?? '').trim();
+              const description = (rawItem.description ?? '').trim();
+              if (!title || !description) {
+                console.warn('[rss] skip item with empty title/description', rawItem.link ?? '(no link)');
+                return [];
+              }
+              return [{
+                title,
+                link: rawItem.link ?? '',
+                description,
+                pubDate: rawItem.pubDate ?? '',
+                image: extractImage(rawItem),
+              }];
+            })
           : [];
         return { items, sourceTitle: data.feed?.title ?? '' };
       }
