@@ -269,6 +269,41 @@
 @media (max-width: 480px) {
   .archive-entity-chip { padding: 6px 10px; font-size: 0.85rem; }
 }
+
+/* v3.38 T7c: archive 검색 결과 entity 묶음 chip (C1) */
+.archive-search-summary {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 8px;
+  margin-bottom: 12px;
+  padding: 8px 10px;
+  background: var(--bg-input);
+  border-radius: 8px;
+  font-size: 0.85rem;
+}
+.archive-search-summary-label {
+  color: var(--text-secondary);
+  font-weight: 500;
+}
+.entity-summary-chip {
+  padding: 4px 10px;
+  background: var(--bg-card);
+  color: var(--primary);
+  border: 1px solid var(--primary-ultra-light);
+  border-radius: 999px;
+  font-size: 0.8rem;
+  font-weight: 600;
+  cursor: pointer;
+  transition: background var(--duration-fast) var(--ease-spring);
+}
+.entity-summary-chip:hover {
+  background: var(--primary-ultra-light);
+}
+.entity-summary-chip:focus-visible {
+  box-shadow: var(--focus-ring);
+  outline: none;
+}
 @media (max-width: 360px) {
   .archive-entity-row {
     overflow-x: auto;

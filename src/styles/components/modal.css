@@ -36,8 +36,10 @@
   border-radius: var(--radius-sm);
 }
 
-/* v3.36 T2: plant detail modal action chip (이 분야로 archive 탐색) */
-.plant-action-chip {
+/* v3.36 T2: plant detail modal action chip (이 분야로 archive 탐색)
+ * v3.38 T7c: insight detail modal nav chip도 동일 토큰 재사용 (DRY) */
+.plant-action-chip,
+.insight-archive-nav-chip {
   margin-top: var(--space-4);
   padding: var(--space-2) var(--space-4);
   background: var(--primary-ultra-light);
@@ -52,12 +54,14 @@
   transition: background var(--duration-fast) var(--ease-spring);
 }
 
-.plant-action-chip:hover {
+.plant-action-chip:hover,
+.insight-archive-nav-chip:hover {
   background: var(--primary);
   color: white;
 }
 
-.plant-action-chip:focus-visible {
+.plant-action-chip:focus-visible,
+.insight-archive-nav-chip:focus-visible {
   box-shadow: var(--focus-ring);
   outline: none;
 }
