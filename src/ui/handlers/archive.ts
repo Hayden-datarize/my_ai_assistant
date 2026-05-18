@@ -181,6 +181,7 @@ function updateBulkButton(): void {
  *   - .archive-entity-chip → 'all'만 active + aria-checked='true'
  *   - .filter-chip → 'all'만 active + disabled=false (selectMode 중간 lock 해제)
  *   - #archiveFilters question type row → display='' (entity 'scrap'/'insight' 시 숨김 상태 복구)
+ *   - #archiveSearch.value = '' (counter-click stale 검색 string + unfiltered list UI mismatch 차단, v3.37 T4 Codex 최종 P2 흡수)
  *   - #archiveSelectToggle aria-pressed='false'
  *   - #archiveTab .archive--select-mode 제거
  *   - .archive-card.selected 클래스 제거
@@ -219,6 +220,11 @@ export function resetArchiveFilters(): void {
   // Question type row 표시 복구 (entity 'scrap'/'insight'에서 display:none 상태 가능)
   const q = document.getElementById('archiveFilters');
   if (q) q.style.display = '';
+
+  // v3.37 T4 (Codex 최종 P2): #archiveSearch DOM value 동기화 — module state currentTokens=[]와 동행.
+  // counter-click 경로(plant-detail은 직후 input.value=keyword로 덮어씀)에서 stale 검색 string + unfiltered list UI mismatch 차단.
+  const search = document.getElementById('archiveSearch') as HTMLInputElement | null;
+  if (search) search.value = '';
 
   // Select mode UI 흔적 제거
   document.getElementById('archiveSelectToggle')?.setAttribute('aria-pressed', 'false');

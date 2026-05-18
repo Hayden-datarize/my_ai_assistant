@@ -141,6 +141,19 @@ describe('resetArchiveFilters — DOM 동기화', () => {
     expect(document.querySelectorAll('.archive-card.selected').length).toBe(0);
   });
 
+  it('#archiveSearch.value 비워짐 — counter-click 경로 stale 검색 string 차단 (Codex 최종 P2)', async () => {
+    setupArchiveDom();
+    const input = document.createElement('input');
+    input.id = 'archiveSearch';
+    input.value = '리더십';
+    document.body.appendChild(input);
+
+    const mod = await import('../../../src/ui/handlers/archive');
+    mod.resetArchiveFilters();
+
+    expect(input.value).toBe('');
+  });
+
   it('archive DOM이 mount 안 된 상태(다른 탭)에서 silent no-op', async () => {
     // setupArchiveDom 호출 없음 — empty body
     const mod = await import('../../../src/ui/handlers/archive');
