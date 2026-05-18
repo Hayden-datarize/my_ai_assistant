@@ -1,21 +1,23 @@
 /**
- * 인사이트 detail 모달 — 전문 + 분야 dropdown + 작성일 + confirm 삭제.
+ * 인사이트 detail 모달 — 전문 + 분야 dropdown + 작성일 + confirm 삭제 + archive nav chip.
  * Undo 미포함 (v3.8 답변 삭제와 차이 — 인사이트는 가벼운 entity).
- * v3.23 T9 (delete) / v3.25 T6 (분야 dropdown).
+ * v3.23 T9 (delete) / v3.25 T6 (분야 dropdown) / v3.38 T6 (archive nav chip + bodyNode migration).
  */
 import { openModal, closeModal } from './shared';
 import { getCachedUser, saveUser, getSaveErrorMessage, validateInterestId } from '../../state/user';
 import { INTERESTS, getCategoryLabel } from '../../utils/categories';
-import { escapeHtml } from '../../utils/escapeHtml';
 import { showToast } from '../../utils/toast';
 import { dispatch } from '../events';
 import { KST_FMT_DATE } from '../../utils/intl';
+import { navigateToInterestArchive } from './plant-detail';
+import type { User, Insight } from '../../state/user';
 
 /**
- * 인사이트 detail 모달을 열고 분야 변경 + 삭제 wiring을 부착한다.
+ * 인사이트 detail 모달을 열고 분야 변경 + 삭제 + archive 진입 wiring을 부착한다.
  * - dropdown 변경: saveUser 즉시 + dg:insights:updated dispatch + toast.
  *   saveUser throw 시 in-memory + select.value 양방향 rollback (v3.10 atomic).
  * - 삭제: confirm + saveUser + dg:insights:removed + closeModal + toast.
+ * - archive nav chip (v3.38 T6): interestId valid 시 표시 → navigateToInterestArchive 재사용.
  * @param id - User.insights[] 내 Insight.id
  */
 export function openInsightDetailModal(id: string): void {
@@ -23,24 +25,90 @@ export function openInsightDetailModal(id: string): void {
   const insight = user?.insights.find(i => i.id === id);
   if (!user || !insight) return;
 
-  // dropdown options: '미분류' 첫번째 + INTERESTS 15개 (catalog 순서).
-  const optionsHtml = [
-    `<option value="unknown"${insight.interestId === 'unknown' ? ' selected' : ''}>📰 미분류</option>`,
-    ...INTERESTS.map(i => {
-      const sel = insight.interestId === i.id ? ' selected' : '';
-      return `<option value="${escapeHtml(i.id)}"${sel}>${escapeHtml(getCategoryLabel(i.id))}</option>`;
-    }),
-  ].join('');
+  const bodyNode = renderInsightDetailBody(insight);
+  openModal({ title: '인사이트', bodyNode });
 
-  // v3.24 T3: indent 압축 (production-safe).
-  // eslint-disable-next-line no-restricted-syntax -- escapeHtml applied to all dynamic strings
-  // v3.26 T1b: createdAt UTC ISO → KST 'YYYY-MM-DD' (slice(0,10)는 UTC date prefix라 KST 자정 어긋남)
-  const kstDate = KST_FMT_DATE.format(new Date(insight.createdAt));
-  const bodyHtml = `<div class="insight-detail"><p class="insight-detail-text">${escapeHtml(insight.text)}</p><div class="insight-detail-meta"><label class="insight-detail-interest"><span>분야:</span><select class="insight-interest-select">${optionsHtml}</select></label><p class="insight-detail-date">${escapeHtml(kstDate)}</p></div><button type="button" class="btn btn-danger insight-delete-btn">삭제</button></div>`;
-  const modal = openModal({ title: '인사이트', bodyHtml });
+  attachListeners(bodyNode, user, id);
+}
 
+/**
+ * v3.38 T6: bodyHtml → bodyNode 마이그 (v3.26 T7 xor union contract).
+ * DOM API로 직접 생성 — escapeHtml 불요 (textContent 자체로 XSS 안전).
+ * @internal — spec 검증용 export.
+ */
+export function renderInsightDetailBody(insight: Insight): HTMLDivElement {
+  const root = document.createElement('div');
+  root.className = 'insight-detail';
+
+  // 1) 본문 (textContent 자체로 XSS 안전)
+  const textP = document.createElement('p');
+  textP.className = 'insight-detail-text';
+  textP.textContent = insight.text;
+  root.append(textP);
+
+  // 2) meta block: 분야 dropdown + 작성일
+  const meta = document.createElement('div');
+  meta.className = 'insight-detail-meta';
+
+  const label = document.createElement('label');
+  label.className = 'insight-detail-interest';
+  const labelSpan = document.createElement('span');
+  labelSpan.textContent = '분야:';
+  label.append(labelSpan);
+
+  const select = document.createElement('select');
+  select.className = 'insight-interest-select';
+
+  const unknownOpt = document.createElement('option');
+  unknownOpt.value = 'unknown';
+  unknownOpt.textContent = '📰 미분류';
+  if (insight.interestId === 'unknown') unknownOpt.selected = true;
+  select.append(unknownOpt);
+
+  for (const i of INTERESTS) {
+    const opt = document.createElement('option');
+    opt.value = i.id;
+    opt.textContent = getCategoryLabel(i.id);
+    if (insight.interestId === i.id) opt.selected = true;
+    select.append(opt);
+  }
+  label.append(select);
+  meta.append(label);
+
+  // v3.26 T1b: createdAt UTC ISO → KST 'YYYY-MM-DD' (KST_FMT_DATE Intl singleton).
+  const dateP = document.createElement('p');
+  dateP.className = 'insight-detail-date';
+  dateP.textContent = KST_FMT_DATE.format(new Date(insight.createdAt));
+  meta.append(dateP);
+
+  root.append(meta);
+
+  // 3) v3.38 T6: archive nav chip (interestId valid한 경우만).
+  if (insight.interestId && insight.interestId !== 'unknown') {
+    const navChip = document.createElement('button');
+    navChip.type = 'button';
+    navChip.className = 'insight-archive-nav-chip';
+    navChip.textContent = '🔍 이 분야 다른 답변/스크랩 보기';
+    navChip.setAttribute(
+      'aria-label',
+      `${getCategoryLabel(insight.interestId)} 분야 archive 탐색`,
+    );
+    root.append(navChip);
+  }
+
+  // 4) 삭제 버튼
+  const deleteBtn = document.createElement('button');
+  deleteBtn.type = 'button';
+  deleteBtn.className = 'btn btn-danger insight-delete-btn';
+  deleteBtn.textContent = '삭제';
+  root.append(deleteBtn);
+
+  return root;
+}
+
+function attachListeners(bodyNode: HTMLDivElement, user: User, id: string): void {
   // v3.25 T6: dropdown 분야 변경 wiring (atomic single-write — v3.10 graduated).
-  modal.querySelector<HTMLSelectElement>('.insight-interest-select')?.addEventListener('change', e => {
+  bodyNode.querySelector<HTMLSelectElement>('.insight-interest-select')?.addEventListener('change', e => {
     const select = e.currentTarget as HTMLSelectElement;
     const newId = validateInterestId(select.value);
     const u = getCachedUser();
@@ -60,7 +128,18 @@ export function openInsightDetailModal(id: string): void {
     }
   });
 
-  modal.querySelector('.insight-delete-btn')?.addEventListener('click', () => {
+  // v3.38 T6: archive nav chip click → navigateToInterestArchive.
+  // closure-bind 시점의 insight.interestId 사용 (chip 표시 조건이 valid 보장).
+  bodyNode.querySelector<HTMLButtonElement>('.insight-archive-nav-chip')?.addEventListener('click', () => {
+    const u = getCachedUser();
+    const entry = u?.insights.find(i => i.id === id);
+    if (!entry || !entry.interestId || entry.interestId === 'unknown') return;
+    void navigateToInterestArchive(entry.interestId).catch(err => {
+      console.warn('[insight-detail] navigate failed', err);
+    });
+  });
+
+  bodyNode.querySelector<HTMLButtonElement>('.insight-delete-btn')?.addEventListener('click', () => {
     if (!window.confirm('이 인사이트를 삭제할까요?')) return;
     const removed = user.insights.find(i => i.id === id);
     if (!removed) return;

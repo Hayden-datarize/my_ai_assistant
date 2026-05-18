@@ -7,6 +7,9 @@
  * - saveUser throw → rollback + getSaveErrorMessage 토스트, dispatch 미발생
  * - getCachedUser null → 조기 return
  *
+ * v3.38 T6: bodyHtml → bodyNode 마이그 후, listener는 production-rendered bodyNode에 attach.
+ * openModal mock이 cfg.bodyNode를 document.body에 그대로 mount하여 click 시뮬레이션을 흘리도록 함.
+ *
  * 전략: vi.mock factory (openModal 반환값 제어) + mockGetCachedUser 직접 제어.
  * insight-detail은 mock 하지 않고 실제 구현 사용.
  */
@@ -50,6 +53,12 @@ vi.mock('../../../../src/ui/events', () => ({
   on: vi.fn(),
 }));
 
+// v3.38 T6: archive nav chip — navigateToInterestArchive spy.
+const mockNavigateToInterestArchive = vi.fn();
+vi.mock('../../../../src/ui/modals/plant-detail', () => ({
+  navigateToInterestArchive: (...a: unknown[]) => mockNavigateToInterestArchive(...a),
+}));
+
 // ---------------------------------------------------------------------------
 // import (mock 선언 후)
 // ---------------------------------------------------------------------------
@@ -71,18 +80,22 @@ describe('openInsightDetailModal — delete flow (v3.23 T9)', () => {
     document.body.replaceChildren();
   });
 
-  /** openModal mock이 wrap DOM을 반환하고 wrap에 delete 버튼이 있도록 세팅 */
-  function setupWrap(): HTMLDivElement {
-    const wrap = document.createElement('div');
-    // eslint-disable-next-line no-restricted-syntax -- jsdom static fixture, no interpolation
-    wrap.innerHTML = '<button class="insight-delete-btn" type="button">삭제</button>';
-    document.body.appendChild(wrap);
-    mockOpenModal.mockReturnValue(wrap);
-    return wrap;
+  /**
+   * v3.38 T6: openModal mock이 cfg.bodyNode를 document.body에 mount하여
+   * production-rendered bodyNode가 그대로 click 대상이 되도록 함.
+   */
+  function setupBodyNodeMount(): void {
+    mockOpenModal.mockImplementation((cfg: { bodyNode?: Node; bodyHtml?: string }) => {
+      const wrap = document.createElement('div');
+      wrap.className = 'dg-modal';
+      if (cfg.bodyNode) wrap.append(cfg.bodyNode);
+      document.body.appendChild(wrap);
+      return wrap;
+    });
   }
 
   it('confirm OK → saveUser + dg:insights:removed dispatch + closeModal + showToast', () => {
-    const wrap = setupWrap();
+    setupBodyNodeMount();
     window.confirm = vi.fn().mockReturnValue(true);
 
     const user = mkUser({
@@ -92,7 +105,7 @@ describe('openInsightDetailModal — delete flow (v3.23 T9)', () => {
     mockSaveUser.mockImplementation(() => undefined);
 
     openInsightDetailModal('i1');
-    wrap.querySelector<HTMLButtonElement>('.insight-delete-btn')!.click();
+    document.body.querySelector<HTMLButtonElement>('.insight-delete-btn')!.click();
 
     expect(mockSaveUser).toHaveBeenCalledTimes(1);
     expect(user.insights).toHaveLength(0);
@@ -102,7 +115,7 @@ describe('openInsightDetailModal — delete flow (v3.23 T9)', () => {
   });
 
   it('confirm cancel → 변경 없음 (saveUser/dispatch 미호출)', () => {
-    const wrap = setupWrap();
+    setupBodyNodeMount();
     window.confirm = vi.fn().mockReturnValue(false);
 
     const user = mkUser({
@@ -111,7 +124,7 @@ describe('openInsightDetailModal — delete flow (v3.23 T9)', () => {
     mockGetCachedUser.mockReturnValue(user);
 
     openInsightDetailModal('i1');
-    wrap.querySelector<HTMLButtonElement>('.insight-delete-btn')!.click();
+    document.body.querySelector<HTMLButtonElement>('.insight-delete-btn')!.click();
 
     expect(mockSaveUser).not.toHaveBeenCalled();
     expect(mockDispatch).not.toHaveBeenCalled();
@@ -119,7 +132,7 @@ describe('openInsightDetailModal — delete flow (v3.23 T9)', () => {
   });
 
   it('saveUser throw → rollback + getSaveErrorMessage 토스트, dispatch 미발생', () => {
-    const wrap = setupWrap();
+    setupBodyNodeMount();
     window.confirm = vi.fn().mockReturnValue(true);
 
     const user = mkUser({
@@ -129,7 +142,7 @@ describe('openInsightDetailModal — delete flow (v3.23 T9)', () => {
     mockSaveUser.mockImplementation(() => { throw new Error('quota'); });
 
     openInsightDetailModal('i1');
-    wrap.querySelector<HTMLButtonElement>('.insight-delete-btn')!.click();
+    document.body.querySelector<HTMLButtonElement>('.insight-delete-btn')!.click();
 
     expect(user.insights).toHaveLength(1); // rollback
     expect(mockDispatch).not.toHaveBeenCalled();
@@ -167,32 +180,24 @@ describe('openInsightDetailModal — dropdown 분야 변경 (v3.25 T6)', () => {
   });
 
   /**
-   * select + delete 버튼을 가진 wrap을 세팅한다.
-   * select.value 초기값은 caller가 override 가능.
+   * v3.38 T6: openModal mock이 cfg.bodyNode를 mount하도록 세팅하고,
+   * production-rendered select element를 반환한다.
    */
-  function setupWrapWithSelect(initial: string): {
-    wrap: HTMLDivElement;
-    select: HTMLSelectElement;
-  } {
-    const wrap = document.createElement('div');
-    // eslint-disable-next-line no-restricted-syntax -- jsdom static fixture, no interpolation
-    wrap.innerHTML =
-      '<select class="insight-interest-select">' +
-      '<option value="unknown">📰 미분류</option>' +
-      '<option value="recruiting">🎯 채용</option>' +
-      '<option value="onboarding">🚀 온보딩</option>' +
-      '<option value="hallucinated">🤯 허상</option>' +
-      '</select>' +
-      '<button class="insight-delete-btn" type="button">삭제</button>';
-    document.body.appendChild(wrap);
-    const select = wrap.querySelector<HTMLSelectElement>('.insight-interest-select')!;
-    select.value = initial;
-    mockOpenModal.mockReturnValue(wrap);
-    return { wrap, select };
+  function setupBodyNodeMount(): { getSelect: () => HTMLSelectElement } {
+    mockOpenModal.mockImplementation((cfg: { bodyNode?: Node; bodyHtml?: string }) => {
+      const wrap = document.createElement('div');
+      wrap.className = 'dg-modal';
+      if (cfg.bodyNode) wrap.append(cfg.bodyNode);
+      document.body.appendChild(wrap);
+      return wrap;
+    });
+    return {
+      getSelect: () => document.body.querySelector<HTMLSelectElement>('.insight-interest-select')!,
+    };
   }
 
   it('dropdown 변경 시 saveUser 호출 + dg:insights:updated dispatch + toast (modal 닫지 않음)', () => {
-    const { select } = setupWrapWithSelect('unknown');
+    const { getSelect } = setupBodyNodeMount();
     const user = mkUser({
       insights: [{ id: 'i1', text: '통찰', interestId: 'unknown', createdAt: '2026-05-09T10:00:00Z', pinned: false }],
     });
@@ -200,6 +205,7 @@ describe('openInsightDetailModal — dropdown 분야 변경 (v3.25 T6)', () => {
     mockSaveUser.mockImplementation(() => undefined);
 
     openInsightDetailModal('i1');
+    const select = getSelect();
     select.value = 'recruiting';
     select.dispatchEvent(new Event('change'));
 
@@ -211,7 +217,7 @@ describe('openInsightDetailModal — dropdown 분야 변경 (v3.25 T6)', () => {
   });
 
   it('saveUser throw 시 in-memory + select.value 양방향 rollback', () => {
-    const { select } = setupWrapWithSelect('unknown');
+    const { getSelect } = setupBodyNodeMount();
     const user = mkUser({
       insights: [{ id: 'i1', text: '통찰', interestId: 'unknown', createdAt: '2026-05-09T10:00:00Z', pinned: false }],
     });
@@ -219,6 +225,7 @@ describe('openInsightDetailModal — dropdown 분야 변경 (v3.25 T6)', () => {
     mockSaveUser.mockImplementationOnce(() => { throw new Error('Quota'); });
 
     openInsightDetailModal('i1');
+    const select = getSelect();
     select.value = 'recruiting';
     select.dispatchEvent(new Event('change'));
 
@@ -233,7 +240,7 @@ describe('openInsightDetailModal — dropdown 분야 변경 (v3.25 T6)', () => {
   });
 
   it("invalid value (whitelist 외) — validateInterestId로 'unknown' 폴백", () => {
-    const { select } = setupWrapWithSelect('unknown');
+    const { getSelect } = setupBodyNodeMount();
     const user = mkUser({
       insights: [{ id: 'i1', text: '통찰', interestId: 'unknown', createdAt: '2026-05-09T10:00:00Z', pinned: false }],
     });
@@ -241,10 +248,139 @@ describe('openInsightDetailModal — dropdown 분야 변경 (v3.25 T6)', () => {
     mockSaveUser.mockImplementation(() => undefined);
 
     openInsightDetailModal('i1');
+    const select = getSelect();
+    // production-rendered select에는 'hallucinated' option이 없음 → JSDOM이 value 무시 가능.
+    // validateInterestId가 whitelist를 enforce하므로, 직접 'hallucinated' 값을 강제 주입.
+    const optHallu = document.createElement('option');
+    optHallu.value = 'hallucinated';
+    optHallu.textContent = '🤯 허상';
+    select.append(optHallu);
     select.value = 'hallucinated';
     select.dispatchEvent(new Event('change'));
 
     expect(user.insights[0]!.interestId).toBe('unknown');
     expect(mockSaveUser).toHaveBeenCalledTimes(1);
+  });
+});
+
+// ---------------------------------------------------------------------------
+// v3.38 T6: archive nav chip + bodyNode 마이그
+// ---------------------------------------------------------------------------
+describe('openInsightDetailModal — archive nav chip (v3.38 T6)', () => {
+  beforeEach(() => {
+    document.body.replaceChildren();
+    vi.clearAllMocks();
+    mockGetSaveErrorMessage.mockReturnValue('저장 실패');
+    mockNavigateToInterestArchive.mockReset();
+  });
+
+  afterEach(() => {
+    document.body.replaceChildren();
+  });
+
+  /** openModal mock이 cfg.bodyNode를 mount하도록 세팅 */
+  function setupBodyNodeMount(): void {
+    mockOpenModal.mockImplementation((cfg: { bodyNode?: Node; bodyHtml?: string }) => {
+      const wrap = document.createElement('div');
+      wrap.className = 'dg-modal';
+      if (cfg.bodyNode) wrap.append(cfg.bodyNode);
+      document.body.appendChild(wrap);
+      return wrap;
+    });
+  }
+
+  it('interestId가 valid (unknown/empty 아님)이면 chip 표시', () => {
+    setupBodyNodeMount();
+    const user = mkUser({
+      insights: [{ id: 'i1', text: '통찰', interestId: 'leadership', createdAt: '2026-05-09T10:00:00Z', pinned: false }],
+    });
+    mockGetCachedUser.mockReturnValue(user);
+
+    openInsightDetailModal('i1');
+
+    const chip = document.body.querySelector<HTMLButtonElement>('.insight-archive-nav-chip');
+    expect(chip).not.toBeNull();
+    expect(chip!.textContent).toBe('🔍 이 분야 다른 답변/스크랩 보기');
+    expect(chip!.getAttribute('aria-label')).toContain('archive');
+  });
+
+  it('interestId === "unknown"이면 chip 미표시', () => {
+    setupBodyNodeMount();
+    const user = mkUser({
+      insights: [{ id: 'i1', text: '통찰', interestId: 'unknown', createdAt: '2026-05-09T10:00:00Z', pinned: false }],
+    });
+    mockGetCachedUser.mockReturnValue(user);
+
+    openInsightDetailModal('i1');
+
+    expect(document.body.querySelector('.insight-archive-nav-chip')).toBeNull();
+  });
+
+  it('interestId === "" (empty)이면 chip 미표시', () => {
+    setupBodyNodeMount();
+    const user = mkUser({
+      insights: [{ id: 'i1', text: '통찰', interestId: '', createdAt: '2026-05-09T10:00:00Z', pinned: false }],
+    });
+    mockGetCachedUser.mockReturnValue(user);
+
+    openInsightDetailModal('i1');
+
+    expect(document.body.querySelector('.insight-archive-nav-chip')).toBeNull();
+  });
+
+  it('chip 클릭 → navigateToInterestArchive(interestId) 1회 호출', () => {
+    setupBodyNodeMount();
+    mockNavigateToInterestArchive.mockResolvedValue(undefined);
+    const user = mkUser({
+      insights: [{ id: 'i1', text: '통찰', interestId: 'leadership', createdAt: '2026-05-09T10:00:00Z', pinned: false }],
+    });
+    mockGetCachedUser.mockReturnValue(user);
+
+    openInsightDetailModal('i1');
+    document.body.querySelector<HTMLButtonElement>('.insight-archive-nav-chip')!.click();
+
+    expect(mockNavigateToInterestArchive).toHaveBeenCalledTimes(1);
+    expect(mockNavigateToInterestArchive).toHaveBeenCalledWith('leadership');
+  });
+
+  it('navigateToInterestArchive reject 시 console.warn 호출하고 silent fail (throw 외부 누출 X)', async () => {
+    setupBodyNodeMount();
+    const warnSpy = vi.spyOn(console, 'warn').mockImplementation(() => undefined);
+    const rejection = Promise.reject(new Error('boom'));
+    // 미처리 rejection 경고 회피
+    rejection.catch(() => undefined);
+    mockNavigateToInterestArchive.mockReturnValue(rejection);
+    const user = mkUser({
+      insights: [{ id: 'i1', text: '통찰', interestId: 'leadership', createdAt: '2026-05-09T10:00:00Z', pinned: false }],
+    });
+    mockGetCachedUser.mockReturnValue(user);
+
+    openInsightDetailModal('i1');
+    expect(() => {
+      document.body.querySelector<HTMLButtonElement>('.insight-archive-nav-chip')!.click();
+    }).not.toThrow();
+
+    // microtask queue 충분히 flush (Promise.catch handler 발화 보장)
+    await new Promise((r) => setTimeout(r, 0));
+    await Promise.resolve();
+
+    expect(warnSpy).toHaveBeenCalledWith('[insight-detail] navigate failed', expect.any(Error));
+    warnSpy.mockRestore();
+  });
+
+  it('bodyNode 마이그 — XSS payload 인 text가 textContent로 안전 렌더 (innerHTML 직렬화 0)', () => {
+    setupBodyNodeMount();
+    const user = mkUser({
+      insights: [{ id: 'i1', text: '<img src=x onerror=alert(1)>', interestId: 'unknown', createdAt: '2026-05-09T10:00:00Z', pinned: false }],
+    });
+    mockGetCachedUser.mockReturnValue(user);
+
+    openInsightDetailModal('i1');
+
+    const textP = document.body.querySelector('.insight-detail-text');
+    expect(textP).not.toBeNull();
+    // textContent는 안전 — 실제 <img> 노드는 생성되지 않음
+    expect(textP!.textContent).toBe('<img src=x onerror=alert(1)>');
+    expect(document.body.querySelector('img')).toBeNull();
   });
 });
