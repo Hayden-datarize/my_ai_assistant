@@ -10,7 +10,7 @@ import { loadBriefings, saveBriefings, toggleScrap } from '../../state/briefings
 import { openModal } from '../modals/shared';
 import { escapeHtml } from '../../utils/escapeHtml';
 import { highlightHtml } from '../../utils/highlight';
-import { matchesAllTokens, tokenizeQuery } from '../../utils/fuzzy';
+import { matchesAllTokens, tokenizeQuery, fuzzyMatchesToken } from '../../utils/fuzzy';
 import { scoreEntry } from '../../utils/ranking';
 import { sortPinThenScoreDesc } from '../../utils/archiveSort';
 import { showToast, showUndoToast } from '../../utils/toast';
@@ -719,6 +719,24 @@ function renderOtherPinCounter(count: number): void {
   list.parentElement.insertBefore(btn, list);
 }
 
+/**
+ * v3.38 T5b: archive 검색 fuzzy 통합 — exact match 0건 degrade fallback.
+ *
+ * - exact `matchesAllTokens` 우선 (성공 시 fuzzy 안 시도, degrade 우아).
+ * - exact false + `useFuzzy=true` 면 per-record fuzzy 시도 (모든 token이 fuzzy match).
+ * - 초성-only token은 `fuzzyMatchesToken` 내부에서 false → 자연스레 exact-only.
+ *
+ * caller는 `useFuzzy` 를 archive-wide guard (전체 pool ≤ 5000) 로 계산하여 전달.
+ */
+function matchesAllTokensFuzzy(text: string, tokens: string[], useFuzzy: boolean): boolean {
+  if (matchesAllTokens(text, tokens)) return true;
+  if (!useFuzzy) return false;
+  return tokens.every((t) => fuzzyMatchesToken(text, t));
+}
+
+// v3.38 T5b: archive-wide pool guard (UI freeze 차단) — fuzzy 활성화 임계치.
+const ARCHIVE_FUZZY_POOL_CAP = 5000;
+
 export function rerenderList(): void {
   // v3.30 T7 P1 fix (Codex 최종 review): 모든 caller에서 chip count 자동 갱신.
   // 답변 단건/벌크 삭제, scrap 해제/undo, dg:insights:* 변경 후 stale 방지.
@@ -733,6 +751,11 @@ export function rerenderList(): void {
   const briefings = loadBriefings();
   const scraps = briefings.filter((b) => b.scrapped);
   const insights = getCachedUser()?.insights ?? [];
+
+  // v3.38 T5b (Codex 사전 P1-4): archive-wide guard — 전체 pool > 5000 이면 fuzzy off.
+  // 한 번만 계산하여 4개 entity 분기에 동일하게 전달. UI freeze 차단.
+  const useFuzzy = currentTokens.length > 0
+    && (answers.length + scraps.length + insights.length) <= ARCHIVE_FUZZY_POOL_CAP;
 
   // v3.27 T4: counter (entity != 'all' 시 외부 pinned 가시화).
   renderOtherPinCounter(computeOtherPinCount(currentEntity, answers, scraps, insights));
@@ -767,8 +790,9 @@ export function rerenderList(): void {
     if (currentTokens.length > 0) {
       // v3.32 T3 (Codex 사전 P1-3): title+summary 결합 검색 — 토큰이 두 필드에 나뉜 항목 false negative 차단.
       // v3.38 T4: title/summary는 Briefing interface상 required string — redundant `?? ''` 제거.
+      // v3.38 T5b: exact match 0건 시 fuzzy fallback (archive-wide guard 적용).
       pool = pool.filter((b) =>
-        matchesAllTokens(`${b.title} ${b.summary}`, currentTokens));
+        matchesAllTokensFuzzy(`${b.title} ${b.summary}`, currentTokens, useFuzzy));
     }
     if (pool.length === 0) {
       list.textContent = '아직 스크랩한 기사가 없어요.';
@@ -796,7 +820,8 @@ export function rerenderList(): void {
   if (currentEntity === 'insight') {
     let pool = insights;
     if (currentTokens.length > 0) {
-      pool = pool.filter((i) => matchesAllTokens(i.text, currentTokens));
+      // v3.38 T5b: exact match 0건 시 fuzzy fallback (archive-wide guard 적용).
+      pool = pool.filter((i) => matchesAllTokensFuzzy(i.text, currentTokens, useFuzzy));
     }
     if (pool.length === 0) {
       list.textContent = '아직 저장된 인사이트가 없어요.';
@@ -831,13 +856,14 @@ export function rerenderList(): void {
 
     if (currentTokens.length > 0) {
       // v3.34 T3: answer는 questionText+text 결합 (ranking weight 정합). briefing은 title+summary.
+      // v3.38 T5b: 3 entity kind 각각 exact 0건 시 fuzzy fallback (per-record, archive-wide guard).
       entries = entries.filter((e) =>
         e.kind === 'answer'
-          ? matchesAllTokens(`${e.answer.questionText ?? ''} ${e.answer.text}`, currentTokens)
+          ? matchesAllTokensFuzzy(`${e.answer.questionText ?? ''} ${e.answer.text}`, currentTokens, useFuzzy)
           : e.kind === 'insight'
-            ? matchesAllTokens(e.insight.text, currentTokens)
+            ? matchesAllTokensFuzzy(e.insight.text, currentTokens, useFuzzy)
             // v3.38 T4: briefing.title/summary required → `?? ''` 제거.
-            : matchesAllTokens(`${e.briefing.title} ${e.briefing.summary}`, currentTokens),
+            : matchesAllTokensFuzzy(`${e.briefing.title} ${e.briefing.summary}`, currentTokens, useFuzzy),
       );
     }
 
@@ -880,8 +906,9 @@ export function rerenderList(): void {
   if (currentFilter !== 'all') filtered = filtered.filter((a) => (a.type ?? '').includes(currentFilter));
   if (currentTokens.length > 0) {
     // v3.34 T3: filter 대상에 questionText 결합 (ranking weight 활성화 정합).
+    // v3.38 T5b: exact match 0건 시 fuzzy fallback (archive-wide guard 적용).
     filtered = filtered.filter((a) =>
-      matchesAllTokens(`${a.questionText ?? ''} ${a.text}`, currentTokens));
+      matchesAllTokensFuzzy(`${a.questionText ?? ''} ${a.text}`, currentTokens, useFuzzy));
   }
 
   if (filtered.length === 0) {
