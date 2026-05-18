@@ -55,8 +55,36 @@ export function loadBriefings(): Briefing[] {
   }
 }
 
+/**
+ * v3.38 T4: write-side schema strict + NFC normalize.
+ *
+ * - required field (title/summary/memo): 비문자열 거절 (무결성 invariant).
+ * - 한국어 NFC normalize: search/highlight/fuzzy 정합 (v3.27+ token search precedent).
+ * - sourceTitle (optional): 존재 시 NFC normalize.
+ *
+ * Codex 사전 review P1-3 ripple — 단일 boundary(saveBriefings)에 통합하여
+ * caller(home.ts saveBriefings call site, mutateWithSweep)들이 자동 혜택.
+ */
 export function saveBriefings(list: Briefing[]): void {
-  localStorage.setItem(KEY, JSON.stringify(list));
+  const normalized = list.map((b, i) => {
+    if (typeof b.title !== 'string') {
+      throw new Error(`saveBriefings: invalid title at index ${i} (expected string)`);
+    }
+    if (typeof b.summary !== 'string') {
+      throw new Error(`saveBriefings: invalid summary at index ${i} (expected string)`);
+    }
+    if (typeof b.memo !== 'string') {
+      throw new Error(`saveBriefings: invalid memo at index ${i} (expected string)`);
+    }
+    return {
+      ...b,
+      title: b.title.normalize('NFC'),
+      summary: b.summary.normalize('NFC'),
+      memo: b.memo.normalize('NFC'),
+      ...(b.sourceTitle !== undefined ? { sourceTitle: b.sourceTitle.normalize('NFC') } : {}),
+    };
+  });
+  localStorage.setItem(KEY, JSON.stringify(normalized));
 }
 
 function mutate(index: number, fn: (b: Briefing) => void): void {

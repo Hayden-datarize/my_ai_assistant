@@ -21,8 +21,8 @@ export function openMemoModal(index: number): void {
   const briefing = list[index];
   if (!briefing) return;
 
-  const existing = briefing.memo ?? '';
-  const escaped = escapeHtml(existing);
+  // v3.38 T4: Briefing.memo는 interface상 required string — `?? ''` redundant 제거.
+  const escaped = escapeHtml(briefing.memo);
 
   const wrap = openModal({
     title: '메모',

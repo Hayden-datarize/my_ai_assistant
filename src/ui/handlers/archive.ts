@@ -766,8 +766,9 @@ export function rerenderList(): void {
     let pool = scraps;
     if (currentTokens.length > 0) {
       // v3.32 T3 (Codex 사전 P1-3): title+summary 결합 검색 — 토큰이 두 필드에 나뉜 항목 false negative 차단.
+      // v3.38 T4: title/summary는 Briefing interface상 required string — redundant `?? ''` 제거.
       pool = pool.filter((b) =>
-        matchesAllTokens(`${b.title ?? ''} ${b.summary ?? ''}`, currentTokens));
+        matchesAllTokens(`${b.title} ${b.summary}`, currentTokens));
     }
     if (pool.length === 0) {
       list.textContent = '아직 스크랩한 기사가 없어요.';
@@ -778,8 +779,9 @@ export function rerenderList(): void {
       sortPinThenScoreDesc(
         pool,
         (b) => b.pinned,
+        // v3.38 T4: title/summary는 required string — `?? ''` 제거.
         (b) => scoreEntry(
-          [{ text: b.title ?? '', weight: 2 }, { text: b.summary ?? '', weight: 1 }],
+          [{ text: b.title, weight: 2 }, { text: b.summary, weight: 1 }],
           currentTokens,
         ),
         (b) => b.date,
@@ -834,7 +836,8 @@ export function rerenderList(): void {
           ? matchesAllTokens(`${e.answer.questionText ?? ''} ${e.answer.text}`, currentTokens)
           : e.kind === 'insight'
             ? matchesAllTokens(e.insight.text, currentTokens)
-            : matchesAllTokens(`${e.briefing.title ?? ''} ${e.briefing.summary ?? ''}`, currentTokens),
+            // v3.38 T4: briefing.title/summary required → `?? ''` 제거.
+            : matchesAllTokens(`${e.briefing.title} ${e.briefing.summary}`, currentTokens),
       );
     }
 
@@ -854,8 +857,9 @@ export function rerenderList(): void {
       if (e.kind === 'insight') {
         return scoreEntry([{ text: e.insight.text, weight: 1 }], currentTokens);
       }
+      // v3.38 T4: briefing.title/summary required → `?? ''` 제거.
       return scoreEntry(
-        [{ text: e.briefing.title ?? '', weight: 2 }, { text: e.briefing.summary ?? '', weight: 1 }],
+        [{ text: e.briefing.title, weight: 2 }, { text: e.briefing.summary, weight: 1 }],
         currentTokens,
       );
     };
