@@ -13,6 +13,7 @@ import { highlightHtml } from '../../utils/highlight';
 import { matchesAllTokens, tokenizeQuery, fuzzyMatchesToken } from '../../utils/fuzzy';
 import { scoreEntry } from '../../utils/ranking';
 import { sortPinThenScoreDesc } from '../../utils/archiveSort';
+import { renderArchiveSearchSummary, type ArchiveSearchCounts } from '../components/archive-search-summary';
 import { showToast, showUndoToast } from '../../utils/toast';
 import { toKoType } from '../../utils/typeLabel';
 import { getSaveErrorMessage, getCachedUser, saveUser, type Insight } from '../../state/user';
@@ -235,6 +236,55 @@ export function resetArchiveFilters(): void {
 
   // v2 (Codex 사전 P1-1): bulk delete button 동기화 — selectedIds 비웠으니 disabled + count=0
   updateBulkButton();
+}
+
+/**
+ * v3.38 T7b (C1): entity 변경 invariant 일괄 적용 — main entity chip + summary chip 공용.
+ *
+ * Codex 사전 P1-7 흡수: 두 진입점(main chip click / summary chip click)이 동일 invariant
+ * (currentEntity 업데이트 + chip ARIA/class 동기화 + 2차 question-row 토글 + rerenderList)을
+ * trigger하므로 분기 helper로 추출. DRY + 회귀 가드 단일 지점.
+ *
+ * 책임:
+ *   - currentEntity 모듈 state 업데이트
+ *   - .archive-entity-chip[data-entity] aria-checked + active class 동기화 (radiogroup)
+ *   - #archiveFilters question type row 조건부 노출 (entity ∈ {scrap, insight} 시 숨김)
+ *   - rerenderList() 트리거 (count는 rerenderList 내부 updateSearchSummary가 자동 갱신)
+ */
+function applyEntity(entity: EntityFilter): void {
+  currentEntity = entity;
+  // ARIA radiogroup state
+  document.querySelectorAll<HTMLButtonElement>('.archive-entity-chip').forEach((b) => {
+    const active = b.dataset['entity'] === entity;
+    b.classList.toggle('active', active);
+    b.setAttribute('aria-checked', active ? 'true' : 'false');
+  });
+  // 2차 question type row 조건부 노출 — entity ∈ {all, answer}만.
+  const questionRow = document.getElementById('archiveFilters');
+  if (questionRow) {
+    const hide = entity === 'scrap' || entity === 'insight';
+    questionRow.style.display = hide ? 'none' : '';
+  }
+  rerenderList();
+}
+
+/**
+ * v3.38 T7b (C1): summary chip click delegated listener 1회 wire.
+ * - slot.dataset.wired flag로 중복 등록 차단 (replaceChildren로 안쪽만 갈아끼움 — slot 자체 보존).
+ * - rerenderList()가 매 호출마다 slot innerChildren를 갈아치워도 slot 노드 ref + listener 보존됨.
+ */
+function wireSearchSummaryClickOnce(): void {
+  const slot = document.getElementById('archiveSearchSummary');
+  if (!slot || slot.dataset['wired'] === '1') return;
+  slot.dataset['wired'] = '1';
+  slot.addEventListener('click', (ev) => {
+    const target = ev.target as HTMLElement;
+    const chip = target.closest<HTMLButtonElement>('button.entity-summary-chip[data-entity]');
+    if (!chip) return;
+    const entity = chip.dataset['entity'] as EntityFilter | undefined;
+    if (!entity) return;
+    applyEntity(entity);
+  });
 }
 
 function handleCardClickInSelectMode(e: Event): void {
@@ -545,26 +595,17 @@ export function mountArchiveHandlers(): void {
   });
 
   // v3.27 T2b: entity chip click — 1차 row [전체/답변/스크랩/인사이트].
+  // v3.38 T7b (C1): applyEntity 공용 helper로 단순화 — summary chip click과 동일 invariant 재사용.
   document.addEventListener('click', (e) => {
     const chip = (e.target as HTMLElement).closest<HTMLButtonElement>('.archive-entity-chip[data-entity]');
     if (!chip) return;
     const entity = chip.dataset['entity'] as EntityFilter | undefined;
     if (!entity) return;
-    currentEntity = entity;
-    // ARIA radiogroup state
-    document.querySelectorAll<HTMLButtonElement>('.archive-entity-chip').forEach((b) => {
-      const active = b.dataset['entity'] === entity;
-      b.classList.toggle('active', active);
-      b.setAttribute('aria-checked', active ? 'true' : 'false');
-    });
-    // 2차 question type row 조건부 노출 — entity ∈ {all, answer}만.
-    const questionRow = document.getElementById('archiveFilters');
-    if (questionRow) {
-      const hide = entity === 'scrap' || entity === 'insight';
-      questionRow.style.display = hide ? 'none' : '';
-    }
-    rerenderList();
+    applyEntity(entity);
   });
+
+  // v3.38 T7b (C1): summary chip click — delegated listener 1회 wire (slot.dataset.wired gate).
+  wireSearchSummaryClickOnce();
 
   // v3.27 T2b: onboarding banner dismiss — sessionStorage stamp + remove.
   document.addEventListener('click', (e) => {
@@ -737,6 +778,47 @@ function matchesAllTokensFuzzy(text: string, tokens: string[], useFuzzy: boolean
 // v3.38 T5b: archive-wide pool guard (UI freeze 차단) — fuzzy 활성화 임계치.
 const ARCHIVE_FUZZY_POOL_CAP = 5000;
 
+/**
+ * v3.38 T7b (C1): 검색 결과 summary chip 묶음 갱신.
+ *
+ * counts는 **currentEntity filter 전** 전체 query hits 기준 — entity 변경 시 stable.
+ * 검색 token이 비어있으면 slot 비움 (summary 자체 미표시).
+ *
+ * 매칭 기준은 entity별 본문 영역 (rerenderList의 filter와 동일):
+ *   - answer: questionText + text 결합
+ *   - scrap: title + summary 결합 (scrapped only)
+ *   - insight: text
+ *
+ * Codex 사전 P1-7: count는 fuzzy fallback도 포함 (rerenderList filter와 정합).
+ */
+function updateSearchSummary(
+  answers: Answer[],
+  scraps: ReturnType<typeof loadBriefings>,
+  insights: Insight[],
+  useFuzzy: boolean,
+): void {
+  const slot = document.getElementById('archiveSearchSummary');
+  if (!slot) return;
+  slot.replaceChildren();
+
+  if (currentTokens.length === 0) return;
+
+  const counts: ArchiveSearchCounts = {
+    answer: answers.filter((a) =>
+      matchesAllTokensFuzzy(`${a.questionText ?? ''} ${a.text}`, currentTokens, useFuzzy),
+    ).length,
+    scrap: scraps.filter((b) =>
+      matchesAllTokensFuzzy(`${b.title} ${b.summary}`, currentTokens, useFuzzy),
+    ).length,
+    insight: insights.filter((i) =>
+      matchesAllTokensFuzzy(i.text, currentTokens, useFuzzy),
+    ).length,
+  };
+
+  const summary = renderArchiveSearchSummary(counts);
+  if (summary) slot.append(summary);
+}
+
 export function rerenderList(): void {
   // v3.30 T7 P1 fix (Codex 최종 review): 모든 caller에서 chip count 자동 갱신.
   // 답변 단건/벌크 삭제, scrap 해제/undo, dg:insights:* 변경 후 stale 방지.
@@ -756,6 +838,10 @@ export function rerenderList(): void {
   // 한 번만 계산하여 4개 entity 분기에 동일하게 전달. UI freeze 차단.
   const useFuzzy = currentTokens.length > 0
     && (answers.length + scraps.length + insights.length) <= ARCHIVE_FUZZY_POOL_CAP;
+
+  // v3.38 T7b (C1): 검색 활성 시 entity별 hit count 집계 (currentEntity filter 전 전체 query hits).
+  // counts는 currentEntity 변경과 무관하게 stable — summary chip click 후에도 동일 hits 유지.
+  updateSearchSummary(answers, scraps, insights, useFuzzy);
 
   // v3.27 T4: counter (entity != 'all' 시 외부 pinned 가시화).
   renderOtherPinCounter(computeOtherPinCount(currentEntity, answers, scraps, insights));
