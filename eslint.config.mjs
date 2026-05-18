@@ -11,6 +11,10 @@
 import js from '@eslint/js';
 import tsParser from '@typescript-eslint/parser';
 import tsPlugin from '@typescript-eslint/eslint-plugin';
+import nfdRule from './.eslint-rules/no-nfd-korean-literal.js';
+
+// v3.38 T1b (C9): 로컬 ESLint rule — 한국어 NFD literal 차단.
+const localPlugin = { rules: { 'no-nfd-korean-literal': nfdRule } };
 
 export default [
   {
@@ -129,6 +133,7 @@ export default [
     },
     plugins: {
       '@typescript-eslint': tsPlugin,
+      local: localPlugin,
     },
     rules: {
       ...js.configs.recommended.rules,
@@ -179,6 +184,8 @@ export default [
           ],
         },
       ],
+      // v3.38 T1b: 한국어 NFD literal 차단 (v3.37 T3 M-5 P2 graduated).
+      'local/no-nfd-korean-literal': 'error',
     },
   },
   {
