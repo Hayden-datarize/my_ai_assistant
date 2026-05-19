@@ -1,0 +1,22 @@
+## 결론
+REQUIRES_FIX — v9 load/validation path와 archive exact-filter 상태 모델이 spec에 빠져 있어 그대로 구현하면 core migration/필터 목표가 깨질 수 있음.
+
+## P0 (배포 전 반드시 in-cycle)
+- [P0-1] v9 chain superset 범위 부족: `spec §2.2`, `src/state/user.ts:137-170`, `src/state/user.ts:203-253`, `src/state/migration.ts:413-465`. V2~V8 함수 guard 8 spot만으로 부족함. `getCachedUser`의 `<=8`, persist 조건 `!==8`, `isValidUserShape`의 `<=8`/`===8`도 v9로 확장해야 함. 특히 `migrateUserToV8`에 v9 pass-through가 없으면 v9가 v8로 downgrade될 수 있음. Fix: V2~V8 모두 v9 same-reference guard, V9 migrator 추가, user load allowlist/persist/shape guard를 v9 기준으로 변경, v9 corrupt nested reject spec 추가.
+- [P0-2] archive exact filter 상태 모델 부재: `spec §3.3.2`, `src/ui/handlers/archive.ts:27-34`, `src/ui/handlers/archive.ts:276-282`, `src/ui/handlers/archive.ts:984-991`, `src/ui/modals/plant-detail.ts:103-118`. spec의 `selectedId`가 현재 archive state에 존재하지 않고, summary chip은 entity chip임. Fix: `currentInterestId` 같은 명시 state와 reset/apply 함수 정의, `navigateToInterestArchive`/insight nav chip이 이를 설정하도록 하고, answer/scrap/insight/all branch와 summary count가 동일 predicate를 쓰게 할 것.
+- [P0-3] interest matching/validation silent fail: `spec §1 G2`, `spec §3.1.2`, `spec §3.2`, `src/utils/interestKeywords.ts:45-55`. spec은 `matchKeyword(text, interestId)`를 쓰지만 현재 helper는 lowercase hay + keyword token용이라 `ai_ml`, `leadership` 같은 id 직접 매칭은 대부분 false negative. 또 `user.interests[0]`, DOM dataset interestId가 `validateInterestId` 없이 저장될 수 있음. Fix: `matchesInterest(text, id)`를 만들고 `interestKeywords(id).some(...)` + lowercase + `validateInterestId`를 통과시킨 뒤 저장.
+
+## P1 (사이클 내 흡수)
+- [P1-1] Answer/Briefing migration invariant 표현 정정: `spec §2.2`, `src/state/schema.ts:1-6`, `src/state/migration.ts:11-49`, `src/state/persistence.ts:25-35`. Answer local schema는 v9가 아니라 `CURRENT_SCHEMA_VERSION=1`이므로 “already-v9 early-return” 대신 copy-based normalize/idempotent value invariant로 써야 함. `migrateAnswer` 위치도 `persistence.ts`가 아니라 `migration.ts`.
+- [P1-2] QuestionOut parse/cache path 누락: `spec §3.1.1`, `src/ui/handlers/home.ts:760-789`, `src/services/gemini.ts:45-53`. 기존 당일 cached question에는 `targetInterestId`가 없을 수 있음. prompt도 “첫 줄 interestId”와 JSON `QuestionOut` 확장이 혼재함. Fix: JSON field 방식으로 통일하거나 `parseQuestionResponse`를 명시하고, cached/fallback render도 validated fallback interestId를 채우는 spec 추가.
+- [P1-3] plant-detail count ripple 누락: `src/utils/interestCounts.ts:12-19`, `src/utils/interestCounts.ts:26-34`, `src/ui/modals/plant-detail.ts:61-63`. 분야별 답변/스크랩 수가 계속 keyword 기반이면 archive exact filter와 다른 숫자를 보여줌. Fix: `interestId === selectedId` 우선 + legacy unknown/missing keyword fallback으로 정렬.
+- [P1-4] stats UI label/legacy UX: `src/ui/modals/stats-range-modal.ts:24-28`, `src/ui/modals/stats-range-modal.ts:77-82`, `spec §3.3.1`, `spec §5 R5`. `byInterest`가 catalog id로 바뀌면 UI가 `ai_ml`, `hr_system` raw id를 노출함. Fix: `getCategoryLabel` 계층 적용. 또한 legacy가 전부 `unknown`이면 기존 답변이 있는데 활성 분야 0으로 보여서 최소 empty-state 문구는 in-cycle에 넣는 편이 안전함.
+- [P1-5] smoke/test 영향 과소 산정: `spec §7.3`, `spec §4`. exact interest filter는 기존 archive search/entity summary/plant-detail/insight-detail 흐름을 건드림. Fix: 기존 smoke 23 case 중 archive/search/entity 관련 회귀 목록을 명시하고, exact hit + legacy fallback + reset 후 일반 검색 복귀 spec을 추가.
+
+## P2 (v3.40+ carry)
+- [P2-1] historical Answer/Briefing one-time reclassification: 현재 legacy는 `unknown` 백필이 합리적이나, keyword 기반 일괄 재분류는 별도 사이클에서 검토 가능.
+- [P2-2] 안내 toast/full onboarding: in-cycle 최소 empty-state 문구와 별개로 “v3.39부터 분야별 통계 기준 변경” toast는 v3.40 carry 가능.
+- [P2-3] 공용 predicate/helper 정리: exact filter predicate가 안정된 뒤 archive/search/plant-detail/count helper를 공용 util로 정리.
+
+## 종합 의견
+방향 자체는 v3.25 Insight 패턴을 Answer/Briefing에 확장하는 합리적인 단독 migration 사이클이다. 다만 현재 spec v1은 “schema stamp”, “write-time classification”, “archive exact filter”를 각각 맞는 방향으로 잡았지만, 실제 코드의 hard-coded v8 load path와 archive의 기존 검색 중심 state 모델을 충분히 반영하지 못했다. 위 P0를 반영하면 architecture는 안정권이고, P1은 사용자 눈에 보이는 count/label/legacy UX 정합성을 맞추는 범위라 같은 사이클에서 흡수하는 것이 맞다.
