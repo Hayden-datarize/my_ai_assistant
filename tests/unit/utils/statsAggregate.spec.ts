@@ -11,13 +11,16 @@ import { getStatsRange } from '../../../src/utils/statsAggregate';
 // 기준 시각: 2026-05-08T09:00:00Z → KST 2026-05-08 18:00, NY 2026-05-08 05:00
 const NOW_UTC = '2026-05-08T09:00:00Z';
 
-function makeAnswer(overrides: { id: string; createdAt: string; type?: string }) {
+// v3.39 T6 (Codex P1-4): byInterest 분류 기준이 `a.type` → `a.interestId`로 정정됨.
+// 기존 type 인자 호환 유지(아래 일부 케이스에 잔존), 신규 interestId 인자 우선.
+function makeAnswer(overrides: { id: string; createdAt: string; type?: string; interestId?: string }) {
   return {
     schemaVersion: 1 as const,
     questionId: 'q1',
     text: 'x',
     authorId: 'self',
-    type: '커리어',
+    type: '분석',
+    interestId: 'career',
     ...overrides,
   };
 }
@@ -64,25 +67,28 @@ describe('getStatsRange', () => {
     expect(r.daily).toHaveLength(30);
   });
 
-  it('byInterest: count 내림차순 정렬, 상위 5개 제한', () => {
+  it('byInterest: count 내림차순 정렬, 상위 5개 제한 (v3.39 T6: interestId 기준)', () => {
     // 2026-05-08T03:00:00Z = KST 5/8 12:00 → range 내
+    // v3.39 T6 (Codex P1-4): a.type → a.interestId 정정. INTERESTS id 6개 분포.
     const createdAt = '2026-05-08T03:00:00Z';
     const answers = [
-      makeAnswer({ id: 'a1', createdAt, type: '커리어' }),
-      makeAnswer({ id: 'a2', createdAt, type: '커리어' }),
-      makeAnswer({ id: 'a3', createdAt, type: '건강' }),
-      makeAnswer({ id: 'a4', createdAt, type: '독서' }),
-      makeAnswer({ id: 'a5', createdAt, type: '재무' }),
-      makeAnswer({ id: 'a6', createdAt, type: '관계' }),
-      makeAnswer({ id: 'a7', createdAt, type: '마음' }),
+      makeAnswer({ id: 'a1', createdAt, interestId: 'career' }),
+      makeAnswer({ id: 'a2', createdAt, interestId: 'career' }),
+      makeAnswer({ id: 'a3', createdAt, interestId: 'self_dev' }),
+      makeAnswer({ id: 'a4', createdAt, interestId: 'productivity' }),
+      makeAnswer({ id: 'a5', createdAt, interestId: 'leadership' }),
+      makeAnswer({ id: 'a6', createdAt, interestId: 'communication' }),
+      makeAnswer({ id: 'a7', createdAt, interestId: 'culture' }),
     ];
     localStorage.setItem('dg.answers', JSON.stringify(answers));
 
     const r = getStatsRange(7);
-    expect(r.byInterest[0]).toEqual({ id: '커리어', count: 2 });
-    expect(r.byInterest[1]).toEqual({ id: '건강', count: 1 });
+    expect(r.byInterest[0]).toEqual({ id: 'career', count: 2 });
+    // 동일 count(=1) entries는 정렬 순서가 stable 아니므로 set 단위 검증.
+    const restIds = r.byInterest.slice(1, 5).map(b => b.id);
+    expect(restIds.every(id => ['self_dev', 'productivity', 'leadership', 'communication', 'culture'].includes(id))).toBe(true);
     expect(r.byInterest).toHaveLength(5); // 최대 5개 제한
-    expect(r.activeInterests).toBe(6); // 실제 분야 수 (커리어/건강/독서/재무/관계/마음)
+    expect(r.activeInterests).toBe(6); // 실제 분야 수
   });
 
   it('longestStreak: 연속 3일 답변 정확 측정', () => {

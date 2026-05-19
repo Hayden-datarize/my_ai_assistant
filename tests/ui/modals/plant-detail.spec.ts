@@ -186,9 +186,11 @@ describe('navigateToInterestArchive sequence (v3.37 T2)', () => {
 
   // Codex 사전 P1-4: switchTab fidelity — real switchTab은 #app innerHTML 교체.
   // closeModal restore가 switchTab 후 사라지는 race를 spec이 정확히 재현해야 함.
+  // v3.39 T6 (Codex P0-2): applyInterestFilter 추가 — currentInterestId 단일 진입점.
   function setupSwitchTabFidelity(callOrder: string[]) {
     const closeModalSpy = vi.fn(() => { callOrder.push('closeModal'); });
     const resetSpy = vi.fn(() => { callOrder.push('reset'); });
+    const applyInterestSpy = vi.fn(() => { callOrder.push('applyInterestFilter'); });
     const handleSearchSpy = vi.fn(() => { callOrder.push('handleArchiveSearch'); });
     const switchTabSpy = vi.fn(async () => {
       callOrder.push('switchTab');
@@ -204,6 +206,7 @@ describe('navigateToInterestArchive sequence (v3.37 T2)', () => {
 
     vi.doMock('../../../src/ui/handlers/archive', () => ({
       resetArchiveFilters: resetSpy,
+      applyInterestFilter: applyInterestSpy,
       handleArchiveSearch: handleSearchSpy,
     }));
     vi.doMock('../../../src/ui/nav', () => ({ switchTab: switchTabSpy }));
@@ -212,7 +215,7 @@ describe('navigateToInterestArchive sequence (v3.37 T2)', () => {
       interestKeywords: () => ['전략', 'strategy'],
     }));
 
-    return { closeModalSpy, resetSpy, handleSearchSpy, switchTabSpy };
+    return { closeModalSpy, resetSpy, applyInterestSpy, handleSearchSpy, switchTabSpy };
   }
 
   it('closeModal → reset → switchTab → handleArchiveSearch 순서 호출 + 새 input에 focus', async () => {
@@ -227,10 +230,11 @@ describe('navigateToInterestArchive sequence (v3.37 T2)', () => {
     const { navigateToInterestArchive } = await import('../../../src/ui/modals/plant-detail');
     await navigateToInterestArchive('investing');
 
-    // call order
+    // v3.39 T6 (Codex P0-2): applyInterestFilter 추가 — reset 직후, switchTab 이전.
     expect(callOrder).toEqual([
       'closeModal',
       'reset',
+      'applyInterestFilter',
       'switchTab',
       'handleArchiveSearch',
     ]);
@@ -314,12 +318,15 @@ describe('navigateToInterestArchive sequence (v3.37 T2)', () => {
     const callOrder: string[] = [];
     const closeModalSpy = vi.fn(() => { callOrder.push('closeModal'); });
     const resetSpy = vi.fn(() => { callOrder.push('reset'); });
+    // v3.39 T6 (Codex P0-2): applyInterestFilter도 mock — currentInterestId 진입점.
+    const applyInterestSpy = vi.fn(() => { callOrder.push('applyInterestFilter'); });
     const handleSearchSpy = vi.fn(() => { callOrder.push('handleArchiveSearch'); });
     // switchTab이 input을 mount하지 않음 — race 시뮬레이션
     const switchTabSpy = vi.fn(async () => { callOrder.push('switchTab'); });
 
     vi.doMock('../../../src/ui/handlers/archive', () => ({
       resetArchiveFilters: resetSpy,
+      applyInterestFilter: applyInterestSpy,
       handleArchiveSearch: handleSearchSpy,
     }));
     vi.doMock('../../../src/ui/nav', () => ({ switchTab: switchTabSpy }));

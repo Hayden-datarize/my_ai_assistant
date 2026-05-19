@@ -97,7 +97,14 @@ function pickSearchKeyword(interestId: string): string | undefined {
 
 /**
  * v3.37 T2: action chip → archive 진입 시 stale filter reset + focus 부여.
- * 시퀀스: closeModal → (dynamic import) resetArchiveFilters → switchTab → input.value=keyword → handleArchiveSearch → tryFocusWithPreventScroll(input)
+ * v3.39 T6 (Codex P0-2): applyInterestFilter 단일 진입점 추가 — currentInterestId 설정 +
+ *   #archiveSearch input.value reset (이전 검색어 잔존 차단). 분야 keyword 검색은 기존
+ *   handleArchiveSearch path 그대로 (사용자 의도: chip click = 분야 필터 + 한국어 keyword 검색).
+ *
+ * 시퀀스:
+ *   closeModal → (dynamic import) resetArchiveFilters → applyInterestFilter(id) →
+ *   switchTab → input.value=keyword → handleArchiveSearch → tryFocusWithPreventScroll
+ *
  * @internal — spec 직접 호출용 export.
  */
 export async function navigateToInterestArchive(interestId: string): Promise<void> {
@@ -106,9 +113,11 @@ export async function navigateToInterestArchive(interestId: string): Promise<voi
 
   closeModal();
   // Codex v3.36 P1-1 흡수: 동적 import — plant-detail이 stats chunk이라 archive handler를 끌어오지 않도록.
-  const { resetArchiveFilters, handleArchiveSearch } = await import('../handlers/archive');
+  const { resetArchiveFilters, applyInterestFilter, handleArchiveSearch } = await import('../handlers/archive');
   // v3.37 T2 (reviewer M-1): reset BEFORE switchTab — module state must be 'all' when hydrateArchive's rerenderList fires post-tab-change.
   resetArchiveFilters();
+  // v3.39 T6 (Codex P0-2): currentInterestId 설정 + search input reset (applyInterestFilter 내부 처리).
+  applyInterestFilter(interestId);
   await switchTab('archive');
 
   const input = document.querySelector<HTMLInputElement>('#archiveSearch');

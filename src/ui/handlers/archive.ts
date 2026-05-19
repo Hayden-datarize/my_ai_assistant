@@ -16,13 +16,15 @@ import { sortPinThenScoreDesc } from '../../utils/archiveSort';
 import { renderArchiveSearchSummary, type ArchiveSearchCounts } from '../components/archive-search-summary';
 import { showToast, showUndoToast } from '../../utils/toast';
 import { toKoType } from '../../utils/typeLabel';
-import { getSaveErrorMessage, getCachedUser, saveUser, type Insight } from '../../state/user';
+import { getSaveErrorMessage, getCachedUser, saveUser, validateInterestId, type Insight } from '../../state/user';
 import { MSG } from '../messages';
 import { KST_FMT_KO } from '../../utils/intl';
 import { renderBriefingCard } from './home';
 import type { Answer } from '../../state/schema';
+import type { Briefing } from '../../state/briefings';
 import { fireArchiveRevisitTrigger } from './missions-triggers';
 import { getKSTDateIso } from '../../state/missionEngine';
+import { matchesInterest } from '../../utils/interestKeywords';
 
 let currentFilter = 'all';
 // v3.32 T3 (Codex 사전 P0-2): currentQuery 제거 — SoT 일원화.
@@ -48,6 +50,8 @@ let __archiveMounted = false;
  */
 export function resetArchiveHandlersForTest(): void {
   __archiveMounted = false;
+  // v3.39 T6: spec 격리 — currentInterestId state는 모듈 scope이므로 명시 reset.
+  currentInterestId = null;
 }
 
 /**
@@ -102,6 +106,100 @@ export function handleArchiveUpdated(): void {
 
 export function handleInsightsChanged(): void {
   rerenderList();
+}
+
+// ============================================================================
+// v3.39 T6 (Codex P0-2): archive currentInterestId state model + entityMatchesInterest.
+// ============================================================================
+//
+// 단일 진입점:
+//   - setCurrentInterestId(id | null) — validateInterestId 통과 의무 + rerenderList trigger
+//   - applyInterestFilter(id)         — setCurrentInterestId + search input reset
+//     (plant-detail/insight-detail nav 진입점이 단일 함수로 통일)
+//   - getCurrentInterestId()           — read-only access
+//   - entityMatchesInterest(e, id)     — exact match 1순위 + 'unknown' legacy fallback
+//
+// 정책:
+//   - null = '전체' (필터 미적용)
+//   - invalid id (whitelist miss + 'unknown' sentinel) → null로 정정 + console.warn
+//     (Codex P0-2: archive entry guard + silent corruption 방지)
+//
+// 본 state는 모듈 scope으로 단순 유지 — 향후 chip click handler 등이 이 함수를 통해
+// state를 갱신하면 rerenderList()가 자동으로 currentInterestId 필터를 적용한다.
+let currentInterestId: string | null = null;
+
+export function getCurrentInterestId(): string | null {
+  return currentInterestId;
+}
+
+export function setCurrentInterestId(id: string | null): void {
+  if (id === null) {
+    currentInterestId = null;
+  } else if (validateInterestId(id) === 'unknown' && id !== 'unknown') {
+    // 'unknown' sentinel 자체도 archive filter 차원에선 null 취급 (분야 미지정 entity 매칭 의미 없음).
+    console.warn(`[archive] invalid interestId "${id}" → null (currentInterestId reset)`);
+    currentInterestId = null;
+  } else if (id === 'unknown') {
+    // 'unknown' sentinel을 명시적으로 셋팅하지 않음 — 분야 필터로 의미 없음.
+    currentInterestId = null;
+  } else {
+    currentInterestId = id;
+  }
+  rerenderList();
+}
+
+/**
+ * plant-detail / insight-detail nav 단일 진입점 (Codex P0-2).
+ *
+ * - setCurrentInterestId(id) (validate + rerender)
+ * - #archiveSearch input.value = '' (이전 검색어 누적 차단 — applyInterestFilter는 분야 필터 진입 의도)
+ *
+ * 호출 후 caller가 추가로 switchTab('archive')를 호출하여 탭 전환.
+ */
+export function applyInterestFilter(id: string): void {
+  setCurrentInterestId(id);
+  const search = document.getElementById('archiveSearch') as HTMLInputElement | null;
+  if (search) search.value = '';
+}
+
+/**
+ * archive entity 1건이 주어진 interestId에 매칭되는지 단일 predicate (Codex P0-2).
+ *
+ * 매칭 우선순위:
+ *   1. id === null → 항상 true (전체)
+ *   2. e.interestId === id (exact match, T2 이후 신규 entity의 자연 경로)
+ *   3. e.interestId === 'unknown' (legacy) → matchesInterest(getEntityText(e), id) fallback
+ *   4. 위 외 → false
+ *
+ * 본문 추출:
+ *   - Answer: text + questionText
+ *   - Briefing: title + summary + memo
+ *   - Insight: text
+ */
+type ArchiveEntity = Answer | Briefing | Insight;
+
+export function entityMatchesInterest(e: ArchiveEntity, id: string | null): boolean {
+  if (id === null) return true;
+  const eid = (e as { interestId?: unknown }).interestId;
+  if (typeof eid !== 'string') return false;
+  if (eid === id) return true;
+  if (eid === 'unknown') return matchesInterest(getEntityText(e), id);
+  return false;
+}
+
+function getEntityText(e: ArchiveEntity): string {
+  // Answer: text + questionText
+  if ('questionId' in e && 'text' in e) {
+    return `${e.text} ${(e as Answer).questionText ?? ''}`;
+  }
+  // Briefing: title + summary + memo
+  if ('title' in e && 'summary' in e) {
+    const b = e as Briefing;
+    return `${b.title} ${b.summary} ${b.memo}`;
+  }
+  // Insight: text
+  if ('text' in e) return (e as Insight).text;
+  return '';
 }
 
 // 선택 모드 상태
@@ -201,6 +299,8 @@ export function resetArchiveFilters(): void {
   currentFilter = 'all';
   currentTokens = [];
   currentEntity = 'all';
+  // v3.39 T6: currentInterestId도 함께 reset — counter-click 진입점에서 분야 필터 잔존 차단.
+  currentInterestId = null;
   selectedIds.clear();
   selectMode = false;
 

@@ -6,6 +6,7 @@ import { PROMPTS } from '../../services/prompts';
 import { checkAndIncrementGemini } from '../../state/geminiUsage';
 import { getApiKey } from '../../utils/apiKey';
 import { showToast } from '../../utils/toast';
+import { getCategoryLabel } from '../../utils/categories';
 
 export interface StatsRangeModalOpts {
   range: 7 | 30;
@@ -23,7 +24,8 @@ function buildFingerprint(r: StatsRange): StatsFingerprint {
 
 function deterministicHighlight(r: StatsRange, days: 7 | 30): string {
   const top = r.byInterest[0];
-  const topPart = top ? `, ${top.id} 강세` : '';
+  // v3.39 T6 (Codex P1-4): raw id 노출 → catalog label (emoji + 한글).
+  const topPart = top ? `, ${getCategoryLabel(top.id)} 강세` : '';
   const prefix = days === 7 ? '이번 주' : '지난 30일';
   return `${prefix} ${r.totalAnswers}개 답변, 최장 ${r.longestStreak}일${topPart}`;
 }
@@ -78,7 +80,8 @@ export function buildInterestBars(byInterest: StatsRange['byInterest']): HTMLEle
     const li = document.createElement('li');
     const label = document.createElement('span');
     label.className = 'bar-label';
-    label.textContent = i.id;
+    // v3.39 T6 (Codex P1-4): raw id 노출 → catalog label (emoji + 한글).
+    label.textContent = getCategoryLabel(i.id);
     const track = document.createElement('span');
     track.className = 'bar-track';
     const fill = document.createElement('span');
@@ -94,6 +97,28 @@ export function buildInterestBars(byInterest: StatsRange['byInterest']): HTMLEle
     ul.appendChild(li);
   }
   return ul;
+}
+
+/**
+ * v3.39 T6 (Codex P1-4): legacy empty-state.
+ *
+ * byInterest가 비어 있으나 totalAnswers > 0인 케이스 — 답변은 있는데 분야 분류가
+ * 모두 'unknown'이라는 의미 (v3.39 이전 legacy 데이터 + T2 이후 chat-summary 미경로 path 등).
+ *
+ * 안내 문구는 plain text — DOM API 조립(escapeHtml 불요, 외부 입력 0).
+ *
+ * @internal — spec 검증용 export.
+ */
+export function buildLegacyInterestEmpty(): HTMLElement {
+  const root = document.createElement('div');
+  root.className = 'stats-interest-empty';
+  const p1 = document.createElement('p');
+  p1.textContent = '분야별 통계는 v3.39부터 진짜 관심분야 기준으로 정확해졌어요.';
+  const p2 = document.createElement('p');
+  p2.textContent = '이전 답변은 분야 미지정으로 표시됩니다. 새 답변부터 자동 분류됩니다.';
+  root.appendChild(p1);
+  root.appendChild(p2);
+  return root;
 }
 
 export async function openStatsRangeModal(opts: StatsRangeModalOpts): Promise<void> {
@@ -149,7 +174,12 @@ export async function openStatsRangeModal(opts: StatsRangeModalOpts): Promise<vo
     bodyContainer.appendChild(buildSparkline(r.daily));
   }
   const bars = buildInterestBars(r.byInterest);
-  if (bars) bodyContainer.appendChild(bars);
+  if (bars) {
+    bodyContainer.appendChild(bars);
+  } else if (r.totalAnswers > 0) {
+    // v3.39 T6 (Codex P1-4): legacy empty-state — 답변은 있는데 모두 'unknown'인 경우 안내.
+    bodyContainer.appendChild(buildLegacyInterestEmpty());
+  }
   const highlight = document.createElement('p');
   highlight.className = 'stats-highlight';
   highlight.textContent = highlightText;

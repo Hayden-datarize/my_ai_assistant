@@ -62,4 +62,53 @@ describe('interestCounts', () => {
       expect(getScrapCountByInterest('custom_topic')).toBe(0);
     });
   });
+
+  describe('v3.39 T6 (Codex P1-3) — exact match + legacy unknown fallback', () => {
+    it('Answer exact match (interestId === id) → text 무관 count', () => {
+      saveAnswers([
+        // text는 ai_ml 키워드 0건이지만 interestId 'ai_ml' → exact 매칭
+        { id: '1', text: '오늘 점심 메뉴 고민', schemaVersion: 1, questionId: 'q1', authorId: 'self', createdAt: '2026-05-08T00:00:00Z', pinned: false, interestId: 'ai_ml' },
+      ] satisfies Answer[]);
+      expect(getAnswerCountByInterest('ai_ml')).toBe(1);
+    });
+
+    it('Answer exact match — 다른 분야 id 매칭 0', () => {
+      saveAnswers([
+        { id: '1', text: 'AI 모델 학습', schemaVersion: 1, questionId: 'q1', authorId: 'self', createdAt: '2026-05-08T00:00:00Z', pinned: false, interestId: 'hr_system' },
+      ] satisfies Answer[]);
+      // interestId가 hr_system이지만 ai_ml로 카운트 요청 → 0 (exact + 'unknown' 모두 fail)
+      expect(getAnswerCountByInterest('ai_ml')).toBe(0);
+      expect(getAnswerCountByInterest('hr_system')).toBe(1);
+    });
+
+    it("Answer 'unknown' + text fallback (legacy)", () => {
+      saveAnswers([
+        { id: '1', text: '리더십에 대한 답변', schemaVersion: 1, questionId: 'q1', authorId: 'self', createdAt: '2026-05-08T00:00:00Z', pinned: false, interestId: 'unknown' },
+      ] satisfies Answer[]);
+      expect(getAnswerCountByInterest('leadership')).toBe(1);
+    });
+
+    it('Briefing exact match (interestId === id) → title/summary 무관 count', () => {
+      saveBriefings([
+        { id: 'b1', date: '2026-05-08', url: 'https://x.com/1', title: '오늘 날씨', summary: '맑음', scrapped: true, read: false, memo: '', pinned: false, interestId: 'ai_ml' },
+      ] satisfies Briefing[]);
+      expect(getScrapCountByInterest('ai_ml')).toBe(1);
+    });
+
+    it("Briefing 'unknown' + title/summary/memo fallback", () => {
+      saveBriefings([
+        { id: 'b1', date: '2026-05-08', url: 'https://x.com/1', title: '리더십 동향', summary: '리더의 자질', scrapped: true, read: false, memo: '', pinned: false, interestId: 'unknown' },
+      ] satisfies Briefing[]);
+      expect(getScrapCountByInterest('leadership')).toBe(1);
+    });
+
+    it("Briefing exact 다른 분야 → 카운트 0 (legacy fallback 차단)", () => {
+      saveBriefings([
+        // title='리더십'이지만 interestId='ai_ml' → exact 'ai_ml' 매칭만, leadership은 0.
+        { id: 'b1', date: '2026-05-08', url: 'https://x.com/1', title: '리더십 동향', summary: '...', scrapped: true, read: false, memo: '', pinned: false, interestId: 'ai_ml' },
+      ] satisfies Briefing[]);
+      expect(getScrapCountByInterest('leadership')).toBe(0);
+      expect(getScrapCountByInterest('ai_ml')).toBe(1);
+    });
+  });
 });

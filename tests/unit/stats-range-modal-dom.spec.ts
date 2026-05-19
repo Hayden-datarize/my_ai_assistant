@@ -28,10 +28,12 @@ describe('stats-range-modal DOM 안전성 (v3.24 T2)', () => {
     document.body.innerHTML = '<div id="modalRoot"></div>';
   });
 
-  it('byInterest id에 HTML injection 시도해도 escape 처리된다', async () => {
+  it('byInterest id에 HTML injection 시도해도 escape 처리된다 (v3.39 T6: getCategoryLabel fallback)', async () => {
     await openStatsRangeModal({ range: 7 });
     const labels = document.querySelectorAll('.bar-label');
-    expect(labels[0]?.textContent).toBe('<img src=x onerror=alert(1)>');
+    // v3.39 T6 (Codex P1-4): label은 catalog whitelist getCategoryLabel(id) → 'unknown' id는 '📰 일반' fallback.
+    // 이는 raw id 노출(textContent도 자체 XSS-safe)보다 보안적으로 더 강화 — catalog 미일치 id는 표시 자체 차단.
+    expect(labels[0]?.textContent).toBe('📰 일반');
     expect(document.querySelectorAll('.dg-modal img').length).toBe(0);
   });
 

@@ -64,16 +64,19 @@ export function getStatsRange(days: 7 | 30): StatsRange {
   const totalAnswers = inRange.length;
   const avgPerDay = Math.round((totalAnswers / days) * 10) / 10;
 
-  // 분야별 카운트 — Answer.type 정밀화 (v3.24 T6 / B2)
-  // 정책: type이 null/undefined/empty/whitespace → 'unknown' bucket → byInterest 제외.
-  // (storage는 임의 JSON이라 schema가 string|undefined여도 런타임 null 방어 필요)
+  // v3.39 T6 (Codex P1-4): byInterest 의미 정정 — `a.type`(질문 유형, e.g. '분석'/'트렌드')이 아니라
+  // `a.interestId`(관심분야, INTERESTS.id) 기준으로 분류. 이전 정책은 사용자에게 '분야 통계'로
+  // 보여졌으나 실제로는 질문 유형 통계여서 의미 misleading.
+  //
+  // 정책:
+  //   - a.interestId가 비문자열/빈값이어도 schema 강화 후엔 거의 없지만 'unknown' 안전 fallback.
+  //   - 'unknown' bucket은 byInterest 결과 + activeInterests count에서 제외 (분야 통계 의미 보존).
   const byInterestMap = new Map<string, number>();
   for (const a of inRange) {
-    const raw = a.type;
+    const raw = (a as { interestId?: unknown }).interestId;
     const id = typeof raw === 'string' && raw.trim().length > 0 ? raw : 'unknown';
     byInterestMap.set(id, (byInterestMap.get(id) ?? 0) + 1);
   }
-  // 'unknown' bucket은 byInterest 결과 + activeInterests count에서 제외 (분야 통계 의미 보존).
   byInterestMap.delete('unknown');
   const byInterest = Array.from(byInterestMap.entries())
     .map(([id, count]) => ({ id, count }))
