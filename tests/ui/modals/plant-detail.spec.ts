@@ -119,7 +119,7 @@ describe('plant-detail content', () => {
 });
 
 // v3.36 T1: Plant action chip (navigation to archive)
-import { interestKeywords } from '../../../src/utils/interestKeywords';
+// v3.39 T8 review (Codex 최종 P1-1): interestKeywords import 제거 — pickSearchKeyword path 폐기 후 미사용.
 
 describe('plant-detail action chip (v3.36)', () => {
   beforeEach(() => {
@@ -140,7 +140,7 @@ describe('plant-detail action chip (v3.36)', () => {
     expect(chip!.textContent).toContain('archive 탐색');
   });
 
-  it('chip click → modal 제거 + #archiveTab 활성 + #archiveSearch에 한국어 keyword prefill', async () => {
+  it('chip click → modal 제거 + #archiveTab 활성 + #archiveSearch는 비어 있음 (T8 review: prefill 제거, entity filter SoT)', async () => {
     // eslint-disable-next-line no-restricted-syntax -- jsdom fixture container, no user interpolation
     document.body.innerHTML = '<div id="app"></div>';
     saveUser(mkUser({
@@ -159,18 +159,13 @@ describe('plant-detail action chip (v3.36)', () => {
     expect(document.querySelector('.dg-modal')).toBeFalsy();
     const input = document.querySelector<HTMLInputElement>('#archiveSearch');
     expect(input).toBeTruthy();
-    expect(input!.value).toBe('리더십');
+    // v3.39 T8 review (Codex 최종 P1-1): pickSearchKeyword + #archiveSearch prefill 제거 —
+    // applyInterestFilter('leadership')가 entity filter SoT. search input은 비어 있는 상태 유지.
+    expect(input!.value).toBe('');
   });
 
-  it('pickSearchKeyword fallback — 한국어 token 없을 때 첫 영문 id 사용 (interestKeywords invariant)', () => {
-    const tokens = interestKeywords('leadership');
-    const koreanFirst = tokens.find((t) => /[가-힯]/.test(t));
-    expect(koreanFirst).toBe('리더십');
-
-    const unknownTokens = interestKeywords('xyz_unknown');
-    const unknownFallback = unknownTokens.find((t) => /[가-힯]/.test(t)) ?? unknownTokens[0];
-    expect(unknownFallback).toBe('xyz_unknown');
-  });
+  // v3.39 T8 review: interestKeywords invariant 검증은 unit/interestKeywords.spec.ts에서 단독 검증.
+  // pickSearchKeyword 함수는 폐기되어 본 컨텍스트에서 검증할 invariant 없음 — 테스트 제거.
 });
 
 describe('navigateToInterestArchive sequence (v3.37 T2)', () => {
@@ -187,6 +182,8 @@ describe('navigateToInterestArchive sequence (v3.37 T2)', () => {
   // Codex 사전 P1-4: switchTab fidelity — real switchTab은 #app innerHTML 교체.
   // closeModal restore가 switchTab 후 사라지는 race를 spec이 정확히 재현해야 함.
   // v3.39 T6 (Codex P0-2): applyInterestFilter 추가 — currentInterestId 단일 진입점.
+  // v3.39 T8 review (Codex 최종 P1-1): handleArchiveSearch 호출 제거 — applyInterestFilter가
+  //   entity filter SoT. #archiveSearch.value는 비어 있는 상태 유지.
   function setupSwitchTabFidelity(callOrder: string[]) {
     const closeModalSpy = vi.fn(() => { callOrder.push('closeModal'); });
     const resetSpy = vi.fn(() => { callOrder.push('reset'); });
@@ -211,6 +208,7 @@ describe('navigateToInterestArchive sequence (v3.37 T2)', () => {
     }));
     vi.doMock('../../../src/ui/nav', () => ({ switchTab: switchTabSpy }));
     vi.doMock('../../../src/ui/modals/shared', () => ({ openModal: vi.fn(), closeModal: closeModalSpy }));
+    // v3.39 T8 review: interestKeywords 더 이상 production에서 import 안 함 — mock 유지하나 호출 안 됨.
     vi.doMock('../../../src/utils/interestKeywords', () => ({
       interestKeywords: () => ['전략', 'strategy'],
     }));
@@ -218,31 +216,32 @@ describe('navigateToInterestArchive sequence (v3.37 T2)', () => {
     return { closeModalSpy, resetSpy, applyInterestSpy, handleSearchSpy, switchTabSpy };
   }
 
-  it('closeModal → reset → switchTab → handleArchiveSearch 순서 호출 + 새 input에 focus', async () => {
+  it('closeModal → reset → applyInterestFilter → switchTab 순서 호출 + 새 input에 focus (T8 review: handleArchiveSearch 미호출)', async () => {
     document.body.replaceChildren();
     const app = document.createElement('div');
     app.id = 'app';
     document.body.appendChild(app);
 
     const callOrder: string[] = [];
-    setupSwitchTabFidelity(callOrder);
+    const { handleSearchSpy } = setupSwitchTabFidelity(callOrder);
 
     const { navigateToInterestArchive } = await import('../../../src/ui/modals/plant-detail');
     await navigateToInterestArchive('investing');
 
-    // v3.39 T6 (Codex P0-2): applyInterestFilter 추가 — reset 직후, switchTab 이전.
+    // v3.39 T8 review (Codex 최종 P1-1): handleArchiveSearch 호출 제거 — entity filter SoT.
     expect(callOrder).toEqual([
       'closeModal',
       'reset',
       'applyInterestFilter',
       'switchTab',
-      'handleArchiveSearch',
     ]);
+    expect(handleSearchSpy).not.toHaveBeenCalled();
 
-    // switchTab으로 새 mount된 input이 document.activeElement
+    // switchTab으로 새 mount된 input이 document.activeElement (focus 부여는 유지)
     const input = document.getElementById('archiveSearch') as HTMLInputElement;
     expect(input).not.toBeNull();
-    expect(input.value).toBe('전략');
+    // v3.39 T8 review: #archiveSearch는 비어 있는 상태 (prefill 제거).
+    expect(input.value).toBe('');
     expect(document.activeElement).toBe(input);
   });
 
@@ -309,7 +308,7 @@ describe('navigateToInterestArchive sequence (v3.37 T2)', () => {
     }
   });
 
-  it('#archiveSearch 미존재 시 silent return (handleArchiveSearch 호출 안 함)', async () => {
+  it('#archiveSearch 미존재 시 silent return (focus skip — T8 review: handleArchiveSearch 호출 안 함은 항상 invariant)', async () => {
     document.body.replaceChildren();
     const app = document.createElement('div');
     app.id = 'app';

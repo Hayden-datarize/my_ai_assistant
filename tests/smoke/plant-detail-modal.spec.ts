@@ -64,8 +64,8 @@ test('plant-detail modal opens and shows Standard content', async ({ page }) => 
   await expect(modal).not.toBeVisible();
 });
 
-// v3.36 T3: plant action chip → archive 검색어 prefill (Codex Coverage Gap 흡수)
-test('v3.36: plant action chip → archive 탭 + 검색어 prefill', async ({ page }) => {
+// v3.36 T3: plant action chip → archive entry (검색어 prefill 제거 — v3.39 T8 review Codex 최종 P1-1)
+test('v3.36 + v3.39 T8 review: plant action chip → archive 탭 + #archiveSearch 비어 있음 (entity filter SoT)', async ({ page }) => {
   await primeOnboardedUser(page, { interests: ['leadership'], schemaVersion: 4 });
   await page.addInitScript(() => {
     const userRaw = localStorage.getItem('user');
@@ -91,10 +91,12 @@ test('v3.36: plant action chip → archive 탭 + 검색어 prefill', async ({ pa
   // chip click
   await page.locator('.plant-action-chip').click();
 
-  // modal 제거 + archive 탭 활성 + search input prefill
+  // modal 제거 + archive 탭 활성 + search input 비어 있음 (T8 review: prefill 제거)
   await expect(page.locator('.plant-detail-modal')).not.toBeVisible();
   await expect(page.locator('#bottomNav button[data-tab-id="archive"]')).toHaveClass(/active/);
-  await expect(page.locator('#archiveSearch')).toHaveValue('리더십');
+  // v3.39 T8 review (Codex 최종 P1-1): pickSearchKeyword + #archiveSearch prefill path 제거 —
+  // applyInterestFilter('leadership')가 entity filter SoT. 검색 input은 비어 있는 상태 유지.
+  await expect(page.locator('#archiveSearch')).toHaveValue('');
 });
 
 // v3.37 T3: stale filter setup → plant action → entity/filter all reset + #archiveSearch focus 회귀 가드.
@@ -160,8 +162,8 @@ test('v3.37: stale filter setup 후 plant action → archive entity/filter all r
   // question type row 표시 (entity='all' 이므로 visible)
   await expect(page.locator('#archiveFilters')).toBeVisible();
 
-  // search input value + focus (T2 unit spec end-to-end 검증)
+  // v3.39 T8 review (Codex 최종 P1-1): search input value는 비어 있음 (prefill 제거), focus는 유지.
   const searchInput = page.locator('#archiveSearch');
-  await expect(searchInput).toHaveValue('리더십');
+  await expect(searchInput).toHaveValue('');
   await expect(searchInput).toBeFocused();
 });

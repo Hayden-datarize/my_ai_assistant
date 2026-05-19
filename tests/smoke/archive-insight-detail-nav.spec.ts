@@ -2,18 +2,19 @@ import { test, expect } from '@playwright/test';
 import { primeOnboardedUser } from '../helpers/seed';
 
 /**
- * v3.39 T7 (Codex P1-5): insight-detail nav chip → archive entry 시
+ * v3.39 T7 (Codex P1-5) + T8 review (Codex 최종 P1-1): insight-detail nav chip → archive entry 시
  * currentInterestId 설정 회귀 가드.
  *
  * v3.38 T6에서 nav chip 자체는 추가됨. v3.39 T6에서 navigateToInterestArchive가
- * applyInterestFilter(id)를 부르도록 wiring. 본 spec은 그 새 invariant 검증.
+ * applyInterestFilter(id)를 부르도록 wiring. v3.39 T8 review에서 #archiveSearch
+ * prefill + handleArchiveSearch 호출 path 제거 (Codex 최종 P1-1) — entity filter SoT.
  *
  * 시나리오:
  *  1) insights[]에 interestId='ai_ml' insight 1건 seed.
  *  2) archive 탭 진입 → .archive-insight-card 클릭 → openInsightDetailModal.
  *  3) .insight-archive-nav-chip 클릭 → navigateToInterestArchive('ai_ml').
- *  4) modal 제거 + archive 활성 + #archiveSearch prefill + currentInterestId='ai_ml' 동작:
- *     hr_system answer absent.
+ *  4) modal 제거 + archive 활성 + #archiveSearch='' (T8 review: prefill 제거) +
+ *     currentInterestId='ai_ml' 동작: hr_system answer absent + ai_ml answer visible.
  *
  * Selector 표준 (archive-unified.spec.ts + plant-detail-modal.spec.ts 패턴):
  *  - .archive-insight-card[data-insight-id] (renderInsightCard)
@@ -90,14 +91,17 @@ test('v3.39 T7: insight-detail nav chip → archive 진입 시 currentInterestId
   await expect(page.locator('.insight-detail')).not.toBeVisible();
   await expect(page.locator('#bottomNav button[data-tab-id="archive"]')).toHaveClass(/active/);
 
-  // 5) #archiveSearch prefill — pickSearchKeyword('ai_ml')은 interestKeywords 'ai_ml/ai/ml/openai...'
-  //    한국어 token 없음 → tokens[0]='ai_ml' fallback.
-  await expect(page.locator('#archiveSearch')).toHaveValue('ai_ml');
+  // 5) v3.39 T8 review (Codex 최종 P1-1): #archiveSearch는 비어 있음 (prefill 제거 — entity filter SoT)
+  await expect(page.locator('#archiveSearch')).toHaveValue('');
 
   // 6) entity chip 'all' active (resetArchiveFilters 동작)
   await expect(page.locator('.archive-entity-chip[data-entity="all"]')).toHaveClass(/active/);
 
-  // 7) v3.39 T6 신규 invariant: currentInterestId='ai_ml' applied → hr_system answer absent.
+  // 7) v3.39 T6 신규 invariant + T8 review fix: currentInterestId='ai_ml' applied
+  //    → entity filter 단독 (token filter 없음) → 진짜 exact hit + legacy fallback path 검증.
+  // exact hit: interestId='ai_ml' answer visible
+  await expect(page.locator('.archive-card--answer[data-answer-id="a-ai-1"]')).toBeVisible();
+  // miss: interestId='hr_system' answer absent
   await expect(page.locator('.archive-card--answer[data-answer-id="a-hr-1"]')).toHaveCount(0);
 });
 

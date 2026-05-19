@@ -2,18 +2,19 @@ import { test, expect } from '@playwright/test';
 import { primeOnboardedUser } from '../helpers/seed';
 
 /**
- * v3.39 T7 (Codex P1-5): plant-detail action chip → archive entry 시
- * currentInterestId 설정 + #archiveSearch reset 회귀 가드.
+ * v3.39 T7 (Codex P1-5) + T8 review (Codex 최종 P1-1): plant-detail action chip → archive entry 시
+ * currentInterestId 설정 + #archiveSearch reset(prefill 제거) 회귀 가드.
  *
- * 기존 plant-detail-modal.spec.ts (v3.36/v3.37)에서 action chip → archive 진입 +
- * search prefill을 검증. 본 spec은 v3.39 T6 신규 invariant — applyInterestFilter
- * 경유 currentInterestId state 설정 + 이전 검색어 잔존 차단 — 단일 책임으로 분리.
+ * v3.39 T8 review fix: navigateToInterestArchive가 더 이상 #archiveSearch prefill +
+ * handleArchiveSearch 호출 안 함. applyInterestFilter(id)가 entity filter SoT.
+ * 따라서 본 spec은 action chip → archive 진입 후 search input이 비어 있고,
+ * currentInterestId='leadership' state 단독으로 hr_system answer가 absent임을 검증.
  *
  * 시나리오:
  *  1) stale 분야 필터 사전 setup (다른 interestId answer로 list 오염 가능 상태).
  *  2) stats 탭 → 정원 카드 클릭 → plant-detail modal open.
- *  3) action chip 클릭 → applyInterestFilter(leadership) + #archiveSearch=한국어 keyword('리더십').
- *  4) archive 탭 활성 + entity chip 'all' active + hr_system answer absent (currentInterestId 동작).
+ *  3) action chip 클릭 → applyInterestFilter(leadership) (검색어 prefill 없음).
+ *  4) archive 탭 활성 + entity chip 'all' active + #archiveSearch='' + hr_system answer absent.
  */
 
 test.use({ serviceWorkers: 'block' });
@@ -68,25 +69,28 @@ test('v3.39 T7: plant action chip → archive 진입 시 currentInterestId 설�
   await expect(page.locator('.plant-detail-modal')).toBeVisible();
 
   // 3) action chip click → navigateToInterestArchive('leadership')
-  //    → resetArchiveFilters() + applyInterestFilter('leadership') + #archiveSearch='리더십'
+  //    → resetArchiveFilters() + applyInterestFilter('leadership') (검색어 prefill 없음 — T8 review)
   await page.locator('.plant-action-chip').dispatchEvent('click');
 
   // 4) modal 제거 + archive 탭 활성
   await expect(page.locator('.plant-detail-modal')).not.toBeVisible();
   await expect(page.locator('#bottomNav button[data-tab-id="archive"]')).toHaveClass(/active/);
 
-  // 5) #archiveSearch prefill 동작 — pickSearchKeyword 한국어 우선 ('리더십')
-  await expect(page.locator('#archiveSearch')).toHaveValue('리더십');
+  // 5) v3.39 T8 review (Codex 최종 P1-1): #archiveSearch는 비어 있음 (prefill 제거 — entity filter SoT)
+  await expect(page.locator('#archiveSearch')).toHaveValue('');
 
   // 6) entity chip 'all' active (resetArchiveFilters 동작)
   await expect(page.locator('.archive-entity-chip[data-entity="all"]')).toHaveClass(/active/);
 
-  // 7) v3.39 T6 신규 invariant: currentInterestId='leadership' 적용 → hr_system answer absent.
-  //    (search token='리더십'에 의한 token miss도 동일 결과를 만들지만, 본 spec은 entity filter 단독 회귀 가드.)
+  // 7) v3.39 T6 신규 invariant + T8 review fix: currentInterestId='leadership' 적용 → hr_system answer absent.
+  //    이제 진짜 entity filter 단독 (token filter 없음) — 본문 매칭 우회로 인한 false negative 차단.
   await expect(page.locator('.archive-card--answer[data-answer-id="a-hr-1"]')).toHaveCount(0);
+
+  // 8) v3.39 T8 review: 같은 분야(leadership) answer는 visible — entity filter SoT 정합 검증.
+  await expect(page.locator('.archive-card--answer[data-answer-id="a-leader-1"]')).toBeVisible();
 });
 
-test('v3.39 T7: plant action 진입 직전 stale #archiveSearch가 reset 후 keyword로 덮어쓰임', async ({ page }) => {
+test('v3.39 T7 + T8 review: plant action 진입 직전 stale #archiveSearch가 reset 후 빈 문자열로 정리됨', async ({ page }) => {
   await primeOnboardedUser(page, { interests: ['leadership'], schemaVersion: 4 });
   await page.addInitScript(() => {
     const userRaw = localStorage.getItem('user');
@@ -117,8 +121,8 @@ test('v3.39 T7: plant action 진입 직전 stale #archiveSearch가 reset 후 key
   await expect(page.locator('.plant-detail-modal')).toBeVisible();
   await page.locator('.plant-action-chip').dispatchEvent('click');
 
-  // 검색어가 '오래된검색' → '리더십'으로 완전 교체
+  // v3.39 T8 review (Codex 최종 P1-1): 검색어가 '오래된검색' → '' (비어 있음)으로 정리.
   //   sequence: resetArchiveFilters (input.value='') → applyInterestFilter (input.value='') →
-  //             input.value='리더십' (navigateToInterestArchive 본체) → handleArchiveSearch
-  await expect(page.locator('#archiveSearch')).toHaveValue('리더십');
+  //             switchTab → focus only (prefill 제거)
+  await expect(page.locator('#archiveSearch')).toHaveValue('');
 });

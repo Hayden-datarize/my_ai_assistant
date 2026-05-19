@@ -6,7 +6,7 @@ import { checkWilting } from '../../state/plantEngine';
 import { escapeHtml } from '../../utils/escapeHtml';
 import { getAnswerCountByInterest, getScrapCountByInterest } from '../../utils/interestCounts';
 import { getKstDateStr, formatRelative } from '../../utils/dates';
-import { interestKeywords } from '../../utils/interestKeywords';
+// v3.39 T8 review (Codex 최종 P1-1): interestKeywords import 제거 — pickSearchKeyword path 폐기로 dead-code.
 import { switchTab } from '../nav';
 import type { User } from '../../state/user';
 import type { PlantState } from '../../state/plantTypes';
@@ -88,42 +88,51 @@ function makeActionChip(interestId: string): HTMLButtonElement {
 }
 
 /**
- * Codex P1-3 흡수: 한국어 token 우선 추출 (interestKeywords[0]은 영문 id이라 한국어 archive 매칭 거의 안 됨).
+ * v3.39 T8 review (Codex 최종 P1-1): 한국어/영문 interestKeyword가 entity filter SoT를 깨뜨려
+ * pickSearchKeyword + #archiveSearch prefill path 제거. interestKeywords import도 dead-code화.
+ *
+ * 이전 동작 (v3.39 T6까지):
+ *   pickSearchKeyword('ai_ml') → 'ai_ml' (영문 id fallback) → input.value='ai_ml' →
+ *   handleArchiveSearch → currentTokens=['ai_ml'] → entityMatchesInterest && text.includes('ai_ml').
+ *   결과: 'AI/ML', 'OpenAI' 본문은 'ai_ml' literal 없어 false negative.
+ *
+ * 신규 동작 (T8 review fix):
+ *   applyInterestFilter(id)가 currentInterestId state 단독 SoT — entityMatchesInterest로만
+ *   필터. handleArchiveSearch는 호출 안 함 → currentTokens=[] 유지.
  */
-function pickSearchKeyword(interestId: string): string | undefined {
-  const tokens = interestKeywords(interestId);
-  return tokens.find((t) => /[가-힯]/.test(t)) ?? tokens[0];
-}
 
 /**
  * v3.37 T2: action chip → archive 진입 시 stale filter reset + focus 부여.
- * v3.39 T6 (Codex P0-2): applyInterestFilter 단일 진입점 추가 — currentInterestId 설정 +
- *   #archiveSearch input.value reset (이전 검색어 잔존 차단). 분야 keyword 검색은 기존
- *   handleArchiveSearch path 그대로 (사용자 의도: chip click = 분야 필터 + 한국어 keyword 검색).
+ * v3.39 T6 (Codex P0-2): applyInterestFilter 단일 진입점 추가 — currentInterestId 설정.
+ * v3.39 T8 review (Codex 최종 P1-1): 검색어 prefill + handleArchiveSearch 제거 (exact filter SoT).
  *
- * 시퀀스:
+ * 시퀀스 (신규):
  *   closeModal → (dynamic import) resetArchiveFilters → applyInterestFilter(id) →
- *   switchTab → input.value=keyword → handleArchiveSearch → tryFocusWithPreventScroll
+ *   switchTab → tryFocusWithPreventScroll
  *
  * @internal — spec 직접 호출용 export.
  */
 export async function navigateToInterestArchive(interestId: string): Promise<void> {
-  const keyword = pickSearchKeyword(interestId);
-  if (!keyword) return;
+  // v3.39 T8 review: invalid interestId (whitelist miss 또는 'unknown') 사전 차단 —
+  // applyInterestFilter 내부에서 setCurrentInterestId가 null로 정정하지만,
+  // nav 진입점 자체에서 silent return으로 closeModal 부작용 차단.
+  // (insight-detail nav chip은 이미 'unknown' 차단 가드, plant-detail action chip은
+  //  유효 interest만 표시 — 본 guard는 defensive net.)
+  if (!interestId) return;
 
   closeModal();
   // Codex v3.36 P1-1 흡수: 동적 import — plant-detail이 stats chunk이라 archive handler를 끌어오지 않도록.
-  const { resetArchiveFilters, applyInterestFilter, handleArchiveSearch } = await import('../handlers/archive');
+  const { resetArchiveFilters, applyInterestFilter } = await import('../handlers/archive');
   // v3.37 T2 (reviewer M-1): reset BEFORE switchTab — module state must be 'all' when hydrateArchive's rerenderList fires post-tab-change.
   resetArchiveFilters();
   // v3.39 T6 (Codex P0-2): currentInterestId 설정 + search input reset (applyInterestFilter 내부 처리).
+  // v3.39 T8 review: 이 한 줄이 entity filter SoT — 추가 search prefill 없음.
   applyInterestFilter(interestId);
   await switchTab('archive');
 
+  // focus 부여 (검색 입력 즉시 가능). search input value는 비어 있음.
   const input = document.querySelector<HTMLInputElement>('#archiveSearch');
   if (!input) return;
-  input.value = keyword;
-  handleArchiveSearch();
   tryFocusWithPreventScroll(input);
 }
 
