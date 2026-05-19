@@ -60,11 +60,28 @@ export function resetArchiveHandlersForTest(): void {
  * - scrap: briefings.filter(b => b.scrapped).length
  * - insight: getCachedUser()?.insights ?? []
  * - cachedUser null 시 insight = 0 (silent corruption guard, P0 v3.13/v3.27 graduated).
+ *
+ * v3.39 T6 review fix (M-2): currentInterestId 적용 — 분야 chip 선택 후 entity chip count 정합.
+ * - currentInterestId === null 시 raw 총량 (성능, 기존 동작 유지).
+ * - currentInterestId !== null 시 각 pool에 entityMatchesInterest 사전 필터.
  */
 export function getEntityCounts(): Record<EntityFilter, number> {
-  const answer = loadAnswers().length;
-  const scrap = loadBriefings().filter((b) => b.scrapped).length;
-  const insight = getCachedUser()?.insights.length ?? 0;
+  const answers = loadAnswers();
+  const scraps = loadBriefings().filter((b) => b.scrapped);
+  const insights = getCachedUser()?.insights ?? [];
+  const id = currentInterestId;
+  // null 시 단순 length (사전 필터 skip — 성능).
+  if (id === null) {
+    return {
+      all: answers.length + scraps.length + insights.length,
+      answer: answers.length,
+      scrap: scraps.length,
+      insight: insights.length,
+    };
+  }
+  const answer = answers.filter((a) => entityMatchesInterest(a, id)).length;
+  const scrap = scraps.filter((b) => entityMatchesInterest(b, id)).length;
+  const insight = insights.filter((i) => entityMatchesInterest(i, id)).length;
   return { all: answer + scrap + insight, answer, scrap, insight };
 }
 
@@ -897,14 +914,21 @@ function updateSearchSummary(
 
   if (currentTokens.length === 0) return;
 
+  // v3.39 T6 review fix (M-3): 분야 + 토큰 dual filter.
+  // currentInterestId 적용 후 토큰 hit count 집계 — summary count 정합.
+  const id = currentInterestId;
+  const answersByInterest = id === null ? answers : answers.filter((a) => entityMatchesInterest(a, id));
+  const scrapsByInterest = id === null ? scraps : scraps.filter((b) => entityMatchesInterest(b, id));
+  const insightsByInterest = id === null ? insights : insights.filter((i) => entityMatchesInterest(i, id));
+
   const counts: ArchiveSearchCounts = {
-    answer: answers.filter((a) =>
+    answer: answersByInterest.filter((a) =>
       matchesAllTokensFuzzy(`${a.questionText ?? ''} ${a.text}`, currentTokens, useFuzzy),
     ).length,
-    scrap: scraps.filter((b) =>
+    scrap: scrapsByInterest.filter((b) =>
       matchesAllTokensFuzzy(`${b.title} ${b.summary}`, currentTokens, useFuzzy),
     ).length,
-    insight: insights.filter((i) =>
+    insight: insightsByInterest.filter((i) =>
       matchesAllTokensFuzzy(i.text, currentTokens, useFuzzy),
     ).length,
   };
@@ -923,10 +947,20 @@ export function rerenderList(): void {
   if (!list) return;
   list.replaceChildren();
 
-  const answers = loadAnswers();
-  const briefings = loadBriefings();
-  const scraps = briefings.filter((b) => b.scrapped);
-  const insights = getCachedUser()?.insights ?? [];
+  const rawAnswers = loadAnswers();
+  const rawBriefings = loadBriefings();
+  const rawScraps = rawBriefings.filter((b) => b.scrapped);
+  const rawInsights = getCachedUser()?.insights ?? [];
+
+  // v3.39 T6 review fix (M-1): rerenderList에서 각 entity pool을 currentInterestId로 사전 필터.
+  // - currentInterestId === null 시 raw pool 유지 (전체 — 기존 동작).
+  // - currentInterestId !== null 시 entityMatchesInterest 적용 후 token filter.
+  // 'briefings' 변수는 appendScrapCard helper의 typeof briefings[number] 타입 추론용으로 유지.
+  const id = currentInterestId;
+  const answers = id === null ? rawAnswers : rawAnswers.filter((a) => entityMatchesInterest(a, id));
+  const briefings = rawBriefings;
+  const scraps = id === null ? rawScraps : rawScraps.filter((b) => entityMatchesInterest(b, id));
+  const insights = id === null ? rawInsights : rawInsights.filter((i) => entityMatchesInterest(i, id));
 
   // v3.38 T5b (Codex 사전 P1-4): archive-wide guard — 전체 pool > 5000 이면 fuzzy off.
   // 한 번만 계산하여 4개 entity 분기에 동일하게 전달. UI freeze 차단.
@@ -934,8 +968,9 @@ export function rerenderList(): void {
     && (answers.length + scraps.length + insights.length) <= ARCHIVE_FUZZY_POOL_CAP;
 
   // v3.38 T7b (C1): 검색 활성 시 entity별 hit count 집계 (currentEntity filter 전 전체 query hits).
-  // counts는 currentEntity 변경과 무관하게 stable — summary chip click 후에도 동일 hits 유지.
-  updateSearchSummary(answers, scraps, insights, useFuzzy);
+  // v3.39 T6 review fix (M-3): updateSearchSummary 내부에서 currentInterestId dual filter.
+  // raw pool을 넘겨도 무방 (helper가 분야 필터 적용) — 본 함수 caller는 분야-적용된 카운트 일관성을 신뢰.
+  updateSearchSummary(rawAnswers, rawScraps, rawInsights, useFuzzy);
 
   // v3.27 T4: counter (entity != 'all' 시 외부 pinned 가시화).
   renderOtherPinCounter(computeOtherPinCount(currentEntity, answers, scraps, insights));
