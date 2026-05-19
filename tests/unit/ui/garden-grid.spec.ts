@@ -14,7 +14,7 @@ function mkUser(plants: Record<string, { stage: 1|2|3|4|5; cumulativeActivity: n
     xp: 0,
     earnedBadges: {},
     gamificationMigrated: true,
-    schemaVersion: 8,
+    schemaVersion: 9,
     missions: {
       active: [],
       cumulative: { dailyCount: 0, weeklyCount: 0, monthlyCount: 0 },

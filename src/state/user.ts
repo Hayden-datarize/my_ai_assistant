@@ -1,6 +1,6 @@
 import { getKstDateStr } from '../utils/dates';
 import { MSG } from '../ui/messages';
-import { migrateUserToV2, migrateUserToV3, migrateUserToV4, migrateUserToV5, migrateUserToV6, migrateUserToV7, migrateUserToV8 } from './migration';
+import { migrateUserToV2, migrateUserToV3, migrateUserToV4, migrateUserToV5, migrateUserToV6, migrateUserToV7, migrateUserToV8, migrateUserToV9 } from './migration';
 import { takeSnapshot, runSweep } from './achievements';
 import type { MissionInstance } from './missionTypes';
 import { getActiveMissions, tickMissionProgress } from './missionEngine';
@@ -100,7 +100,7 @@ export interface User {
   // ❌ removed: level (computed via getCurrentTier(xp).id)
   earnedBadges: Record<string, number>;     // badgeId → unlockedAt epoch ms
   gamificationMigrated: boolean;            // 환영 모달 1회 보장 flag
-  schemaVersion: 8;                         // v3.27 T1: 7→8 (Insight.pinned + xpHistory + Answer.pinned + Briefing.pinned)
+  schemaVersion: 9;                         // v3.39 T1: 8→9 (Answer.interestId + Briefing.interestId 도입; User-level field 신규 0)
   // v3.27 T1 NEW: optional이라 lower-version fixture 호환 + migrate가 default [] 보장 + isValidUserShape v8 array required 검증.
   xpHistory?: XpHistoryEntry[];
   missions: {
@@ -135,15 +135,16 @@ export function getCachedUser(): User | null {
     if (!raw) return null;
     const parsed = JSON.parse(raw);
     const sv0 = typeof parsed?.schemaVersion === 'number' ? parsed.schemaVersion : -1;
-    let user = (sv0 >= 2 && sv0 <= 8)
+    let user = (sv0 >= 2 && sv0 <= 9)
       ? parsed
       : migrateUserToV2(parsed);
-    user = migrateUserToV3(user);  // v4~v8 user는 early return (S5 fix + P0-1 fix + v3.25 chain superset + v3.27 T1)
+    user = migrateUserToV3(user);  // v4~v9 user는 early return (S5 fix + P0-1 fix + v3.25 chain superset + v3.27 T1 + v3.39 T1)
     user = migrateUserToV4(user);
     user = migrateUserToV5(user);
     user = migrateUserToV6(user);  // v3.23 T1: v5→v6 lazy migration
     user = migrateUserToV7(user);  // v3.25 T2: v6→v7 lazy migration
     user = migrateUserToV8(user);  // v3.27 T1: v7→v8 lazy migration
+    user = migrateUserToV9(user);  // v3.39 T1: v8→v9 lazy migration
     if (!isValidUserShape(user)) {
       // v3.14.2 T12 P1: JSON parse OK이지만 shape invalid도 corruption — 같은 toast.
       notifyCorruption();
@@ -167,8 +168,8 @@ export function getCachedUser(): User | null {
         // v3.24 T3: dynamic → static (위 notifyCorruption과 동일).
         showToast(getSaveErrorMessage(err));
       }
-    } else if (parsed?.schemaVersion !== 8) {
-      // v3.27 T1: lazy migrate v1/v2/v3/v4/v5/v6/v7 → v8 (정상 데이터만 persist; 손상 데이터는 위에서 null)
+    } else if (parsed?.schemaVersion !== 9) {
+      // v3.39 T1: lazy migrate v1/v2/v3/v4/v5/v6/v7/v8 → v9 (정상 데이터만 persist; 손상 데이터는 위에서 null)
       // setItem 실패(Quota 등)는 무시 — in-memory 변환 결과는 그대로 반환
       try { localStorage.setItem(KEY, JSON.stringify(user)); } catch { /* ignore */ }
     }
@@ -200,8 +201,9 @@ function isValidUserShape(u: unknown): u is User {
   // v3.23 T1: v6도 동일 검증 (v6는 v5의 superset — insights 추가만)
   // v3.25 T2: v7도 동일 검증 (v7는 v6의 superset — Insight.interestId 추가만)
   // v3.27 T1: v8도 동일 검증 (v8는 v7의 superset — Insight.pinned + xpHistory + Answer.pinned + Briefing.pinned 추가만)
+  // v3.39 T1: v9도 동일 검증 (v9는 v8의 superset — Answer.interestId + Briefing.interestId 도입; User-level field 신규 0)
   const sv = typeof r.schemaVersion === 'number' ? r.schemaVersion : -1;
-  if (sv >= 4 && sv <= 8) {
+  if (sv >= 4 && sv <= 9) {
     if (typeof r.plantStateByInterest !== 'object' || r.plantStateByInterest === null) return false;
     for (const plant of Object.values(r.plantStateByInterest as Record<string, unknown>)) {
       if (!plant || typeof plant !== 'object') return false;
@@ -216,7 +218,8 @@ function isValidUserShape(u: unknown): u is User {
   // v3.23 T1: v6도 동일 검증 (v6는 v5의 superset)
   // v3.25 T2: v7도 동일 검증 (v7는 v6의 superset)
   // v3.27 T1: v8도 동일 (v8는 v7의 superset)
-  if (sv >= 5 && sv <= 8) {
+  // v3.39 T1: v9도 동일 (v9는 v8의 superset — User-level field 신규 0)
+  if (sv >= 5 && sv <= 9) {
     const sf = r.streakFreeze as { count?: unknown; lastEarnedAt?: unknown } | undefined | null;
     if (!sf || typeof sf !== 'object') return false;
     if (typeof sf.count !== 'number' || !Number.isFinite(sf.count) || sf.count < 0 || sf.count > 2) return false;
@@ -226,14 +229,16 @@ function isValidUserShape(u: unknown): u is User {
   // v3.23 T1: v6 신규 insights 배열 guard
   // v3.25 T2: v7도 동일 검증 (v7는 v6의 superset — array guard는 동일)
   // v3.27 T1: v8도 동일 (v8는 v7의 superset)
-  if (sv >= 6 && sv <= 8) {
+  // v3.39 T1: v9도 동일 (v9는 v8의 superset — User-level array shape 변동 없음)
+  if (sv >= 6 && sv <= 9) {
     if (!Array.isArray(r.insights)) return false;
   }
 
   // v3.25 T2 (Codex P0-A1 fix): Insight entry-level shape 강화.
-  // migrate chain (V3→V4→V5→V6→V7→V8) 끝난 후라 모든 user는 v8 — entry는 항상 v8 shape 보장.
+  // migrate chain (V3→V4→V5→V6→V7→V8→V9) 끝난 후라 모든 user는 v9 — entry는 항상 v9 shape 보장.
   // v3.27 T1: v8도 동일 entry 검증 + .pinned optional boolean 추가.
-  if (sv >= 7 && sv <= 8) {
+  // v3.39 T1: v9도 동일 entry 검증 (Insight entry shape 변동 없음 — interestId는 v7 이후 동일 string).
+  if (sv >= 7 && sv <= 9) {
     if (Array.isArray(r.insights)) {
       for (const i of r.insights as unknown[]) {
         if (!i || typeof i !== 'object') return false;
@@ -250,7 +255,8 @@ function isValidUserShape(u: unknown): u is User {
 
   // v3.27 T1: v8 신규 xpHistory 배열 guard.
   // - Array of { date: string; xpEarned: number(finite) } — silent NaN 차단 (v3.12 lesson).
-  if (r.schemaVersion === 8) {
+  // v3.39 T1: v9도 동일 (v9는 v8의 superset — xpHistory entry shape 변동 없음).
+  if (sv >= 8 && sv <= 9) {
     if (!Array.isArray(r.xpHistory)) return false;
     for (const h of r.xpHistory as unknown[]) {
       if (!h || typeof h !== 'object') return false;

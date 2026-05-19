@@ -42,7 +42,7 @@ describe('isValidUserShape — Insight entry shape (v3.25 T2)', () => {
 
   function makeBaseUser(): Record<string, unknown> {
     return {
-      schemaVersion: 8,
+      schemaVersion: 9,
       name: 'X', interests: [], onboardedAt: '2026-01-01',
       streak: 0, lastActiveDate: '2026-01-01',
       xp: 0, earnedBadges: {}, gamificationMigrated: true,
@@ -83,7 +83,7 @@ describe('isValidUserShape — Insight entry shape (v3.25 T2)', () => {
     localStorage.setItem('user', JSON.stringify(u));
     const result = getCachedUser();
     expect(result).not.toBeNull();
-    expect(result!.schemaVersion).toBe(8);  // v3.27 T1: chain v6→v7→v8
+    expect(result!.schemaVersion).toBe(9);  // v3.39 T1: chain v6→v7→v8→v9
     expect(result!.insights[0]!.interestId).toBe('unknown');
   });
 });
