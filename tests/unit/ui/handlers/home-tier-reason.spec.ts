@@ -18,6 +18,7 @@ describe('renderBriefingCard tier-reason (v3.19 T7)', () => {
     read: false,
     memo: '',
     pinned: false,
+    interestId: 'unknown',
     sourceTitle: 'Src',
   };
 

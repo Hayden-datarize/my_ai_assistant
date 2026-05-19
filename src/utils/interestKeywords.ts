@@ -53,3 +53,29 @@ export function matchKeyword(hay: string, keyword: string): boolean {
   }
   return hay.includes(keyword);
 }
+
+/**
+ * v3.39 T2 (Codex 사전 P0-3): text가 interestId 분야에 속하는지 판정.
+ *
+ * spec v1의 `matchKeyword(text, interestId)` 직접 호출은 false-negative 함정:
+ * - matchKeyword은 keyword token (e.g., '채용')용이지 interest id (e.g., 'ai_ml')용 아님.
+ *   특히 `ai_ml`은 length>3 → includes 경로라 '인사' 같은 한국어 텍스트에 false.
+ *   본 helper는 interestKeywords(id)가 expand하는 모든 토큰을 OR 매칭으로 묶음.
+ *
+ * 본 helper는:
+ * 1. id INTERESTS whitelist 검증 — invalid (또는 'unknown' sentinel) 즉시 false.
+ * 2. interestKeywords(id) 토큰 목록 중 하나라도 text에 match → true.
+ * 3. lowercase 정규화 (text + keyword 모두; matchKeyword은 keyword가 lowercase일 때 정상 동작).
+ *
+ * INTERESTS catalog 검증은 inline으로 처리 — `validateInterestId` import는 circular 위험
+ * (user.ts ← schema/missions/plant 등 무거운 체인 보유, 본 utils 모듈은 leaf 유지).
+ *
+ * @internal Caller 후보: chat-summary inferredInterestId / Briefing storage / archive legacy fallback.
+ */
+export function matchesInterest(text: string, id: string): boolean {
+  if (!text) return false;
+  if (!INTERESTS.some(i => i.id === id)) return false; // invalid id or 'unknown' sentinel
+  const hay = text.toLowerCase();
+  const keywords = interestKeywords(id); // 이미 lowercase 출력 (interestKeywords contract)
+  return keywords.some(kw => matchKeyword(hay, kw));
+}

@@ -51,6 +51,7 @@ describe('archive scrap card uses briefing-card visual structure (v3.11 T5)', ()
       read: false,
       memo: '',
       pinned: false,
+      interestId: 'unknown',
       sourceTitle: 'Src',
       imageUrl: 'https://img.example.com/x.jpg',
     });
@@ -72,6 +73,7 @@ describe('archive scrap card uses briefing-card visual structure (v3.11 T5)', ()
       read: false,
       memo: '',
       pinned: false,
+      interestId: 'unknown',
       sourceTitle: 'S',
     });
     const card = document.querySelector<HTMLElement>('.archive-card--scrap');
@@ -89,6 +91,7 @@ describe('archive scrap card uses briefing-card visual structure (v3.11 T5)', ()
       read: false,
       memo: '',
       pinned: false,
+      interestId: 'unknown',
       sourceTitle: 'S',
     });
     const btn = document.querySelector('.archive-card--scrap .archive-card-delete');
@@ -99,9 +102,9 @@ describe('archive scrap card uses briefing-card visual structure (v3.11 T5)', ()
   it('scrap card has no .card-actions (♥/✎ removed) — prevents idx-mismatch corruption', async () => {
     const { saveBriefings } = await import('../../src/state/briefings');
     saveBriefings([
-      { id: 'A', date: '2026-04-28', url: 'https://a.com', title: 'A', summary: '', scrapped: false, read: false, memo: '', pinned: false, sourceTitle: 'S' },
-      { id: 'B', date: '2026-04-28', url: 'https://b.com', title: 'B', summary: '', scrapped: false, read: false, memo: '', pinned: false, sourceTitle: 'S' },
-      { id: 'C', date: '2026-04-28', url: 'https://c.com', title: 'C', summary: '', scrapped: true,  read: false, memo: '', pinned: false, sourceTitle: 'S' },
+      { id: 'A', date: '2026-04-28', url: 'https://a.com', title: 'A', summary: '', scrapped: false, read: false, memo: '', pinned: false, interestId: 'unknown', sourceTitle: 'S' },
+      { id: 'B', date: '2026-04-28', url: 'https://b.com', title: 'B', summary: '', scrapped: false, read: false, memo: '', pinned: false, interestId: 'unknown', sourceTitle: 'S' },
+      { id: 'C', date: '2026-04-28', url: 'https://c.com', title: 'C', summary: '', scrapped: true,  read: false, memo: '', pinned: false, interestId: 'unknown', sourceTitle: 'S' },
     ]);
     const container = document.createElement('div');
     container.id = 'archiveTab';
@@ -121,9 +124,9 @@ describe('archive scrap card uses briefing-card visual structure (v3.11 T5)', ()
   it('scrap card .card-main link click does NOT trigger setRead on a different briefing', async () => {
     const { loadBriefings, saveBriefings } = await import('../../src/state/briefings');
     saveBriefings([
-      { id: 'A', date: '2026-04-28', url: 'https://a.com', title: 'A', summary: '', scrapped: false, read: false, memo: '', pinned: false, sourceTitle: 'S' },
-      { id: 'B', date: '2026-04-28', url: 'https://b.com', title: 'B', summary: '', scrapped: false, read: false, memo: '', pinned: false, sourceTitle: 'S' },
-      { id: 'C', date: '2026-04-28', url: 'https://c.com', title: 'C', summary: '', scrapped: true, read: false, memo: '', pinned: false, sourceTitle: 'S' },
+      { id: 'A', date: '2026-04-28', url: 'https://a.com', title: 'A', summary: '', scrapped: false, read: false, memo: '', pinned: false, interestId: 'unknown', sourceTitle: 'S' },
+      { id: 'B', date: '2026-04-28', url: 'https://b.com', title: 'B', summary: '', scrapped: false, read: false, memo: '', pinned: false, interestId: 'unknown', sourceTitle: 'S' },
+      { id: 'C', date: '2026-04-28', url: 'https://c.com', title: 'C', summary: '', scrapped: true, read: false, memo: '', pinned: false, interestId: 'unknown', sourceTitle: 'S' },
     ]);
     const container = document.createElement('div');
     container.id = 'archiveTab';

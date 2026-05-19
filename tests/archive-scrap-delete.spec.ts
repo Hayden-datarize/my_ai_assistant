@@ -39,6 +39,7 @@ describe('Archive scrap 카드 마크업 통일 (T4)', () => {
         read: false,
         memo: '',
         pinned: false,
+        interestId: 'unknown',
       },
     ]);
 
@@ -73,6 +74,7 @@ describe('Archive scrap 카드 마크업 통일 (T4)', () => {
         read: false,
         memo: '',
         pinned: false,
+        interestId: 'unknown',
       },
     ]);
 
@@ -106,6 +108,7 @@ describe('Archive scrap 카드 마크업 통일 (T4)', () => {
         read: false,
         memo: '',
         pinned: false,
+        interestId: 'unknown',
       },
     ]);
 
@@ -141,6 +144,7 @@ describe('Archive scrap 카드 마크업 통일 (T4)', () => {
         read: false,
         memo: '',
         pinned: false,
+        interestId: 'unknown',
       },
     ]);
 

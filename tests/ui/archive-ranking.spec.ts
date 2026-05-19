@@ -20,6 +20,7 @@ function mkAnswer(over: Partial<Answer>): Answer {
     authorId: 'self',
     createdAt: '2026-05-10T10:00:00.000Z',
     pinned: false,
+    interestId: 'unknown', // v3.39 T2
     schemaVersion: 1 as Answer['schemaVersion'],
     ...over,
   };
@@ -47,6 +48,7 @@ function mkBriefing(over: Partial<Briefing>): Briefing {
     read: false,
     memo: '',
     pinned: false,
+    interestId: 'unknown', // v3.39 T2
     ...over,
   };
 }

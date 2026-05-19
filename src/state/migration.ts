@@ -7,6 +7,13 @@ import { getKstDateStr } from '../utils/dates';
  *   - Already-migrated Phase B shape (schemaVersion === 1 with `text` field) — pass-through
  *   - Legacy v2.0 shape: { id?, date, type, answer, evaluation?, questionId? } — map to Phase B
  *   - Anything else — best-effort coerce
+ *
+ * v3.39 T2 (Codex 사전 P1-1): interestId 'unknown' backfill 추가.
+ * - Answer.schemaVersion은 v3.7부터 1 유지 (CURRENT_SCHEMA_VERSION). User schema v9와 별개 축이므로
+ *   schemaVersion bump 없이 in-place field 추가 + boundary normalize 패턴.
+ * - 이미 interestId string 있으면 그대로 (idempotent value invariant). missing → 'unknown'.
+ * - invalid (catalog miss) string 정정은 `normalizeAnswerInterestIds`(user.ts)가 별도 담당
+ *   (pure migrator는 type guard만, semantic guard는 caller boundary에서).
  */
 export function migrateAnswer(raw: unknown): Answer {
   const r = (raw ?? {}) as Partial<Answer> & Record<string, unknown>;
@@ -16,6 +23,7 @@ export function migrateAnswer(raw: unknown): Answer {
     return {
       ...(r as Answer),
       pinned: typeof r.pinned === 'boolean' ? r.pinned : false,
+      interestId: typeof r.interestId === 'string' ? r.interestId : 'unknown',
     };
   }
 
@@ -44,6 +52,8 @@ export function migrateAnswer(raw: unknown): Answer {
     date: legacyDate || (typeof r.date === 'string' ? (r.date as string) : undefined),
     // v3.28 T2 (P2-2): legacy 분기도 pinned 정규화 (raw가 pinned 가질 가능성 미미하지만 invariant 일관성).
     pinned: typeof r.pinned === 'boolean' ? r.pinned : false,
+    // v3.39 T2: interestId 'unknown' 백필 (legacy data는 분야 정보 없음 — 사후 batch reclassify 정책 미정 시점 default).
+    interestId: typeof r.interestId === 'string' ? r.interestId : 'unknown',
     schemaVersion: CURRENT_SCHEMA_VERSION,
   };
 }

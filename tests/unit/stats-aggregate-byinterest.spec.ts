@@ -29,6 +29,7 @@ const mkAnswer = (overrides: Partial<Answer>): Answer => ({
   authorId: 'self',
   createdAt: overrides.createdAt ?? '2026-05-08T09:00:00Z', // KST 18:00, NY 05:00 동일 5/8
   pinned: false,
+  interestId: 'unknown', // v3.39 T2
   ...overrides,
 });
 

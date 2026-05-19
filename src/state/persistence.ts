@@ -1,5 +1,6 @@
 import { migrateAnswer, migrateUserSettings } from './migration';
 import { makeUserSettings, type Answer, type UserSettings } from './schema';
+import { normalizeAnswerInterestIds } from './user';
 
 const KEYS = {
   answers: 'dg.answers',
@@ -25,11 +26,16 @@ function readJson<T>(key: string, fallback: T): T {
 export function loadAnswers(): Answer[] {
   const phaseB = readJson<unknown[]>(KEYS.answers, []);
   if (Array.isArray(phaseB) && phaseB.length > 0) {
-    return phaseB.map(migrateAnswer);
+    const migrated = phaseB.map(migrateAnswer);
+    // v3.39 T2 (Codex 사전 P1-3 mirror): invalid interestId 정정 (boundary 1회 정규화).
+    normalizeAnswerInterestIds(migrated);
+    return migrated;
   }
   const legacy = readJson<unknown[]>(KEYS.legacyAnswers, []);
   if (!Array.isArray(legacy) || legacy.length === 0) return [];
   const migrated = legacy.map(migrateAnswer);
+  // v3.39 T2: legacy 마이그레이션 분기에서도 동일 normalize 적용.
+  normalizeAnswerInterestIds(migrated);
   saveAnswers(migrated);
   try { localStorage.removeItem(KEYS.legacyAnswers); } catch { /* ignore */ }
   return migrated;

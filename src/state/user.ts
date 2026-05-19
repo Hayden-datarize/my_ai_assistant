@@ -90,6 +90,58 @@ export function normalizeInsightInterestIds(insights: Insight[]): void {
   }
 }
 
+/**
+ * v3.39 T2 (Codex 사전 P1-3 mirror): persisted Answer invalid interestId string normalize.
+ *
+ * `normalizeInsightInterestIds` 패턴 (v3.26 T2 graduated) 미러 — pure validator + normalizer 분리.
+ * Caller invariant: input은 loadAnswers boundary 통과한 Answer[] (interestId 항상 string).
+ * - INTERESTS catalog miss (외부 손상/legacy invalid id) → 'unknown' 정정 + console.warn 가시화
+ * - idempotent — 이중 호출 안전 (catalog 매칭 후 추가 warn 없음)
+ * - in-memory mutate (saveAnswers persist는 caller 책임)
+ *
+ * Circular import 회피: Answer는 `import type` only로 가져와 runtime cycle 없음.
+ */
+export function normalizeAnswerInterestIds(list: AnswerLike[]): void {
+  for (const a of list) {
+    const id = a.interestId;
+    const valid = id === 'unknown' || INTERESTS.some(x => x.id === id);
+    if (!valid) {
+      console.warn(`[v3.39 T2] invalid Answer.interestId "${id}" → "unknown" (id=${a.id})`);
+      a.interestId = 'unknown';
+    }
+  }
+}
+
+/**
+ * v3.39 T2 (Codex 사전 P1-3 mirror): persisted Briefing invalid interestId string normalize. 동일 패턴.
+ *
+ * Caller invariant: input은 loadBriefings boundary 통과한 Briefing[] (interestId 항상 string).
+ */
+export function normalizeBriefingInterestIds(list: BriefingLike[]): void {
+  for (const b of list) {
+    const id = b.interestId;
+    const valid = id === 'unknown' || INTERESTS.some(x => x.id === id);
+    if (!valid) {
+      console.warn(`[v3.39 T2] invalid Briefing.interestId "${id}" → "unknown" (id=${b.id})`);
+      b.interestId = 'unknown';
+    }
+  }
+}
+
+/**
+ * v3.39 T2: 본 모듈은 schema.ts / briefings.ts에서 type import만 사용한다 (runtime circular 회피).
+ * Structural subtype으로 normalize helper 시그니처를 표현 — caller side는 Answer[] / Briefing[]
+ * 그대로 전달하면 자동 호환 (둘 다 id + interestId 보유).
+ */
+interface AnswerLike {
+  id: string;
+  interestId: string;
+}
+interface BriefingLike {
+  id: string;
+  interestId: string;
+}
+
 export interface User {
   name: string;
   interests: string[];

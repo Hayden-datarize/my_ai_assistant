@@ -21,6 +21,7 @@ function mkBriefing(over: Partial<Briefing> = {}): Briefing {
     read: false,
     memo: '',
     pinned: false,
+    interestId: 'unknown', // v3.39 T2
     sourceTitle: '',
     ...over,
   };

@@ -22,6 +22,8 @@ export interface Answer extends Versioned {
   date?: string;
   /** v3.27 T1 → v3.28 T2: archive 핀(즐겨찾기). default false. write-side normalize (P2-2) — `makeAnswer` + `migrateAnswer` 모두 boolean 보장. */
   pinned: boolean;
+  /** v3.39 T2: 사용자 관심분야 id (INTERESTS.id 또는 'unknown'). validateInterestId 통과 의무. boundary normalize (loadAnswers → migrateAnswer + normalizeAnswerInterestIds). */
+  interestId: string;
 }
 
 export interface UserSettings extends Versioned {
@@ -30,9 +32,21 @@ export interface UserSettings extends Versioned {
   policyVersion?: string;
 }
 
-export function makeAnswer(input: Omit<Answer, 'schemaVersion' | 'createdAt' | 'pinned'> & { pinned?: boolean }): Answer {
+export function makeAnswer(
+  input: Omit<Answer, 'schemaVersion' | 'createdAt' | 'pinned' | 'interestId'> & {
+    pinned?: boolean;
+    interestId?: string;
+  },
+): Answer {
   // v3.28 T2 (P2-2): pinned default false (input.pinned 명시 시 override). spread 앞에 두어 input override 허용 패턴.
-  return { pinned: false, ...input, schemaVersion: CURRENT_SCHEMA_VERSION, createdAt: new Date().toISOString() };
+  // v3.39 T2: interestId 기본값 'unknown' (caller가 chat-summary inferredInterestId 등으로 명시 권장; 미지정 edge 대비).
+  return {
+    pinned: false,
+    interestId: 'unknown',
+    ...input,
+    schemaVersion: CURRENT_SCHEMA_VERSION,
+    createdAt: new Date().toISOString(),
+  };
 }
 
 export function makeUserSettings(input: { userId: string }): UserSettings {

@@ -670,6 +670,8 @@ async function refreshBriefings(): Promise<void> {
     read: false,
     memo: '',
     pinned: false, // v3.28 T2 (P2-2): write-side normalize — Briefing.pinned 필수 boolean.
+    // v3.39 T2: RSS fetch 시점에는 분야 unknown — Briefing 본 sourceTitle 등에서 사후 classify는 별도 task.
+    interestId: 'unknown',
     ...(sourceTitle ? { sourceTitle } : {}),
     ...(item.image ? { imageUrl: item.image } : {}),
   }));

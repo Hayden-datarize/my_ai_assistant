@@ -1,8 +1,8 @@
-import { describe, it, expect, beforeEach } from 'vitest';
+import { describe, it, expect, beforeEach, vi } from 'vitest';
 import { saveBriefings, loadBriefings, toggleScrap, setRead, saveMemo, type Briefing } from '../../src/state/briefings';
 
 const seed = (): Briefing[] => [
-  { id: 'b1', date: '2026-04-19', url: 'u', title: 't', summary: 's', scrapped: false, read: false, memo: '', pinned: false },
+  { id: 'b1', date: '2026-04-19', url: 'u', title: 't', summary: 's', scrapped: false, read: false, memo: '', pinned: false, interestId: 'unknown' },
 ];
 
 describe('state/briefings', () => {
@@ -57,12 +57,45 @@ describe('v3.3.3 Briefing.imageUrl', () => {
   it('persists imageUrl when set', () => {
     const b: Briefing = {
       id: '1', date: '2026-04-23', url: 'https://example.com', title: 't',
-      summary: 's', scrapped: false, read: false, memo: '', pinned: false,
+      summary: 's', scrapped: false, read: false, memo: '', pinned: false, interestId: 'unknown',
       imageUrl: 'https://example.com/img.jpg',
     };
     saveBriefings([b]);
     const loaded = loadBriefings();
     expect(loaded[0]?.imageUrl).toBe('https://example.com/img.jpg');
+  });
+});
+
+describe('v3.39 T2 Briefing.interestId boundary normalize', () => {
+  beforeEach(() => {
+    localStorage.clear();
+  });
+
+  it('legacy briefing (interestId 부재) → "unknown" 백필', () => {
+    localStorage.setItem('briefings', JSON.stringify([
+      { id: 'b_old', date: '2026-04-01', url: 'https://ex.com', title: 't', summary: 's', scrapped: false, read: false, memo: '', pinned: false }
+    ]));
+    const result = loadBriefings();
+    expect(result[0]?.interestId).toBe('unknown');
+  });
+
+  it('이미 valid interestId 있는 briefing → 그대로 유지', () => {
+    localStorage.setItem('briefings', JSON.stringify([
+      { id: 'b_new', date: '2026-05-19', url: 'https://ex.com', title: 't', summary: 's', scrapped: false, read: false, memo: '', pinned: false, interestId: 'ai_ml' }
+    ]));
+    const result = loadBriefings();
+    expect(result[0]?.interestId).toBe('ai_ml');
+  });
+
+  it('invalid interestId (INTERESTS 미존재) → "unknown" 정정 + console.warn', () => {
+    const warnSpy = vi.spyOn(console, 'warn').mockImplementation(() => {});
+    localStorage.setItem('briefings', JSON.stringify([
+      { id: 'b_corrupt', date: '2026-05-19', url: 'https://ex.com', title: 't', summary: 's', scrapped: false, read: false, memo: '', pinned: false, interestId: 'totally_fake_id' }
+    ]));
+    const result = loadBriefings();
+    expect(result[0]?.interestId).toBe('unknown');
+    expect(warnSpy).toHaveBeenCalledWith(expect.stringContaining('totally_fake_id'));
+    warnSpy.mockRestore();
   });
 });
 

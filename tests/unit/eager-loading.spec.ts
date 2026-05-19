@@ -12,6 +12,7 @@ const sample = (id: string, withImg: boolean): Briefing => ({
   read: false,
   memo: '',
   pinned: false,
+  interestId: 'unknown',
   sourceTitle: 'src',
   ...(withImg ? { imageUrl: 'https://img.example.com/x.jpg' } : {}),
 });

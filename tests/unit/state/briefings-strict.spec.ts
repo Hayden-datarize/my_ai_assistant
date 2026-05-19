@@ -29,7 +29,7 @@ describe('v3.38 T4: briefings write-side strict + NFC normalize', () => {
 
     const briefing: Briefing = {
       id: 'b1', date: '2026-05-18', url: 'https://x', title: nfdTitle, summary: nfdSummary,
-      scrapped: false, read: false, memo: '', pinned: false,
+      scrapped: false, read: false, memo: '', pinned: false, interestId: 'unknown',
     };
     saveBriefings([briefing]);
 
@@ -41,7 +41,7 @@ describe('v3.38 T4: briefings write-side strict + NFC normalize', () => {
   it('NFC가 이미 적용된 title은 idempotent (변경 없음)', () => {
     const briefing: Briefing = {
       id: 'b1', date: '2026-05-18', url: 'https://x', title: '이미 NFC', summary: 'NFC 요약',
-      scrapped: false, read: false, memo: '', pinned: false,
+      scrapped: false, read: false, memo: '', pinned: false, interestId: 'unknown',
     };
     saveBriefings([briefing]);
     expect(loadBriefings()[0]?.title).toBe('이미 NFC');
@@ -52,7 +52,7 @@ describe('v3.38 T4: briefings write-side strict + NFC normalize', () => {
     // 외부 데이터(JSON.parse 결과 등)로부터 비문자열이 흘러들어올 경우.
     const malformed = {
       id: 'b1', date: '2026-05-18', url: 'https://x', title: undefined, summary: 's',
-      scrapped: false, read: false, memo: '', pinned: false,
+      scrapped: false, read: false, memo: '', pinned: false, interestId: 'unknown',
     } as unknown as Briefing;
     expect(() => saveBriefings([malformed])).toThrow(/title|invalid|string/i);
   });
@@ -60,7 +60,7 @@ describe('v3.38 T4: briefings write-side strict + NFC normalize', () => {
   it('비문자열 summary를 가진 briefing은 거절된다', () => {
     const malformed = {
       id: 'b1', date: '2026-05-18', url: 'https://x', title: 't', summary: 123,
-      scrapped: false, read: false, memo: '', pinned: false,
+      scrapped: false, read: false, memo: '', pinned: false, interestId: 'unknown',
     } as unknown as Briefing;
     expect(() => saveBriefings([malformed])).toThrow(/summary|invalid|string/i);
   });
@@ -68,7 +68,7 @@ describe('v3.38 T4: briefings write-side strict + NFC normalize', () => {
   it('비문자열 memo를 가진 briefing은 거절된다 (required string)', () => {
     const malformed = {
       id: 'b1', date: '2026-05-18', url: 'https://x', title: 't', summary: 's',
-      scrapped: false, read: false, memo: null, pinned: false,
+      scrapped: false, read: false, memo: null, pinned: false, interestId: 'unknown',
     } as unknown as Briefing;
     expect(() => saveBriefings([malformed])).toThrow(/memo|invalid|string/i);
   });
@@ -77,7 +77,7 @@ describe('v3.38 T4: briefings write-side strict + NFC normalize', () => {
     const nfdSource = '출처'.normalize('NFD');
     const briefing: Briefing = {
       id: 'b1', date: '2026-05-18', url: 'https://x', title: 't', summary: 's',
-      scrapped: false, read: false, memo: '', pinned: false, sourceTitle: nfdSource,
+      scrapped: false, read: false, memo: '', pinned: false, interestId: 'unknown', sourceTitle: nfdSource,
     };
     saveBriefings([briefing]);
     expect(loadBriefings()[0]?.sourceTitle).toBe('출처');

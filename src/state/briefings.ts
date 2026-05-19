@@ -5,7 +5,7 @@ import { takeSnapshot, runSweep } from './achievements';
 import { getActiveMissions, tickMissionProgress } from './missionEngine';
 import type { MissionAction } from './missionTypes';
 import { tickPlantActivity } from './plantEngine';
-import { getCachedUser, saveUser, getSaveErrorMessage } from './user';
+import { getCachedUser, saveUser, getSaveErrorMessage, normalizeBriefingInterestIds } from './user';
 import type { User } from './user';
 
 export interface Briefing {
@@ -25,6 +25,8 @@ export interface Briefing {
   summaryKo?: string;
   /** v3.27 T1 → v3.28 T2: archive 핀(즐겨찾기). default false. write-side normalize (P2-2) — `loadBriefings` map 단계에 copy-based backfill (P0-3 idempotency). */
   pinned: boolean;
+  /** v3.39 T2: 사용자 관심분야 id (INTERESTS.id 또는 'unknown'). validateInterestId 통과 의무. loadBriefings boundary에서 'unknown' 백필 + normalizeBriefingInterestIds로 invalid 정정. */
+  interestId: string;
 }
 
 const KEY = 'briefings';
@@ -37,15 +39,18 @@ export function loadBriefings(): Briefing[] {
   try {
     const raw = JSON.parse(localStorage.getItem(KEY) ?? '[]') as unknown;
     if (!Array.isArray(raw)) return [];
-    return raw.map((b) => {
+    const list = raw.map((b) => {
       // v3.28 T2 (P2-2): copy-based pinned 정규화 (P0-3 idempotency — 원본 mutation 금지).
-      const briefing = b as Briefing & { pinned?: boolean };
+      const briefing = b as Briefing & { pinned?: boolean; interestId?: string };
       const normalized: Briefing = {
         ...briefing,
         pinned: typeof briefing.pinned === 'boolean' ? briefing.pinned : false,
         // v3.38 T4 fix (Codex 최종 P1-1): legacy 데이터 memo undefined 백필 — saveBriefings strict가
         // toggleScrap 등 read→write 경로에서 throw하는 회귀 차단.
         memo: typeof briefing.memo === 'string' ? briefing.memo : '',
+        // v3.39 T2: legacy briefing interestId 'unknown' 백필 (boundary 1회 정규화).
+        // invalid string (catalog miss) 정정은 normalizeBriefingInterestIds가 별도 담당.
+        interestId: typeof briefing.interestId === 'string' ? briefing.interestId : 'unknown',
       };
       // Drop imageUrl only if present-but-invalid; leave undefined alone.
       if (normalized.imageUrl !== undefined && !isHttpsUrl(normalized.imageUrl)) {
@@ -53,6 +58,10 @@ export function loadBriefings(): Briefing[] {
       }
       return normalized;
     });
+    // v3.39 T2 (Codex 사전 P1-3 mirror): catalog miss (외부 손상/legacy invalid id) → 'unknown' 정정.
+    // normalizeInsightInterestIds 패턴 (user.ts:82) 동치 — pure validator + normalizer 분리.
+    normalizeBriefingInterestIds(list);
+    return list;
   } catch {
     return [];
   }

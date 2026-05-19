@@ -16,6 +16,7 @@ function mkBriefing(overrides: Partial<Briefing>): Briefing {
     read: false,
     memo: '',
     pinned: false,
+    interestId: 'unknown',
     ...overrides,
   };
 }

@@ -26,8 +26,8 @@ describe('Archive scrap 벌크 해제 (T5)', () => {
   it('scrap 필터 + select 모드 + 카드 N개 선택 + 벌크 → 모두 scrapped:false + SCRAP_BULK_UNDO_TOAST', async () => {
     const { saveBriefings, loadBriefings } = await import('../src/state/briefings');
     saveBriefings([
-      { id: 'b1', date: 'd1', url: 'https://example.com/1', title: 't1', summary: 's1', scrapped: true, read: false, memo: '', pinned: false },
-      { id: 'b2', date: 'd2', url: 'https://example.com/2', title: 't2', summary: 's2', scrapped: true, read: false, memo: '', pinned: false },
+      { id: 'b1', date: 'd1', url: 'https://example.com/1', title: 't1', summary: 's1', scrapped: true, read: false, memo: '', pinned: false, interestId: 'unknown' },
+      { id: 'b2', date: 'd2', url: 'https://example.com/2', title: 't2', summary: 's2', scrapped: true, read: false, memo: '', pinned: false, interestId: 'unknown' },
     ]);
 
     const container = document.createElement('div');
@@ -55,8 +55,8 @@ describe('Archive scrap 벌크 해제 (T5)', () => {
   it('Undo 클릭 시 모든 scrap 복원 + SCRAP_UNDO_RESTORED 토스트', async () => {
     const { saveBriefings, loadBriefings } = await import('../src/state/briefings');
     saveBriefings([
-      { id: 'b1', date: 'd1', url: 'https://example.com/1', title: 't1', summary: 's1', scrapped: true, read: false, memo: '', pinned: false },
-      { id: 'b2', date: 'd2', url: 'https://example.com/2', title: 't2', summary: 's2', scrapped: true, read: false, memo: '', pinned: false },
+      { id: 'b1', date: 'd1', url: 'https://example.com/1', title: 't1', summary: 's1', scrapped: true, read: false, memo: '', pinned: false, interestId: 'unknown' },
+      { id: 'b2', date: 'd2', url: 'https://example.com/2', title: 't2', summary: 's2', scrapped: true, read: false, memo: '', pinned: false, interestId: 'unknown' },
     ]);
 
     const container = document.createElement('div');

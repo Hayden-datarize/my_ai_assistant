@@ -16,7 +16,7 @@ beforeEach(() => localStorage.clear());
 describe('persistence — existing Phase B behaviour', () => {
   it('round-trips answers', () => {
     // v3.28 T2 (P2-2): write-side normalize — Answer.pinned 필수 boolean (default false).
-    const answers = [{ id: 'a1', questionId: 'q1', text: 'hi', authorId: 'u1', createdAt: '2026-04-18T00:00:00Z', pinned: false, schemaVersion: 1 as const }];
+    const answers = [{ id: 'a1', questionId: 'q1', text: 'hi', authorId: 'u1', createdAt: '2026-04-18T00:00:00Z', pinned: false, interestId: 'unknown', schemaVersion: 1 as const }];
     saveAnswers(answers);
     expect(loadAnswers()).toEqual(answers);
   });

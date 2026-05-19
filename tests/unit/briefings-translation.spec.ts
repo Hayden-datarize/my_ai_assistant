@@ -5,8 +5,8 @@ import {
 
 const seed = (): void => {
   saveBriefings([
-    { id: 'a', date: '2026-04-26', url: 'https://example.com/a', title: 'Hello', summary: 'Body', scrapped: false, read: false, memo: '', pinned: false },
-    { id: 'b', date: '2026-04-26', url: 'https://example.com/b', title: '안녕', summary: '본문', scrapped: false, read: false, memo: '', pinned: false },
+    { id: 'a', date: '2026-04-26', url: 'https://example.com/a', title: 'Hello', summary: 'Body', scrapped: false, read: false, memo: '', pinned: false, interestId: 'unknown' },
+    { id: 'b', date: '2026-04-26', url: 'https://example.com/b', title: '안녕', summary: '본문', scrapped: false, read: false, memo: '', pinned: false, interestId: 'unknown' },
   ]);
 };
 

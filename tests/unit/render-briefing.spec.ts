@@ -18,7 +18,7 @@ describe('renderBriefingCard (v3.3.3 cardnews)', () => {
     return {
       id: 'b1', date: '2026-04-23', url: 'https://x.com/a',
       title: '테스트 제목', summary: '요약 문구',
-      scrapped: false, read: false, memo: '', pinned: false,
+      scrapped: false, read: false, memo: '', pinned: false, interestId: 'unknown', // v3.39 T2
       sourceTitle: 'TechCrunch',
       ...overrides,
     };

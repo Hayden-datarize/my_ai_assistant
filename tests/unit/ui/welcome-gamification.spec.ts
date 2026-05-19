@@ -20,7 +20,7 @@ describe('maybeShowWelcomeGamification', () => {
 
   it('gamificationMigrated=true → 모달 안 띄움 (idempotent)', async () => {
     saveUser(mkUser({ interests: ['AI'], streak: 5, xp: 100, gamificationMigrated: true }));
-    saveAnswers([{ id: '1', questionId: 'q1', text: '...', authorId: 'self', createdAt: '2026-04-01', pinned: false, schemaVersion: 1 }]);
+    saveAnswers([{ id: '1', questionId: 'q1', text: '...', authorId: 'self', createdAt: '2026-04-01', pinned: false, schemaVersion: 1, interestId: 'unknown' }]);
     await maybeShowWelcomeGamification();
     expect(document.querySelector('.dg-modal')).toBeNull();
   });
@@ -29,7 +29,7 @@ describe('maybeShowWelcomeGamification', () => {
     saveUser(mkUser({ interests: ['AI'], streak: 5, xp: 350 }));
     // answers 10개 → answers-10 + answers-1 + tier-3-tree (xp 350) + streak-3 unlock 후보
     const answers = Array.from({ length: 10 }, (_, i) => ({
-      id: `${i}`, questionId: 'q', text: 'a', authorId: 'self', createdAt: '2026-04-01', pinned: false, schemaVersion: 1 as const,
+      id: `${i}`, questionId: 'q', text: 'a', authorId: 'self', createdAt: '2026-04-01', pinned: false, interestId: 'unknown', schemaVersion: 1 as const,
     }));
     saveAnswers(answers);
     await maybeShowWelcomeGamification();
@@ -43,7 +43,7 @@ describe('maybeShowWelcomeGamification', () => {
 
   it('모달 닫기 → gamificationMigrated=true saveUser', async () => {
     saveUser(mkUser({ interests: ['AI'], streak: 5, xp: 100 }));
-    saveAnswers([{ id: '1', questionId: 'q', text: 'a', authorId: 'self', createdAt: '2026-04-01', pinned: false, schemaVersion: 1 }]);
+    saveAnswers([{ id: '1', questionId: 'q', text: 'a', authorId: 'self', createdAt: '2026-04-01', pinned: false, schemaVersion: 1, interestId: 'unknown' }]);
     await maybeShowWelcomeGamification();
     document.querySelector<HTMLButtonElement>('.dg-modal-close')?.click();
     await vi.waitFor(() => {
@@ -53,7 +53,7 @@ describe('maybeShowWelcomeGamification', () => {
 
   it('두 번째 호출 (gamificationMigrated=true) → no-op', async () => {
     saveUser(mkUser({ interests: ['AI'], streak: 5, xp: 100 }));
-    saveAnswers([{ id: '1', questionId: 'q', text: 'a', authorId: 'self', createdAt: '2026-04-01', pinned: false, schemaVersion: 1 }]);
+    saveAnswers([{ id: '1', questionId: 'q', text: 'a', authorId: 'self', createdAt: '2026-04-01', pinned: false, schemaVersion: 1, interestId: 'unknown' }]);
     await maybeShowWelcomeGamification();
     document.querySelector<HTMLButtonElement>('.dg-modal-close')?.click();
     await vi.waitFor(() => {
@@ -67,7 +67,7 @@ describe('maybeShowWelcomeGamification', () => {
 
   it('backfill 중 throw 시 → schema 보존 + 모달은 그래도 표시 (graceful)', async () => {
     saveUser(mkUser({ interests: ['AI'], streak: 5, xp: 100 }));
-    saveAnswers([{ id: '1', questionId: 'q', text: 'a', authorId: 'self', createdAt: '2026-04-01', pinned: false, schemaVersion: 1 }]);
+    saveAnswers([{ id: '1', questionId: 'q', text: 'a', authorId: 'self', createdAt: '2026-04-01', pinned: false, schemaVersion: 1, interestId: 'unknown' }]);
     const spy = vi.spyOn(Storage.prototype, 'setItem').mockImplementationOnce(() => { throw new Error('quota'); });
     await maybeShowWelcomeGamification();
     expect(document.querySelector('.dg-modal')).not.toBeNull();
@@ -79,7 +79,7 @@ describe('maybeShowWelcomeGamification', () => {
     const switchTabSpy = vi.fn();
     vi.doMock('../../../src/ui/nav', () => ({ switchTab: switchTabSpy }));
     saveUser(mkUser({ interests: ['AI'], streak: 5, xp: 100 }));
-    saveAnswers([{ id: '1', questionId: 'q', text: 'a', authorId: 'self', createdAt: '2026-04-01', pinned: false, schemaVersion: 1 }]);
+    saveAnswers([{ id: '1', questionId: 'q', text: 'a', authorId: 'self', createdAt: '2026-04-01', pinned: false, schemaVersion: 1, interestId: 'unknown' }]);
     await maybeShowWelcomeGamification();
     expect(document.querySelector('.dg-modal')).not.toBeNull();
     const btn = document.getElementById('goStatsBtn') as HTMLButtonElement;
@@ -97,7 +97,7 @@ describe('maybeShowWelcomeGamification', () => {
     const switchTabSpy = vi.fn();
     vi.doMock('../../../src/ui/nav', () => ({ switchTab: switchTabSpy }));
     saveUser(mkUser({ interests: ['AI'], streak: 5, xp: 100 }));
-    saveAnswers([{ id: '1', questionId: 'q', text: 'a', authorId: 'self', createdAt: '2026-04-01', pinned: false, schemaVersion: 1 }]);
+    saveAnswers([{ id: '1', questionId: 'q', text: 'a', authorId: 'self', createdAt: '2026-04-01', pinned: false, schemaVersion: 1, interestId: 'unknown' }]);
 
     // 사전: 동일 ID를 가진 가짜 버튼을 modalRoot 보다 DOM tree-order 앞에 prepend.
     // document scope query 였으면 decoy가 첫 매치 → modal 버튼은 wire 안 됨 → switchTabSpy 미호출.
