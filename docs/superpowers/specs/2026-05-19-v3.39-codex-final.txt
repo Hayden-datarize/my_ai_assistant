@@ -1,0 +1,15 @@
+## 결론
+REJECT — P0는 없지만 archive interest nav가 exact filter 결과를 검색 토큰으로 다시 숨기는 P1이 남아 있어 in-cycle fix 필요.
+
+## P0 (배포 전 반드시 in-cycle fix)
+- 없음
+
+## P1 (in-cycle 흡수 권고)
+- [P1-1] Archive interest nav가 exact filter를 토큰 검색으로 과도 제한: [plant-detail.ts](/Users/hayden/Hayden_AX_Project/my_ai_assistance/src/ui/modals/plant-detail.ts:110), [archive.ts](/Users/hayden/Hayden_AX_Project/my_ai_assistance/src/ui/handlers/archive.ts:955), [archive.ts](/Users/hayden/Hayden_AX_Project/my_ai_assistance/src/ui/handlers/archive.ts:1120), [archive-interest-filter.spec.ts](/Users/hayden/Hayden_AX_Project/my_ai_assistance/tests/smoke/archive-interest-filter.spec.ts:121). `navigateToInterestArchive('ai_ml')`가 `currentInterestId='ai_ml'`를 설정한 뒤 `#archiveSearch='ai_ml'`와 `handleArchiveSearch()`까지 적용해 결과가 `entityMatchesInterest && text.includes('ai_ml')`로 좁아집니다. 실제 `interestId='ai_ml'` 답변 텍스트가 `AI/ML`, `AI`, `OpenAI`이면 exact hit인데도 `ai_ml` literal이 없어 숨을 수 있습니다. Smoke도 이 token miss를 주석으로 인정하고 positive hit 대신 `hr_system` absent만 검증합니다. Fix: interest nav는 exact filter를 SoT로 두고 synthetic search prefill/`handleArchiveSearch()`를 제거하거나, 최소 `currentTokens=[]` 상태로 렌더되게 하세요. 회귀 spec은 `a-ai-1/a-ai-2` exact hit와 `a-leg-1` legacy fallback visible, `a-hr-1` absent를 직접 assert해야 합니다.
+
+## P2 (v3.40+ carry)
+- [P2-1] Question interest fallback의 corrupt `user.interests[0]` validation 보강: [gemini-parse.ts](/Users/hayden/Hayden_AX_Project/my_ai_assistance/src/utils/gemini-parse.ts:107), [home.ts](/Users/hayden/Hayden_AX_Project/my_ai_assistance/src/ui/handlers/home.ts:974). cached/fallback question path가 invalid raw id면 `userInterests[0]`를 그대로 반환합니다. load-boundary normalize가 나중에 정정하지만 write-time invariant는 약합니다. v3.40에서 first valid interest를 찾고, submitAnswer dataset도 `validateInterestId`로 한번 더 닫는 편이 좋습니다.
+- [P2-2] `dispatchEvent('click')` smoke workaround의 production UX carry 명문화: [archive-interest-filter.spec.ts](/Users/hayden/Hayden_AX_Project/my_ai_assistance/tests/smoke/archive-interest-filter.spec.ts:104). bottom nav fixed overlay 때문에 실제 pointer click 대신 dispatchEvent를 쓰고 있습니다. v3.40에서 모바일 bottom padding/sticky offset을 조정해 실제 사용자 tap 경로를 닫으세요.
+
+## 종합 의견
+spec v2 + plan v1의 핵심 중 schema v9 chain superset, Answer/Briefing load-boundary migration, `matchesInterest`, chat-summary closure-bind, Briefing 3-step fallback, archive predicate wiring 3 spot, stats `byInterest` 의미 정정과 empty-state는 구현상 대체로 충족했습니다. 사전 review P0×3 + P1×5 중 P0-1/P0-2/P0-3 및 P1-1~P1-4는 흡수된 것으로 보입니다. 다만 P1-5의 smoke/UX 영역에서 exact interest filter와 legacy fallback을 production nav 경로로 검증하지 못했고, 그 이유가 실제 `ai_ml` 검색 prefill이 exact 결과를 숨기는 동작이라 배포 전 수정이 필요합니다. Fresh 확인: `npx tsc --noEmit`, `npm run lint`, targeted vitest 8 files / 90 tests PASS.
