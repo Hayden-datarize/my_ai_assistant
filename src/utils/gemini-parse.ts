@@ -93,3 +93,61 @@ export function parseInsightResponse(raw: string): { text: string; interestId: s
     interestId: normalizeInterestId(rawId),
   };
 }
+
+/**
+ * v3.39 T3 (Codex 사전 P1-2): generateQuestion 응답 + cached/fallback path 공통 사용.
+ *
+ * Resolve 규칙:
+ * - rawId가 INTERESTS whitelist 통과 → 그대로
+ * - rawId invalid/empty/undefined → userInterests[0] 폴백
+ * - userInterests=[] → 'unknown' sentinel
+ *
+ * deterministic / idempotent — 같은 input → 같은 output.
+ */
+export function resolveQuestionInterestId(
+  rawId: string | undefined,
+  userInterests: string[],
+): string {
+  if (!rawId) return userInterests[0] ?? 'unknown';
+  const validated = validateInterestId(rawId);
+  if (validated !== 'unknown') return validated;
+  return userInterests[0] ?? 'unknown';
+}
+
+export interface QuestionResponse {
+  type: string;
+  question: string;
+  hint: string;
+  targetInterestId: string;
+}
+
+/**
+ * v3.39 T3 (Codex 사전 P1-2): generateQuestion JSON 응답 parse + interestId validate fallback.
+ *
+ * 폴백 chain (parseInsightResponse 패턴 미러):
+ * 1. JSON parse fail → throw (caller가 fallbackQuestion으로 catch)
+ * 2. type/question/hint 누락 시 안전 default (빈 string / '분석')
+ * 3. interestId 누락 또는 invalid → resolveQuestionInterestId 통과 (userInterests[0] 또는 'unknown')
+ *
+ * 보안: parseJsonText는 외부 Gemini 응답 — control char strip + trailing comma 정리 후
+ * JSON.parse. 추출한 필드는 모두 `typeof === 'string'` guard 통과 후에만 채용.
+ *
+ * @internal Caller: home.ts hydrateQuestion (live path + cached path 공통).
+ */
+export function parseQuestionResponse(
+  raw: string,
+  userInterests: string[],
+): QuestionResponse {
+  const data = parseJsonText<{
+    type?: unknown;
+    question?: unknown;
+    hint?: unknown;
+    interestId?: unknown;
+  }>(raw);
+  const type = typeof data.type === 'string' ? data.type : '분석';
+  const question = typeof data.question === 'string' ? data.question : '';
+  const hint = typeof data.hint === 'string' ? data.hint : '';
+  const rawId = typeof data.interestId === 'string' ? data.interestId : '';
+  const targetInterestId = resolveQuestionInterestId(rawId, userInterests);
+  return { type, question, hint, targetInterestId };
+}

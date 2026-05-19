@@ -1,4 +1,4 @@
-import { parseJsonText } from '../utils/gemini-parse';
+import { parseJsonText, parseQuestionResponse } from '../utils/gemini-parse';
 
 const ENDPOINT = 'https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash-lite:generateContent';
 
@@ -40,17 +40,23 @@ export interface QuestionOut {
   type: string;
   question: string;
   hint: string;
+  // v3.39 T3 (Codex 사전 P1-2): Gemini가 선택한 분야 (whitelist 통과 또는 userInterests[0] 폴백).
+  targetInterestId: string;
 }
 
 export async function generateQuestion({ apiKey, interests, preferType }: GenerateQuestionInput): Promise<QuestionOut> {
+  const idList = interests.map(i => `"${i}"`).join(', ');
   const prompt = [
-    '관심사: ' + interests.join(', '),
+    `사용자 관심분야 id: ${idList}`,
     `원하는 유형: ${preferType} (reflection/action/observation/planning 중 하나)`,
-    '아래 형식의 JSON만 정확히 반환: {"type":"...","question":"...","hint":"..."}',
+    '위 분야 중 하나를 선택하여 그 분야에 맞는 질문을 작성하세요.',
+    '아래 형식의 JSON만 정확히 반환 (앞뒤 다른 텍스트 금지):',
+    '{"type":"...","question":"...","hint":"...","interestId":"<선택한 분야 id>"}',
+    `interestId 필드는 반드시 위 목록 (${idList}) 중 하나여야 합니다.`,
     '질문은 한국어, 한 문장, 30-60자. 힌트는 질문에 어떻게 접근할지 한 문장.',
   ].join('\n');
   const text = await generateText({ apiKey, prompt });
-  return parseJsonText<QuestionOut>(text);
+  return parseQuestionResponse(text, interests);
 }
 
 export interface ChatTurn { role: 'user' | 'ai'; text: string }

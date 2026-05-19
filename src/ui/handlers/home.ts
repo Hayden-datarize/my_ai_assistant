@@ -16,6 +16,7 @@ import { loadBriefings, saveBriefings, toggleScrap, setRead, setTranslation, typ
 import { loadChatHistory, appendChatMessage, type ChatMessage } from '../../state/chat';
 import { fetchFeed, type FeedItem, type FeedResult } from '../../services/rss';
 import { generateQuestion, chat, evaluateAnswer, generateText } from '../../services/gemini';
+import { resolveQuestionInterestId } from '../../utils/gemini-parse';
 import { autoSendAnswer } from '../../services/slack';
 import { summarizeOrTranslateBody, translateTitle, isSessionBlocked } from '../../services/translate';
 import { TranslateQueue } from '../translateQueue';
@@ -761,8 +762,11 @@ async function hydrateQuestion(): Promise<void> {
   const cached = localStorage.getItem(cacheKey);
   if (cached) {
     try {
-      const q = JSON.parse(cached) as { type?: string; question: string; hint: string };
-      renderQuestion(content, q);
+      const q = JSON.parse(cached) as { type?: string; question: string; hint: string; targetInterestId?: string };
+      // v3.39 T3 (Codex 사전 P1-2): cached question에 targetInterestId 없거나 invalid → user.interests[0] 폴백
+      const cachedUser = getCachedUser();
+      const cachedInterestId = resolveQuestionInterestId(q.targetInterestId, cachedUser?.interests ?? []);
+      renderQuestion(content, { ...q, targetInterestId: cachedInterestId });
       return;
     } catch { /* fall-through */ }
   }
@@ -787,11 +791,21 @@ async function hydrateQuestion(): Promise<void> {
     try { localStorage.setItem(cacheKey, JSON.stringify(q)); } catch { /* ignore */ }
     renderQuestion(content, q);
   } catch {
-    renderQuestion(content, { type: preferType, question: fallbackQuestion(preferType), hint: '구체적인 상황을 떠올려 적어 보세요.' });
+    // v3.39 T3 (Codex 사전 P1-2): fallbackQuestion path도 user.interests[0] 폴백 (resolveQuestionInterestId(undefined, …))
+    const fallbackInterestId = resolveQuestionInterestId(undefined, user.interests);
+    renderQuestion(content, {
+      type: preferType,
+      question: fallbackQuestion(preferType),
+      hint: '구체적인 상황을 떠올려 적어 보세요.',
+      targetInterestId: fallbackInterestId,
+    });
   }
 }
 
-function renderQuestion(content: HTMLElement, q: { type?: string; question: string; hint: string }): void {
+function renderQuestion(
+  content: HTMLElement,
+  q: { type?: string; question: string; hint: string; targetInterestId?: string },
+): void {
   content.replaceChildren();
   if (q.type) {
     const typeEl = document.createElement('span');
@@ -804,6 +818,8 @@ function renderQuestion(content: HTMLElement, q: { type?: string; question: stri
   qEl.textContent = q.question;
   qEl.dataset['questionId'] = `q_${Date.now()}`;
   qEl.dataset['type'] = q.type ?? 'unknown';
+  // v3.39 T3 (Codex 사전 P1-2): submitAnswer flow에서 Answer.interestId 채울 때 사용
+  qEl.dataset['interestId'] = q.targetInterestId ?? 'unknown';
   content.append(qEl);
 
   const hint = document.getElementById('hintBox');

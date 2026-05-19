@@ -34,16 +34,29 @@ describe('gemini.generateText', () => {
 });
 
 describe('gemini.generateQuestion', () => {
-  it('parses JSON text into QuestionOut', async () => {
-    stubResponse('{"type":"reflection","question":"Q?","hint":"H"}');
+  it('parses JSON text into QuestionOut (v3.39 T3: targetInterestId 포함)', async () => {
+    stubResponse('{"type":"reflection","question":"Q?","hint":"H","interestId":"ai_ml"}');
     const q = await generateQuestion({ apiKey: 'k', interests: ['ai_ml'], preferType: 'reflection' });
-    expect(q).toEqual({ type: 'reflection', question: 'Q?', hint: 'H' });
+    expect(q).toEqual({ type: 'reflection', question: 'Q?', hint: 'H', targetInterestId: 'ai_ml' });
   });
 
   it('tolerates leading/trailing prose around the JSON object', async () => {
-    stubResponse('설명 텍스트...\n```json\n{"type":"action","question":"Q","hint":"H"}\n```\n뒷부분');
-    const q = await generateQuestion({ apiKey: 'k', interests: [], preferType: 'action' });
+    stubResponse('설명 텍스트...\n```json\n{"type":"action","question":"Q","hint":"H","interestId":"hr_system"}\n```\n뒷부분');
+    const q = await generateQuestion({ apiKey: 'k', interests: ['hr_system'], preferType: 'action' });
     expect(q.type).toBe('action');
+    expect(q.targetInterestId).toBe('hr_system');
+  });
+
+  it('v3.39 T3: invalid interestId from Gemini → user.interests[0] 폴백', async () => {
+    stubResponse('{"type":"reflection","question":"Q","hint":"H","interestId":"fake_xyz"}');
+    const q = await generateQuestion({ apiKey: 'k', interests: ['ai_ml', 'hr_system'], preferType: 'reflection' });
+    expect(q.targetInterestId).toBe('ai_ml');
+  });
+
+  it('v3.39 T3: interestId 누락 + interests=[] → unknown 폴백', async () => {
+    stubResponse('{"type":"action","question":"Q","hint":"H"}');
+    const q = await generateQuestion({ apiKey: 'k', interests: [], preferType: 'action' });
+    expect(q.targetInterestId).toBe('unknown');
   });
 });
 
