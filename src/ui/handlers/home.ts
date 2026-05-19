@@ -36,7 +36,7 @@ import { MSG } from '../messages';
 import { getActiveMissions, getKSTDateIso } from '../../state/missionEngine';
 import { renderMissionsSection } from '../missions-section';
 import { fireBriefingViewTrigger, fireCrossInterestTrigger } from './missions-triggers';
-import { interestKeywords, matchKeyword } from '../../utils/interestKeywords';
+import { interestKeywords, matchKeyword, matchesInterest } from '../../utils/interestKeywords';
 import { getApiKey } from '../../utils/apiKey';
 import { checkAndIncrementGemini } from '../../state/geminiUsage';
 import { PROMPTS } from '../../services/prompts';
@@ -915,7 +915,8 @@ export function openSettingsWithFocus(): void {
   }
 }
 
-async function submitAnswer(): Promise<void> {
+/** @internal — exported for unit tests; production caller는 mountHomeHandlers 내부 wiring */
+export async function submitAnswer(): Promise<void> {
   const area = document.getElementById('answerArea') as HTMLTextAreaElement | null;
   const content = document.getElementById('questionContent');
   if (!area || !content) return;
@@ -926,6 +927,9 @@ async function submitAnswer(): Promise<void> {
   const questionText = qTextEl?.textContent ?? '';
   const questionId = qTextEl?.dataset['questionId'] ?? 'q_unknown';
   const questionType = qTextEl?.dataset['type'] ?? 'unknown';
+  // v3.39 T4: data-interest-id (T3 renderQuestion에서 채움) → makeAnswer.interestId.
+  // dataset 값이 빈 문자열인 경우도 'unknown' 폴백 (`||` short-circuit).
+  const interestId = qTextEl?.dataset['interestId'] || 'unknown';
 
   const answer = makeAnswer({
     id: `a_${Date.now()}_${Math.random().toString(36).slice(2, 8)}`,
@@ -935,6 +939,7 @@ async function submitAnswer(): Promise<void> {
     authorId: 'self',
     type: questionType,
     date: getKstDateStr(),
+    interestId,
   });
   const id = appendAnswer(answer);
 
@@ -1076,6 +1081,21 @@ export async function handleSummarizeChat(): Promise<void> {
     showToast('오늘 AI 분석 quota 소진, 내일 다시');
     return;
   }
+
+  // v3.39 T4: chat-summary interestId 결정 — Gemini 추가 호출 0 (matchesInterest 사용).
+  // user.interests를 순서대로 검사, 첫 매칭 id가 inferredInterestId. 매칭 0건 또는 user 없음 → 'unknown'.
+  // closure 시점에 캡처 → onPrimary 클릭 시점에 일관 (race-free).
+  const cachedUser = getCachedUser();
+  const userInterests = cachedUser?.interests ?? [];
+  const userMsgs = history.filter(m => m.role === 'user').map(m => m.text);
+  let inferredInterestId = 'unknown';
+  for (const id of userInterests) {
+    if (userMsgs.some(t => matchesInterest(t, id))) {
+      inferredInterestId = id;
+      break;
+    }
+  }
+
   try {
     const tmpl = PROMPTS.conversationSummary;
     const text = await generateText({
@@ -1100,6 +1120,7 @@ export async function handleSummarizeChat(): Promise<void> {
             questionId: 'chat-summary',
             text: trimmed,
             authorId: 'self',
+            interestId: inferredInterestId,  // v3.39 T4: closure-bind 추론값
           });
           appendAnswer(answer);
           showToast('요약을 답변으로 저장했어요');
