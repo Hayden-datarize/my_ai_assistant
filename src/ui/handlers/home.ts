@@ -48,14 +48,17 @@ const TODAY_QUESTION_PREFIX = 'dg.todayQuestion.';
 /**
  * Round-robin across feeds, deduping by link, stopping at `target`.
  * Pure function — exported for unit testing.
+ *
+ * v3.39 T5: 각 feed에 optional `feedUrl`이 있으면 picked entry에도 전파.
+ * caller가 `feedUrl`을 안 넣으면 결과에 미포함 — 기존 caller 영향 0.
  * @internal
  */
 export function pickBriefings(
-  feeds: FeedResult[],
+  feeds: Array<FeedResult & { feedUrl?: string }>,
   target: number,
-): Array<{ item: FeedItem; sourceTitle: string }> {
+): Array<{ item: FeedItem; sourceTitle: string; feedUrl?: string }> {
   const seen = new Set<string>();
-  const picked: Array<{ item: FeedItem; sourceTitle: string }> = [];
+  const picked: Array<{ item: FeedItem; sourceTitle: string; feedUrl?: string }> = [];
   const maxPerFeed = feeds.reduce((m, f) => Math.max(m, f.items.length), 0);
   outer: for (let i = 0; i < maxPerFeed; i++) {
     for (const feed of feeds) {
@@ -63,7 +66,11 @@ export function pickBriefings(
       if (!item) continue;
       if (seen.has(item.link)) continue;
       seen.add(item.link);
-      picked.push({ item, sourceTitle: feed.sourceTitle });
+      picked.push({
+        item,
+        sourceTitle: feed.sourceTitle,
+        ...(feed.feedUrl ? { feedUrl: feed.feedUrl } : {}),
+      });
       if (picked.length >= target) break outer;
     }
   }
@@ -619,7 +626,7 @@ export function renderBriefingCard(b: Briefing, idx: number): HTMLElement {
   return card;
 }
 
-async function refreshBriefings(): Promise<void> {
+export async function refreshBriefings(): Promise<void> {
   const user = getCachedUser();
   if (!user || user.interests.length === 0) {
     showToast('관심 분야를 먼저 설정해 주세요');
@@ -649,33 +656,55 @@ async function refreshBriefings(): Promise<void> {
   const now = Date.now();
   purgeExpiredSeen(now);
   const activeSeenUrls = loadActiveSeenUrls(now);
-  const filtered = fetched.map((f) => ({
+  // v3.39 T5: feedUrl을 picked entry에 전파하기 위해 filtered/fetched 각 항목에 feedUrl 보존.
+  const filtered = fetched.map((f, idx) => ({
     ...f,
+    feedUrl: feedUrls[idx],
     items: f.items.filter((it) => !activeSeenUrls.has(it.link)),
   }));
+  const fetchedWithUrl = fetched.map((f, idx) => ({ ...f, feedUrl: feedUrls[idx] }));
 
   // pick: unseen 우선, 부족하면 원본으로 fallback (expired-seen 자동 허용)
   let chosen = pickBriefings(filtered, 5);
   if (chosen.length < 5) {
-    chosen = pickBriefings(fetched, 5);
+    chosen = pickBriefings(fetchedWithUrl, 5);
   }
 
   const today = getKstDateStr();
-  const stored: Briefing[] = chosen.map(({ item, sourceTitle }, i) => ({
-    id: `b_${Date.now()}_${i}`,
-    date: today,
-    url: item.link,
-    title: item.title,
-    summary: stripTags(item.description).slice(0, 200),
-    scrapped: false,
-    read: false,
-    memo: '',
-    pinned: false, // v3.28 T2 (P2-2): write-side normalize — Briefing.pinned 필수 boolean.
-    // v3.39 T2: RSS fetch 시점에는 분야 unknown — Briefing 본 sourceTitle 등에서 사후 classify는 별도 task.
-    interestId: 'unknown',
-    ...(sourceTitle ? { sourceTitle } : {}),
-    ...(item.image ? { imageUrl: item.image } : {}),
-  }));
+  const userInterests = user.interests;
+  const stored: Briefing[] = chosen.map(({ item, sourceTitle, feedUrl }, i) => {
+    // v3.39 T5: Briefing interestId 3-step 폴백
+    //   1) matchesInterest(title, id) || matchesInterest(summary, id) — user.interests 순서
+    //   2) feedToInterests(feedUrl, user.interests)[0] — origin feed → user의 첫 매핑 interest
+    //   3) 'unknown'
+    let interestId = 'unknown';
+    const summary = stripTags(item.description);
+    for (const id of userInterests) {
+      if (matchesInterest(item.title, id) || matchesInterest(summary, id)) {
+        interestId = id;
+        break;
+      }
+    }
+    if (interestId === 'unknown' && feedUrl) {
+      const origins = feedToInterests(feedUrl, userInterests);
+      if (origins.length > 0) interestId = origins[0]!;
+    }
+
+    return {
+      id: `b_${Date.now()}_${i}`,
+      date: today,
+      url: item.link,
+      title: item.title,
+      summary: summary.slice(0, 200),
+      scrapped: false,
+      read: false,
+      memo: '',
+      pinned: false, // v3.28 T2 (P2-2): write-side normalize — Briefing.pinned 필수 boolean.
+      interestId,
+      ...(sourceTitle ? { sourceTitle } : {}),
+      ...(item.image ? { imageUrl: item.image } : {}),
+    };
+  });
   saveBriefings(stored);
   recordSeen(stored.map((b) => b.url), now);
   // v3.19 T9: 함수 시그니처가 async로 변경 — 이 시점 list는 today로 갱신되어
@@ -699,6 +728,19 @@ async function refreshBriefings(): Promise<void> {
 }
 
 function stripTags(s: string): string { return s.replace(/<[^>]*>/g, '').trim(); }
+
+/**
+ * v3.39 T5: interestToFeeds 역매핑. 1 feed → N user.interests (user.interests 순서 보존).
+ *
+ * @param feedUrl — fetchFeed에 전달한 url (interestToFeeds 결과 중 하나여야 매핑됨).
+ * @param userInterests — 현재 user.interests (우선순위 순서).
+ * @returns 매핑되는 user.interests subset, 입력 순서대로. 매핑 없으면 [].
+ *
+ * @internal Caller: refreshBriefings storage 단계 interestId 결정 2순위 폴백.
+ */
+export function feedToInterests(feedUrl: string, userInterests: string[]): string[] {
+  return userInterests.filter((id) => interestToFeeds(id).includes(feedUrl));
+}
 
 // Verified working RSS sources (2026-04-20). brunch.co.kr/* and
 // wanted.co.kr/events/tech/rss returned 4xx/5xx via rss2json and were
