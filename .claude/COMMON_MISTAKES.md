@@ -253,4 +253,131 @@ test('Gemini mock 호출이 실제 API에 새지 않는다', async ({ page }) =>
 
 ---
 
+## 13. Dead control 제거 시 정의-사용 8-layer grep 의무 (2026-05-20, v3.43 graduate from v3.41 T6)
+
+**Symptom**: UI 제어 dead code 제거 후 일부 layer에 id mismatch가 잔존 → 부분 작동 또는 silent break.
+
+**Root cause**: v3.41 T6 archive period filter 제거 시 인벤토리는 `archivePeriodFilter`로 기록했으나 실제 id는 `archivePeriod` (suffix 차이). 8-layer 중 일부만 동기화 → 다른 layer에 dead reference 잔존.
+
+**Fix/Prevention**:
+
+1. Dead control 인벤토리 작성 전 **exact id 실측**: `grep -rn "<id>" src/ tests/ public/` — 정의된 id와 사용된 id 차이 catch.
+2. 8-layer checklist (각 layer grep으로 잔여 확인):
+   - EventMap 타입 정의 (`src/ui/events.ts`)
+   - EVENT_NAMES const
+   - V32_DEFERRED 세트 (deferred event resilience)
+   - dispatcher 호출 sites
+   - listener 등록 sites
+   - handler 본문
+   - test mock path
+   - CSS selector / id
+3. spec §변경 범위에 layer별 grep 결과 행으로 명시.
+
+**관련 파일**: `src/ui/events.ts`, `src/ui/tabs/*.ts`, `src/style/`
+
+---
+
+## 14. 3-layer URL guard: write + read + render (2026-05-20, v3.43 graduate from v3.41 T4)
+
+**Symptom**: write boundary에서 URL validate 추가했지만, 손상된 localStorage / import된 데이터의 render sink에서 그대로 출력 → XSS / open redirect 잔여 risk.
+
+**Root cause**: 단일 boundary (write-only) guard는 production 진입 후 변형된 데이터를 catch 못 함. 3-layer 적용 필수: write (input validate) + read (load-time validate) + render (sink-time escape).
+
+**Fix/Prevention**:
+
+1. URL helper 정책 분리 (목적별):
+   - `isSafeUrl(url)`: `http://` + `https://` 허용 (legacy/import 호환)
+   - `isHttpsUrl(url)`: `https://` strict (image src 등 mixed content 차단)
+2. 3-layer 적용:
+   - **write**: 사용자 입력 / API 응답 처리 시점 (`saveUser`, `parseBriefing` 등)
+   - **read**: localStorage / migration `hydrate` 시점 — fast-path bypass 차단 의무 (§16 paired)
+   - **render**: DOM 삽입 직전 (`href`, `src` setter / template insertion)
+3. 신규 spec: 각 layer 1+ assertion으로 backward + forward 변형 catch.
+
+**§16 (Migrate fast-path normalize)와 paired** — read-layer guard가 fast-path bypass되면 무효. 두 항목 정합 의무.
+
+**관련 파일**: `src/utils/url.ts`, `src/state/user.ts`, `src/ui/cards/*.ts`
+
+---
+
+## 15. 외부 SDK 추가 시 CSP 3-layer 동시 갱신 (2026-05-20, v3.43 graduate from v3.41 T1; §3 확장)
+
+**§3 행위 root cause 위에 외부 SDK 시나리오 체크리스트를 얹은 항목.** §3 우선 진리, §15는 operational extension.
+
+**Symptom**: 외부 SDK 코드 작성 + 단위 테스트 PASS / fetch mock spec PASS / smoke PASS이지만 production에서 silently 차단 — CSP violation으로 SDK fetch 실패.
+
+**Root cause**: CSP는 production HTML response header (또는 meta) 기반 — fetch mock / page.route intercept는 우회 (§3 graduated). 외부 도메인 fetch / script load 변경 시 CSP allowlist 미갱신이면 production-only fail.
+
+**Fix/Prevention**:
+
+1. 외부 SDK 도입 PR 체크리스트:
+   - `index.html` `<meta http-equiv="Content-Security-Policy">` connect-src/script-src에 외부 도메인 추가
+   - `firebase.json` `hosting.headers[].headers[]`에서 동일 CSP header 갱신
+   - CSP regression spec 추가 (정적 lint — `grep -E "connect-src" index.html firebase.json` assertion)
+2. 정적 assertion spec 필수 — fetch mock으로는 CSP 못 잡는다 (§3 root cause).
+3. SDK가 추가 endpoint (e.g. App Check `firebaseappcheck.googleapis.com`)를 호출하면 dist build 후 production preview로 1회 실측 권장.
+
+**관련 파일**: `index.html`, `firebase.json`, `tests/regression/csp.spec.ts`
+
+---
+
+## 16. Migrate fast-path normalize 일관성 (2026-05-20, v3.43 graduate from v3.41)
+
+**Symptom**: 신규 read-time guard / normalize 로직을 schema migration chain에 추가했으나, `isVersioned + version === CURRENT_SCHEMA` early return branch가 normalize 우회 → 손상된 current-version 데이터가 그대로 통과.
+
+**Root cause**: migration 함수는 보통 "legacy version만 처리"라 가정하지만, 실제로는 hydrate path 통합 진입점 — current-version 데이터도 normalize 의무가 있다. fast-path early return이 한 layer를 bypass하면 보안 contract 무효.
+
+**Fix/Prevention**:
+
+1. read-time guard 추가 시 **legacy + current 양 path 모두 적용 의무**: fast-path early return 직전에도 normalize 호출.
+2. spec §변경 범위에 "3-layer (parse / migrate / render)"라 적어도, **각 layer 안의 fast-path bypass 여부 명시 의무**.
+3. 검증: corrupt current-version fixture (정상 version + 손상 field) test case 추가.
+
+**§14 (3-layer URL guard)와 paired** — URL guard도 fast-path bypass 시 무효. 두 항목 정합 의무.
+
+**관련 파일**: `src/state/user.ts` (hydrate / persist / migrate)
+
+---
+
+## 17. Smoke flake → synthetic isolated test 우선 (2026-05-20, v3.43 graduate from v3.42 T2)
+
+**Symptom**: CSS pseudo-class (`:disabled`, `:focus-visible` 등) smoke test에서 첫 매칭 element 의존 (`button.btn.first()`) → DOM order shift / hydration timing에 따라 intermittent fail.
+
+**Root cause**: Production DOM의 "첫 element"는 컴포넌트 추가/제거 / 비동기 mount에 따라 변동. CSS 행동 검증과 컴포넌트 layout 검증이 한 spec에 섞이면 flake 진단 어려움.
+
+**Fix/Prevention**:
+
+1. CSS pseudo-class / 행동 검증 시 **synthetic isolated DOM** 우선:
+   - `await page.evaluate(() => { const b = document.createElement('button'); b.className = 'btn'; b.disabled = true; document.body.appendChild(b); return b; })`
+   - 검증 후 cleanup
+2. Production DOM 사용은 "사용자 flow 통합 smoke"에만 한정 (특정 UX path).
+3. CSS 행동 spec과 컴포넌트 mount spec 분리.
+
+**관련 파일**: `tests/smoke/polish.spec.ts`, `tests/smoke/<feature>.spec.ts`
+
+---
+
+## 18. Dynamic import mock factory export pattern (2026-05-20, v3.43 graduate from v3.42 T3)
+
+**Symptom**: `vi.mock('./module', () => ({ ... }))` factory 안에서 함수 mock 정의 → test 본문에서 `mockResolvedValueOnce(...)` 호출 불가 (factory return 함수 reference 회수 불가).
+
+**Root cause**: vi.mock factory는 module-level scope — closure에서 함수를 외부로 export하지 않으면 test마다 시나리오별 토큰/응답 주입 불가능. v3.41 App Check token mock 무력화 회귀 사례.
+
+**Fix/Prevention**:
+
+1. factory에서 mock 함수를 **외부 변수로 export**:
+   ```ts
+   const mockGetToken = vi.fn();
+   vi.mock('firebase/app-check', () => ({ getToken: mockGetToken, /* ... */ }));
+   
+   // 이후 test 본문에서:
+   mockGetToken.mockResolvedValueOnce({ token: 'fake-token' });
+   ```
+2. `vi.hoisted(() => ({ ... }))`로 mock 함수 정의 → factory + test 양쪽에서 reference 가능 (vitest 권장).
+3. 신규 SDK mock 도입 시 `mockResolvedValueOnce` 가능 여부 1회 검증.
+
+**관련 파일**: `tests/setup/firebase-mock.ts`, `tests/<feature>.spec.ts`
+
+---
+
 **Last Updated**: 2026-05-20

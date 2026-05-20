@@ -90,6 +90,16 @@ vite reporter chunked estimation은 dual-record 폐기 (v3.14.4가 마지막 사
 
 **경위 (v3.35 T4 graduation)**: v3.34에서 ranking 코드가 archive dynamic chunk로 emitted됐으나 canonical(index entry)은 size impact를 underestimate (+1.25 kB가 +3 B로만 reflected). archive 영역에 집중되는 변경은 dual record로 가시화 필수.
 
+**외부 SDK 추가 시 lazy chunk 위치 실측 의무 (v3.43 graduate, v3.41 L4 + v3.42 L9)**:
+
+vite vendor chunking이 외부 SDK를 자동으로 별도 chunk에 emit. 보안/외부 SDK 추가 시 chunk 위치 확인 의무:
+
+- caller 함수 내부 `await import(...)`로 옮기면 별도 chunk emit → first-paint 영향 0
+- 실측: `gzip -c dist/assets/<chunk-name>-*.js | wc -c`
+- 사례: v3.41 firebase SDK 정적 import → `translateToast` lazy chunk에 자동 흡수 (15,044 B), v3.42 App Check caller 내부 `await import` → 별도 `appCheck` chunk 분리 (13,215 B)
+
+dual record (index + archive) 부족 시 quad record (index + archive + 신규 SDK chunk + translateToast 등)로 확장. 신규 chunk가 dynamic chain (home/settings 등)이면 first-paint 영향 0이라 별도 threshold 불요, 단순 기록.
+
 ### Schema bump 시 chain superset 필수 spot (v3.40 graduate, 13사이클 ROI)
 
 - migration chain (V2→V3→...→VN) — 모든 prior version에 N으로 가는 경로
@@ -178,6 +188,7 @@ code-reviewer agent의 M-rating nit이 다음에 해당하면 P1 격상 검토:
 - **mandatory dispatch**: 각 사이클 T0 plan v1 작성 직후 (T2 진입 전 완료 의무).
 - **P0/P1 plan 반영 전 구현 금지**: 사전 review 결과 P0가 있으면 plan v2 in-cycle 흡수, T2 진입 X.
 - **CLI 한도 fallback**: controller self-review (`pr-review-toolkit:code-reviewer` 등) 허용 (v3.14.5 / v3.20 / v3.24 선례), 단 retro에 명시.
+- **small cycle exception (v3.43 graduate, v3.42 P2-2)**: 신규 schema 0 + 신규 기능 0 + 코드 변경 ≤ 1~2 file (docs/config-only)인 lightweight cycle에서 CLI 1차 시도가 한도/권한/process 중단으로 실패하면 controller self-review로 사전 review 대체 OK. 최종 review는 사이클 type 무관 의무. graduated checklist 5항목은 코드 변경 없는 task에서 N/A로 명시 가능. (사례: v3.43 사전 review CLI killed → controller `pr-review-toolkit:code-reviewer` fallback)
 
 ### v3.31 L1 graduation — Codex CLI direct dispatch
 
@@ -192,6 +203,19 @@ v3.30 T0에서 subagent dispatch가 background drop되어 결과 회수에 실�
 ### Single Fix Point Preference (v3.31 L5)
 
 mutation 이후 여러 caller가 같은 UI 갱신을 필요로 하면 caller마다 patch하지 말고 `rerenderList()` 같은 단일 진입점에 side-effect를 추가할 수 있는지 먼저 검토한다. v3.30 T7 P1 fix는 `rerenderList()` 1줄로 13 caller의 archive count stale 문제를 닫았다.
+
+---
+
+## 보안 기능 도입 default 패턴 (v3.43 graduate, v3.41 L2 ROI)
+
+외부 SDK 보안 기능 (App Check, reCAPTCHA Enterprise, Cloud Armor 등) 도입 시 **2-phase rollout** 표준 적용:
+
+1. **Phase A — 관측**: SDK client 배포 + 측정 모드 (token/signal 발급률 ≥ 99% 24h 모니터링). race 차단 + production-first 안전. 구체 toggle은 SDK별 console 참조.
+2. **Phase B — 강제**: backend 측 enforce 활성. 정보 누출 회피 위한 generic 응답 정합 (예: not-found / auth-fail 경로는 202 응답).
+
+**적용 사례**: v3.41 T1 App Check (console "Monitor mode" → "Enforce" 2-phase 패턴) + v3.41 carry C1 (Phase B 24h monitor 후 별도 cycle).
+
+**다중 보안층 정합**: 인증/검증 SDK + 정적 GCP 제한 (예: HTTP referrer)은 redundant가 아닌 다중 layer. SDK가 strict하지만 정적 제한은 abuse 안전망. 둘 다 적용 권장 (v3.43 v2 결정으로 GCP referrer는 endpoint coverage 확장 시점에 도입 — v3.44+ carry).
 
 ---
 

@@ -15,5 +15,7 @@ firebase-debug.log
 .bkit/
 # v3.26 T6 (v3.24 P2-2): .claude/ 전체 무시하되 COMMON_MISTAKES.md만 git tracked.
 # git negation은 부모 디렉토리가 *로 끝나야 작동 (parent excluded면 child re-include 불가).
+# v3.43 T1: LEARNINGS_INDEX.md도 graduate index 정합 위해 git tracked.
 .claude/*
 !.claude/COMMON_MISTAKES.md
+!.claude/LEARNINGS_INDEX.md
