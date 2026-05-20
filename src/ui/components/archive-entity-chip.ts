@@ -37,11 +37,3 @@ export function renderEntityChipRow(
   }).join('');
   return `<div id="archiveEntityFilters" role="radiogroup" aria-label="아카이브 카테고리" class="archive-entity-row">${chips}</div>`;
 }
-
-/**
- * 2차 row (question type chip) 노출 여부 — entity가 'all' 또는 'answer'일 때만.
- * 'scrap' / 'insight'는 question type 무의미 → 숨김.
- */
-export function show2ndRow(entity: EntityFilter): boolean {
-  return entity === 'all' || entity === 'answer';
-}

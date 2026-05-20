@@ -1,4 +1,4 @@
-export type InterestCategory = 'HR' | 'Tech' | 'Biz' | 'General';
+type InterestCategory = 'HR' | 'Tech' | 'Biz' | 'General';
 
 export interface Interest {
   id: string;

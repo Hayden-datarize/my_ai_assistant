@@ -1,6 +1,6 @@
 export const CURRENT_SCHEMA_VERSION = 1 as const;
 
-export type SchemaVersion = 0 | 1;
+type SchemaVersion = 0 | 1;
 
 export interface Versioned {
   schemaVersion: SchemaVersion;

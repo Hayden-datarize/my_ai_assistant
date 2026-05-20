@@ -36,7 +36,7 @@ export interface Insight {
 }
 
 /** v3.27 T1: XP 추이 entry — 답변 entry 시점에 1개씩 push (KST date anchor). */
-export interface XpHistoryEntry {
+interface XpHistoryEntry {
   date: string;     // KST 'YYYY-MM-DD' (getKstDateStr)
   xpEarned: number; // 해당 entry의 xp delta (+ only)
 }

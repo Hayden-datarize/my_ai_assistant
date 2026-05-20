@@ -59,7 +59,7 @@ export async function generateQuestion({ apiKey, interests, preferType }: Genera
   return parseQuestionResponse(text, interests);
 }
 
-export interface ChatTurn { role: 'user' | 'ai'; text: string }
+interface ChatTurn { role: 'user' | 'ai'; text: string }
 
 export interface ChatInput {
   apiKey: string;

@@ -11,7 +11,7 @@
 
 import type { EntityFilter } from './archive-entity-chip';
 
-export type ArchiveSummaryEntity = Exclude<EntityFilter, 'all'>;
+type ArchiveSummaryEntity = Exclude<EntityFilter, 'all'>;
 
 export type ArchiveSearchCounts = Record<ArchiveSummaryEntity, number>;
 
