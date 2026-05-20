@@ -1,4 +1,12 @@
 import { describe, it, expect, vi, beforeEach } from 'vitest';
+
+// v3.41 T1 (Codex P0 F1): Firebase App Check 모듈 mock — 실제 firebase init이
+// vitest jsdom 환경에서 fetch mock을 잠식하는 회귀 차단. token 발급은 단위
+// 테스트 책임 X (functions/__tests__에서 별도 검증 예정 Phase B).
+vi.mock('../../../src/services/appCheck', () => ({
+  getAppCheckToken: vi.fn().mockResolvedValue(null),
+}));
+
 import { sendAnswerDm, autoSendAnswer } from '../../../src/services/slack';
 import { saveSlackSettings, clearSlackSettings } from '../../../src/state/slack';
 
