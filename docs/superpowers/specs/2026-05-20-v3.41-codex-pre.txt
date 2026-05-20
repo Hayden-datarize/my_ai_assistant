@@ -1,0 +1,94 @@
+검토 결과: **P0는 없음. P1 여러 건은 plan v2에 흡수 후 진행 권고**입니다. `npm run build`는 통과했고, 현재 build 기준 `index-*.js` gzip은 **9.11 KB**, `archive-*.js` 합산 gzip은 **9.12 KB**로 확인했습니다.
+
+### [P1] App Check rollout 순서가 정상 사용자 403 race를 만들 수 있음
+
+- **위치**: [spec §1.2-1.4](/Users/hayden/Hayden_AX_Project/my_ai_assistance/docs/superpowers/specs/2026-05-20-v3.41-security-stability-hardening-design.md:79), [plan §1.1](/Users/hayden/Hayden_AX_Project/my_ai_assistance/docs/superpowers/plans/2026-05-20-v3.41-security-stability-hardening-plan.md:158), [plan T8 Step 7](/Users/hayden/Hayden_AX_Project/my_ai_assistance/docs/superpowers/plans/2026-05-20-v3.41-security-stability-hardening-plan.md:901)
+- **Symptom**: plan은 Firebase Console “Enforce” ON을 사전 작업으로 두고, hosting/functions deploy 순서만 적습니다. 이 순서면 frontend token 배포 전후 5~10초 동안 정상 사용자도 `sendAnswerDm` 401/403을 받을 수 있습니다.
+- **Root cause**: App Check 등록, frontend token 발급, backend enforcement가 한 단계로 섞여 있습니다. reCAPTCHA Enterprise/v3 선택도 열려 있는데 예시 코드는 Enterprise provider 고정입니다.
+- **Suggested amend**: 2-phase rollout 명시: 1차 site key 등록 및 enforce OFF/monitor, frontend deploy, DevTools에서 `X-Firebase-AppCheck` 확인, 그 다음 functions `enforceAppCheck:true` 배포 및 Console enforce ON. Provider는 `reCAPTCHA v3 기본`, Enterprise는 GCP billing 확인 시로 결정.
+- **Effort 변동**: S
+
+### [P1] Bundle DoD가 측정 대상과 threshold에서 불일치
+
+- **위치**: [spec §7.2](/Users/hayden/Hayden_AX_Project/my_ai_assistance/docs/superpowers/specs/2026-05-20-v3.41-security-stability-hardening-design.md:296), [plan §1.5](/Users/hayden/Hayden_AX_Project/my_ai_assistance/docs/superpowers/plans/2026-05-20-v3.41-security-stability-hardening-plan.md:291), [plan §9](/Users/hayden/Hayden_AX_Project/my_ai_assistance/docs/superpowers/plans/2026-05-20-v3.41-security-stability-hardening-plan.md:944)
+- **Symptom**: spec §7.2는 GREEN ≤ +300 B / AMBER ≤ +500 B인데, §10/plan §9는 T1 Firebase SDK +~10 KB 및 DoD ≤ +15 KB를 둡니다. 현재 build 기준 index gzip은 9.11 KB라 “23~24 KB gzip” 전제도 raw/gzip 혼동으로 보입니다.
+- **Root cause**: `src/services/slack.ts`는 [home handler가 정적 import](/Users/hayden/Hayden_AX_Project/my_ai_assistance/src/ui/handlers/home.ts:20)하므로 Firebase App Check를 slack.ts에 정적 import하면 index가 아니라 first-home/settings/shared chunk에 붙을 가능성이 큽니다.
+- **Suggested amend**: T7 dual record를 `index`, `home`, `settings`, `shared/firebase candidate`까지 확장. +15 KB 초과 또는 first-home chunk 급증 시 `sendAnswerDm` 안에서 `await import('./appCheck')`로 lazy load하는 것을 “검토”가 아니라 in-cycle fix로 명시.
+- **Effort 변동**: S
+
+### [P1] parseEvaluationResponse fallback 정책이 불명확함
+
+- **위치**: [spec §2.2](/Users/hayden/Hayden_AX_Project/my_ai_assistance/docs/superpowers/specs/2026-05-20-v3.41-security-stability-hardening-design.md:118), [plan §2 Step 6](/Users/hayden/Hayden_AX_Project/my_ai_assistance/docs/superpowers/plans/2026-05-20-v3.41-security-stability-hardening-plan.md:385), [parseJsonText](/Users/hayden/Hayden_AX_Project/my_ai_assistance/src/utils/gemini-parse.ts:4)
+- **Symptom**: plan은 invalid JSON에 대해 “throw 또는 default fallback”이라고 적어 테스트 기대값이 열려 있습니다. 하지만 spec 본문은 invalid score fallback `{score:3, feedback:''}` 방향입니다.
+- **Root cause**: `parseJsonText`는 fenced JSON은 대체로 처리하지만 JSON object가 없으면 throw합니다. `parseEvaluationResponse`가 이 throw를 흡수할지 caller에 넘길지 결정이 없습니다.
+- **Suggested amend**: `parseEvaluationResponse` 내부에서 `parseJsonText`를 try/catch하고 malformed/plain text는 `{score:3, feedback:''}` + `console.warn`으로 확정. 테스트에 valid fenced code block, garbage before/after JSON, malformed JSON, plain text, `{}`를 추가.
+- **Effort 변동**: S
+
+### [P2] migrateAnswer normalize timing 설명이 실제 load path와 다름
+
+- **위치**: [spec §2.4](/Users/hayden/Hayden_AX_Project/my_ai_assistance/docs/superpowers/specs/2026-05-20-v3.41-security-stability-hardening-design.md:139), [loadAnswers](/Users/hayden/Hayden_AX_Project/my_ai_assistance/src/state/persistence.ts:26)
+- **Symptom**: spec은 “첫 load 시 1회만”이라고 하지만 현재 `dg.answers` path는 매 `loadAnswers()`마다 `migrateAnswer`를 map하고 저장은 하지 않습니다.
+- **Root cause**: legacy key migration만 write-back 1회이고, Phase B key는 read-time normalize입니다.
+- **Suggested amend**: “idempotent read-time normalize, write-back 없음”으로 고치거나, changed flag가 있을 때만 `saveAnswers` 1회 write-back하도록 plan에 명시.
+- **Effort 변동**: XS-S
+
+### [P1] SW v10이 “새 deploy 첫 reload”를 완전히 보장한다고 볼 수 없음
+
+- **위치**: [spec §3.2](/Users/hayden/Hayden_AX_Project/my_ai_assistance/docs/superpowers/specs/2026-05-20-v3.41-security-stability-hardening-design.md:154), [plan §3 Step 3-5](/Users/hayden/Hayden_AX_Project/my_ai_assistance/docs/superpowers/plans/2026-05-20-v3.41-security-stability-hardening-plan.md:441), [current sw](/Users/hayden/Hayden_AX_Project/my_ai_assistance/public/sw.js:27)
+- **Symptom**: v10 network-first는 v10 SW가 control한 뒤부터 유효합니다. deploy 직후 첫 navigation은 아직 old v9 SW가 처리할 수 있어 stale `/index.html` 가능성이 남습니다.
+- **Root cause**: Service Worker lifecycle 특성상 새 SW는 첫 navigation 요청 전에 항상 control권을 잡지 못합니다.
+- **Suggested amend**: rollout 시나리오를 “v9-controlled 첫 reload는 잔여 위험, v10 activated 후 reload부터 보장”으로 명시. 기존 v3.20 image/font pass-through regression guard도 반드시 보존: [tests/unit/sw.spec.ts](/Users/hayden/Hayden_AX_Project/my_ai_assistance/tests/unit/sw.spec.ts:15), [tests/lint/sw-passthrough.spec.ts](/Users/hayden/Hayden_AX_Project/my_ai_assistance/tests/lint/sw-passthrough.spec.ts:24) 업데이트 포함.
+- **Effort 변동**: S-M
+
+### [P1] isSafeUrl boundary가 render/localStorage read path를 닫지 못함
+
+- **위치**: [spec §4.2](/Users/hayden/Hayden_AX_Project/my_ai_assistance/docs/superpowers/specs/2026-05-20-v3.41-security-stability-hardening-design.md:180), [plan §4 Step 5](/Users/hayden/Hayden_AX_Project/my_ai_assistance/docs/superpowers/plans/2026-05-20-v3.41-security-stability-hardening-plan.md:561), [home href](/Users/hayden/Hayden_AX_Project/my_ai_assistance/src/ui/handlers/home.ts:489), [archive href](/Users/hayden/Hayden_AX_Project/my_ai_assistance/src/ui/handlers/archive.ts:1167)
+- **Symptom**: plan은 `saveBriefings`와 `fetchFeed` 중심입니다. 하지만 기존 localStorage/import된 손상 데이터는 `loadBriefings()` 후 바로 render path에 들어갈 수 있습니다.
+- **Root cause**: write boundary만 막으면 read-only render sink가 남습니다.
+- **Suggested amend**: `loadBriefings`, `saveBriefings`, `fetchFeed`가 같은 normalizer를 쓰게 하고, render path에서도 `safeHref = isSafeUrl(b.url) ? b.url : '#'`로 re-check 의무화. RSS source grep 결과 현재 `interestToFeeds` feed URL은 모두 `https://`입니다: [home.ts](/Users/hayden/Hayden_AX_Project/my_ai_assistance/src/ui/handlers/home.ts:749).
+- **Effort 변동**: S
+
+### [P2] reportAsync circular risk는 현재 false alarm이지만 grep 의무가 plan에 부족함
+
+- **위치**: [spec §5.4](/Users/hayden/Hayden_AX_Project/my_ai_assistance/docs/superpowers/specs/2026-05-20-v3.41-security-stability-hardening-design.md:234), [plan §5 Step 1](/Users/hayden/Hayden_AX_Project/my_ai_assistance/docs/superpowers/plans/2026-05-20-v3.41-security-stability-hardening-plan.md:609), [toast.ts](/Users/hayden/Hayden_AX_Project/my_ai_assistance/src/utils/toast.ts:5)
+- **Symptom**: spec은 circular risk를 적지만 plan에는 `toast.ts` dependency grep과 module side-effect 확인이 없습니다.
+- **Root cause**: 현재 `toast.ts`는 import가 없고 DOM append도 `showToast()` 호출 시점에만 발생하므로 순환/boot side-effect는 없습니다. 이 사실을 plan에 고정하지 않으면 향후 구현자가 불필요하게 우회할 수 있습니다.
+- **Suggested amend**: T5 Step 0에 `rg "reportAsync|from .*toast" src/utils src/state src/ui` 추가, “현재 cycle 0, module-level DOM side-effect 0” 확인 문구 반영.
+- **Effort 변동**: XS
+
+### [P1] T6 dead control 제거 대상 id/event가 실제 코드와 어긋남
+
+- **위치**: [spec §6.2](/Users/hayden/Hayden_AX_Project/my_ai_assistance/docs/superpowers/specs/2026-05-20-v3.41-security-stability-hardening-design.md:249), [plan §6 Step 1-4](/Users/hayden/Hayden_AX_Project/my_ai_assistance/docs/superpowers/plans/2026-05-20-v3.41-security-stability-hardening-plan.md:693), [actual DOM](/Users/hayden/Hayden_AX_Project/my_ai_assistance/src/ui/tabs/archive.ts:28), [actual dispatcher](/Users/hayden/Hayden_AX_Project/my_ai_assistance/src/ui/tabs/archive.ts:119)
+- **Symptom**: spec/plan은 `archivePeriodFilter`를 찾지만 실제 id는 `archivePeriod`입니다. 실제 event는 `dg:archive:period-change`이고, dispatcher/listener/event definition/test mock이 모두 남아 있습니다.
+- **Root cause**: 정의-사용 mismatch가 plan grep 자체를 무력화합니다.
+- **Suggested amend**: 제거 목록을 정확히 적기: `#archivePeriod`, `.archive-period`, `handleArchivePeriodChange`, `archive-listeners.ts` period listener, `tabs/archive.ts` dispatch, `events.ts` `EventMap`/`EVENT_NAMES`/`V32_DEFERRED_EVENTS`, `tests/unit/events.spec.ts`, `tests/unit/handlers-register.spec.ts`.
+- **Effort 변동**: S
+
+### [P1] user_not_found generic 200의 UX 계약이 빠짐
+
+- **위치**: [spec §1.2](/Users/hayden/Hayden_AX_Project/my_ai_assistance/docs/superpowers/specs/2026-05-20-v3.41-security-stability-hardening-design.md:82), [plan §1.3-1.4](/Users/hayden/Hayden_AX_Project/my_ai_assistance/docs/superpowers/plans/2026-05-20-v3.41-security-stability-hardening-plan.md:260), [frontend success path](/Users/hayden/Hayden_AX_Project/my_ai_assistance/src/ui/tabs/settings.ts:231)
+- **Symptom**: `user_not_found`를 200 `{ok:true}`로 바꾸면 설정 탭 테스트 버튼은 실제 DM이 없어도 “전송 성공”을 표시합니다.
+- **Root cause**: enumeration 차단 보안 요구와 사용자 오타/봇 미설치 UX가 reconcile되지 않았습니다.
+- **Suggested amend**: success copy를 “요청 접수, DM이 없으면 이메일/봇 설치 확인” 수준으로 바꾸거나, generic 202/200 응답 계약을 명시. `@gmail.com` 같은 domain invalid는 400 유지, `nonexistent@datarize.ai`는 generic accepted로 테스트 분리.
+- **Effort 변동**: S
+
+**종합 분류**
+**PROCEED_AFTER_FIXES**. P0는 없지만 T1 rollout, T6 제거 범위, T4 render/read boundary, T7 bundle 기준은 plan v2에 반영한 뒤 T2 진입하는 게 맞습니다.
+
+**Heatmap**
+| Review 축 | P0 | P1 | P2 |
+|---|---:|---:|---:|
+| 1. T1 App Check rollout | 0 | 2 | 0 |
+| 2. T2 parseEvaluationResponse | 0 | 1 | 1 |
+| 3. T3 SW navigation | 0 | 1 | 0 |
+| 4. T4 isSafeUrl/http | 0 | 1 | 0 |
+| 5. T5 reportAsync circular | 0 | 0 | 1 |
+| 6. T6 dead control residual | 0 | 1 | 0 |
+| 7. CLAUDE graduated checklist | 0 | 2 | 1 |
+| 8. Cross bundle/T7 dual record | 0 | 1 | 0 |
+
+**In-cycle 흡수 가능**
+T1 2-phase rollout/provider 결정, bundle 측정 대상 확장, parse fallback 확정, SW scenario/test 보강, URL read/render guard, reportAsync grep, T6 exact deletion list, `user_not_found` UX copy는 모두 S급으로 v3.41 plan v2에 흡수 가능합니다.
+
+**Spec scope 확대 권고**
+Firebase Auth user-level 검증, production-wide RSS item `http` 실측 telemetry, “old SW가 지배하는 첫 reload까지 완전 무결” 보장은 v3.42+로 분리 권고입니다. v3.41에서는 App Check minimal과 v10 이후 navigation 보장까지만 닫는 것이 적절합니다.

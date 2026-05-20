@@ -1,0 +1,35 @@
+**Findings**
+
+[P1] App Check Phase A token 발급이 CSP에 막힘 / File: [index.html](/Users/hayden/Hayden_AX_Project/my_ai_assistance/index.html:7), [firebase.json](/Users/hayden/Hayden_AX_Project/my_ai_assistance/firebase.json:20) / Symptom: `ReCaptchaV3Provider`가 `https://www.google.com/recaptcha/api.js`를 주입하지만 CSP `script-src`가 `'self'`만 허용합니다. Production에서 `getToken()` 실패 → `X-Firebase-AppCheck` 미첨부 → Phase A monitor 데이터가 무효화됩니다. / Root cause: T1 App Check SDK 추가 시 CSP allowlist와 CSP 회귀 테스트가 같이 갱신되지 않았습니다. / Suggested fix: `index.html`과 `firebase.json` CSP에 reCAPTCHA script 허용을 추가하고, 실제 브라우저에서 Slack DM 요청에 `X-Firebase-AppCheck`가 붙는지 확인하세요. CSP lint test도 추가 권장. / Effort: S
+
+[P1] current-schema Answer evaluation이 migrate normalize를 우회 / File: [migration.ts](/Users/hayden/Hayden_AX_Project/my_ai_assistance/src/state/migration.ts:38) / Symptom: `schemaVersion === CURRENT_SCHEMA_VERSION` 답변은 early return되어 `normalizeStoredEvaluation()`을 타지 않습니다. `parseEvaluationResponse`와 render escape는 동작하지만, T2의 “parse/migrate/render 3-layer” 중 read/migrate layer가 현재 스키마 데이터에 대해 비어 있습니다. / Root cause: current-schema fast path가 evaluation 정규화보다 앞에 있습니다. / Suggested fix: early return branch에서도 `r.evaluation`을 normalize/drop 하도록 변경하고, current-schema stored answer에 string/out-of-range score를 넣는 회귀 테스트를 추가하세요. / Effort: S
+
+[P2] App Check SDK가 home dynamic critical path에 정적으로 흡수됨 / File: [slack.ts](/Users/hayden/Hayden_AX_Project/my_ai_assistance/src/services/slack.ts:6) / Symptom: 주석은 lazy import라고 되어 있지만 `getAppCheckToken`은 static import입니다. build 결과 `home-*.js`가 Firebase/App Check 포함 chunk `translateToast-*.js`를 import합니다. `index` first-paint 영향은 작지만, onboarded home 초기 import에는 영향이 있습니다. / Root cause: Slack service import 경로에서 App Check가 정적으로 연결됩니다. / Suggested fix: first-screen 예산을 엄격히 보려면 `sendAnswerDm()` 내부에서 App Check를 dynamic import하고 bundle record를 다시 측정하세요. / Effort: S
+
+**종합 분류**
+
+REJECT
+
+P0는 없지만, T1 Phase A monitor가 CSP 때문에 production에서 동작하지 않는 상태입니다. 이 상태로 24h monitor를 돌리면 Phase B enforce 판단 근거가 깨지므로 deploy gate는 통과시키기 어렵습니다.
+
+**Heatmap**
+
+- T1 App Check Phase A: RED
+- T2 evaluation score guard: AMBER
+- T3 SW v10 GET-only/nav/image pass-through: GREEN
+- T4 briefing URL 3-layer: GREEN
+- T5 `reportAsync` 3-site wrap: GREEN
+- T6 archive period dead control 제거: GREEN
+- Bundle/perf: AMBER
+- Verification: AMBER
+
+**Verification**
+
+`git diff --check`, `npm run build`, `npm run lint`는 통과했습니다.  
+v3.41 관련 targeted tests는 12 files / 132 tests 통과했습니다.  
+전체 `npm test`는 기존 carry로 명시된 `briefings-dedup` 15→14 건 때문에 실패했으며, 본 review finding으로 잡지 않았습니다.
+
+**v3.42 Carry 권고**
+
+기존 carry: `briefings-dedup` 15→14, polish flake, P2-F7/F8/F9, T1 Phase B, API key 도메인 제한은 그대로 유지.  
+추가로, P2 static import는 deploy blocker는 아니므로 v3.42에서 “App Check dynamic import + home chunk 재측정”으로 carry 가능합니다. P1 두 건은 v3.41 deploy 전에 닫는 쪽이 맞습니다.
