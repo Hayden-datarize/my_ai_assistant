@@ -61,7 +61,7 @@ test('v3.39 T7: plant action chip → archive 진입 시 currentInterestId 설�
   await page.waitForTimeout(300); // debounce 200ms + margin
 
   // 2) stats 탭 → 정원 카드 클릭 → plant-detail modal open.
-  //    bottomNav fixed overlay 회피: dispatchEvent('click') (v3.39 T7 P1-5 fix)
+  // v3.40 T6: base.css :where(.garden-card) scroll-margin-bottom 확장 → 실제 .click() 통과.
   await page.locator('#bottomNav button[data-tab-id="stats"]').click();
   const card = page.locator('.garden-card[data-interest-id="leadership"]');
   await expect(card).toBeVisible();

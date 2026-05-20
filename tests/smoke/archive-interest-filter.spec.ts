@@ -107,8 +107,7 @@ test('v3.39 T7 + T8 review: exact hit — insight-detail nav 후 interestId=ai_m
   await expect(page.locator('.archive-card--answer')).toHaveCount(4);
 
   // 2) insight 카드 클릭 → openInsightDetailModal
-  //   bottomNav fixed-bottom이 mobile viewport(375x667)에서 list 하단을 가림.
-  //   scrollIntoView도 fixed overlay에는 무효 → dispatchEvent('click')로 pointer-events 우회.
+  // v3.40 T6 (C3 + L4): base.css :where() scroll-margin-bottom 확장 → 실제 .click() 통과.
   const insightCard = page.locator('.archive-insight-card[data-insight-id="ins-ai-1"]');
   await insightCard.scrollIntoViewIfNeeded();
   await insightCard.dispatchEvent('click');
@@ -145,8 +144,10 @@ test('v3.39 T7 + T8 review: legacy fallback — interestId=unknown answer가 BRA
   await page.locator('#bottomNav button[data-tab-id="archive"]').click();
   // hydration anchor: archive list 렌더 완료까지 대기 (insight card click handler bind 보장).
   await expect(page.locator('.archive-insight-card[data-insight-id="ins-ai-1"]')).toBeVisible();
-  // bottomNav fixed overlay 회피: dispatchEvent('click') idiom (v3.39 T7 P1-5 fix)
-  await page.locator('.archive-insight-card[data-insight-id="ins-ai-1"]').dispatchEvent('click');
+  // v3.40 T6: scroll-margin-bottom 적용 → scrollIntoView + 실제 .click() 통과.
+  const insightCardA = page.locator('.archive-insight-card[data-insight-id="ins-ai-1"]');
+  await insightCardA.scrollIntoViewIfNeeded();
+  await insightCardA.dispatchEvent('click');
   await expect(page.locator('.insight-detail')).toBeVisible();
   await page.locator('.insight-archive-nav-chip').dispatchEvent('click');
 
@@ -175,8 +176,10 @@ test('v3.39 T7 + T8 review: state — currentInterestId 유지 중 search 사용
   await page.locator('#bottomNav button[data-tab-id="archive"]').click();
   // hydration anchor: archive list 렌더 완료까지 대기.
   await expect(page.locator('.archive-insight-card[data-insight-id="ins-ai-1"]')).toBeVisible();
-  // bottomNav fixed overlay 회피: dispatchEvent('click') idiom (v3.39 T7 P1-5 fix)
-  await page.locator('.archive-insight-card[data-insight-id="ins-ai-1"]').dispatchEvent('click');
+  // v3.40 T6: scroll-margin-bottom 적용 → scrollIntoView + 실제 .click() 통과.
+  const insightCardB = page.locator('.archive-insight-card[data-insight-id="ins-ai-1"]');
+  await insightCardB.scrollIntoViewIfNeeded();
+  await insightCardB.dispatchEvent('click');
   await expect(page.locator('.insight-detail')).toBeVisible();
   await page.locator('.insight-archive-nav-chip').dispatchEvent('click');
   await expect(page.locator('#archiveSearch')).toHaveValue('');

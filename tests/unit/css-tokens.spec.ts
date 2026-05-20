@@ -205,11 +205,19 @@ describe('v3.17 T2 — dark warm charcoal', () => {
 
 describe('v3.17 T6 — scroll-margin CSS UX (carry-B)', () => {
   it('input/textarea/data-scroll-target 전역 selector에 scroll-margin-top', () => {
-    expect(baseCss).toMatch(/:where\(input,\s*textarea,\s*\[data-scroll-target\]\)/);
+    // v3.40 T6: selector 확장 — archive/insight/plant/mission/garden 카드 추가.
+    expect(baseCss).toMatch(/:where\(input,\s*textarea,\s*\[data-scroll-target\]/);
     expect(baseCss).toMatch(/scroll-margin-top:\s*calc\(var\(--nav-height\)\s*\+\s*16px\)/);
   });
 
   it('scroll-margin-bottom uses --content-bottom-pad', () => {
     expect(baseCss).toMatch(/scroll-margin-bottom:\s*var\(--content-bottom-pad\)/);
+  });
+
+  // v3.40 T6 신규: archive/insight/plant/mission/garden 카드 selector 회귀 가드
+  it('v3.40 T6: archive/insight/plant/mission/garden 카드 selector 포함', () => {
+    expect(baseCss).toMatch(/\.archive-card,\s*\.archive-insight-card/);
+    expect(baseCss).toMatch(/\.plant-action-chip,\s*\.insight-archive-nav-chip/);
+    expect(baseCss).toMatch(/\.mission-card,\s*\.garden-card/);
   });
 });
