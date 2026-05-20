@@ -2,8 +2,7 @@
   "$schema": "https://unpkg.com/knip@latest/schema.json",
   "ignore": [
     "tests/helpers/**",
-    "tests/smoke/_helpers/**",
-    "functions/lib/**"
+    "tests/smoke/_helpers/**"
   ],
   "ignoreBinaries": [
     "firebase"
