@@ -95,13 +95,15 @@ describe('interestToFeeds 1:N mapping', () => {
     expect(all.every((u) => u.startsWith('https://'))).toBe(true);
   });
 
-  it('15 unique feeds across all interests', () => {
+  it('14 unique feeds across all interests', () => {
+    // v3.40 hotfix H1: lifehacker.co.kr SSL 만료 제거 → 15 → 14.
+    // v3.42 T1 (C2 carry): assertion 동반 갱신.
     const allInterests = [
       'recruiting', 'onboarding', 'culture', 'hr_system', 'labor_law',
       'leadership', 'pm', 'ai_ml', 'data', 'startup', 'marketing',
       'productivity', 'career', 'communication', 'self_dev',
     ];
     const unique = new Set(allInterests.flatMap(interestToFeeds));
-    expect(unique.size).toBe(15);
+    expect(unique.size).toBe(14);
   });
 });

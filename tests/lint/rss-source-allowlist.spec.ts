@@ -36,7 +36,7 @@ const ALLOWED_HOSTS = new Set([
   'tech.kakao.com',
   'd2.naver.com',
   'www.mobiinside.co.kr',
-  'www.lifehacker.co.kr',
+  // v3.40 hotfix H1: lifehacker.co.kr SSL 만료 제거 (v3.42 T1: allowlist 동반 정리).
   'news.hada.io',
   'techblog.woowahan.com',
   'engineering.linecorp.com',
