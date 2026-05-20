@@ -167,7 +167,7 @@ code-reviewer agent의 M-rating nit이 다음에 해당하면 P1 격상 검토:
    - **default dispatch** (v3.33 soft 명문화):
 
      ```bash
-     codex exec --skip-git-repo-check -o /tmp/<cycle>-codex-final.txt "<prompt>"
+     codex exec --skip-git-repo-check -o /tmp/<cycle>-codex-final.txt "<prompt>" < /dev/null
      ```
 
    - **fallback 단계 정책** (CLI 한도/권한 issue 시):
