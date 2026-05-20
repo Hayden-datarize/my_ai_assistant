@@ -18,6 +18,8 @@
   }
   .garden-card {
     /* v3.21 T9: <button> reset (div→button 변경 — click + a11y) */
+    /* v3.40 hotfix H4: 외부 ancestor/inherited transform 영향 차단 — 정적 transform: none 강제. */
+    transform: none;
     border: 1px solid var(--border);
     cursor: pointer;
     text-align: center;

@@ -779,15 +779,14 @@ export function interestToFeeds(interestId: string): string[] {
       'https://news.hada.io/rss/news',
     ],
     marketing: ['https://www.mobiinside.co.kr/feed', 'https://www.lennysnewsletter.com/feed'],
-    productivity: ['https://www.lifehacker.co.kr/feed', 'https://blog.pragmaticengineer.com/rss/'],
+    // v3.40 hotfix H1: lifehacker.co.kr SSL cert expired (사용자 production 보고) → 제거.
+    productivity: ['https://blog.pragmaticengineer.com/rss/'],
     career: [
-      'https://www.lifehacker.co.kr/feed',
       'https://blog.pragmaticengineer.com/rss/',
       'https://www.lennysnewsletter.com/feed',
     ],
-    communication: ['https://www.lifehacker.co.kr/feed', 'https://blog.pragmaticengineer.com/rss/'],
+    communication: ['https://blog.pragmaticengineer.com/rss/'],
     self_dev: [
-      'https://www.lifehacker.co.kr/feed',
       'https://martinfowler.com/feed.atom',
       'https://blog.pragmaticengineer.com/rss/',
     ],

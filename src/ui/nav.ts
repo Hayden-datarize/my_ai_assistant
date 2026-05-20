@@ -57,7 +57,10 @@ export function mountNav(): void {
 // chunk resolve로 잘못된 탭 render하는 race 차단. 최신 요청만 DOM mutate.
 let pendingSwitchToken = 0;
 
-export async function switchTab(id: TabId): Promise<void> {
+// v3.40 hotfix H5: SPA history API — 브라우저 뒤로가기 시 페이지 이탈 방지.
+// switchTab 호출 시 history.pushState 누적. popstate에서 prev tab 복원.
+// `fromPopstate` 옵션으로 popstate listener 호출 시 pushState 재누적 방지 (무한 스택).
+export async function switchTab(id: TabId, opts: { fromPopstate?: boolean } = {}): Promise<void> {
   const tab = TABS.find((t) => t.id === id);
   if (!tab) throw new Error(`Unknown tab: ${id}`);
   const myToken = ++pendingSwitchToken;
@@ -73,8 +76,33 @@ export async function switchTab(id: TabId): Promise<void> {
     b.classList.toggle('active', b.dataset['tabId'] === id);
   });
 
+  // v3.40 hotfix H5: 사용자 클릭 시점만 history 누적. popstate 호출 시는 이미 history 진입.
+  if (!opts.fromPopstate) {
+    try {
+      window.history.pushState({ tab: id }, '', `#${id}`);
+    } catch (err) {
+      console.warn('[nav] history.pushState failed', err);
+    }
+  }
+
   // Notify handlers so they can hydrate the newly rendered markup.
   // Using raw dispatchEvent instead of the typed helper to avoid a cycle
   // (events.ts has no dependency on nav.ts).
   document.dispatchEvent(new CustomEvent('dg:nav:tab-changed', { detail: { tab: id } }));
+}
+
+// v3.40 hotfix H5: popstate listener — 브라우저 뒤로가기/앞으로가기로 탭 복원.
+// 페이지 이탈 대신 prev tab으로 자연 전환. mountNav() 1회 시점에 attach.
+let popstateAttached = false;
+export function attachHistoryListener(): void {
+  if (popstateAttached) return;
+  popstateAttached = true;
+  window.addEventListener('popstate', (e) => {
+    const state = e.state as { tab?: TabId } | null;
+    // state가 없으면 home으로 폴백 (초기 진입 또는 외부 navigation).
+    const targetTab = state?.tab && TABS.some((t) => t.id === state.tab) ? state.tab : 'home';
+    void switchTab(targetTab, { fromPopstate: true }).catch((err) => {
+      console.warn('[nav] popstate switchTab failed', err);
+    });
+  });
 }

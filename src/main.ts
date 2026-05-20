@@ -1,4 +1,4 @@
-import { mountNav, switchTab } from './ui/nav';
+import { mountNav, switchTab, attachHistoryListener } from './ui/nav';
 import { mountSidebar } from './ui/sidebar';
 import { registerCoreHandlerListeners } from './ui/handlers/register';
 import { mountRewards } from './ui/rewards';
@@ -25,6 +25,8 @@ async function bootMainApp(): Promise<void> {
   home.mountHomeHandlers();
   registerCoreHandlerListeners();
   mountNav();
+  // v3.40 hotfix H5: 브라우저 뒤로가기 → 페이지 이탈 차단, prev tab 복원.
+  attachHistoryListener();
   mountSidebar();
   mountRewards();
   await switchTab('home');

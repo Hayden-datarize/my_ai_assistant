@@ -81,6 +81,10 @@ function emptyStateText(svg: SVGSVGElement): void {
   text.setAttribute('y', String(VIEW_H / 2));
   text.setAttribute('text-anchor', 'middle');
   text.setAttribute('dominant-baseline', 'middle');
+  // v3.40 hotfix H2: SVG text 기본 size는 viewBox scale에 따라 너무 크게 보임 → font-size 명시.
+  text.setAttribute('font-size', '14');
+  text.setAttribute('fill', 'currentColor');
+  text.style.opacity = '0.6';
   text.textContent = '아직 데이터가 없어요';
   svg.appendChild(text);
 }
