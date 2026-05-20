@@ -225,7 +225,7 @@ describe('navigateToInterestArchive sequence (v3.37 T2)', () => {
     const callOrder: string[] = [];
     const { handleSearchSpy } = setupSwitchTabFidelity(callOrder);
 
-    const { navigateToInterestArchive } = await import('../../../src/ui/modals/plant-detail');
+    const { navigateToInterestArchive } = await import('../../../src/ui/handlers/archive-nav');
     await navigateToInterestArchive('investing');
 
     // v3.39 T8 review (Codex 최종 P1-1): handleArchiveSearch 호출 제거 — entity filter SoT.
@@ -263,7 +263,7 @@ describe('navigateToInterestArchive sequence (v3.37 T2)', () => {
     };
 
     try {
-      const { navigateToInterestArchive } = await import('../../../src/ui/modals/plant-detail');
+      const { navigateToInterestArchive } = await import('../../../src/ui/handlers/archive-nav');
       await navigateToInterestArchive('investing');
 
       expect(focusArgs).toContainEqual([{ preventScroll: true }]);
@@ -294,7 +294,7 @@ describe('navigateToInterestArchive sequence (v3.37 T2)', () => {
     };
 
     try {
-      const { navigateToInterestArchive } = await import('../../../src/ui/modals/plant-detail');
+      const { navigateToInterestArchive } = await import('../../../src/ui/handlers/archive-nav');
       await navigateToInterestArchive('investing');
 
       // 1) 옵션 있는 호출 (throw됨)
@@ -332,7 +332,7 @@ describe('navigateToInterestArchive sequence (v3.37 T2)', () => {
     vi.doMock('../../../src/ui/modals/shared', () => ({ openModal: vi.fn(), closeModal: closeModalSpy }));
     vi.doMock('../../../src/utils/interestKeywords', () => ({ interestKeywords: () => ['전략'] }));
 
-    const { navigateToInterestArchive } = await import('../../../src/ui/modals/plant-detail');
+    const { navigateToInterestArchive } = await import('../../../src/ui/handlers/archive-nav');
     await expect(navigateToInterestArchive('investing')).resolves.toBeUndefined();
 
     // handleArchiveSearch는 input null 검사 이후라 호출 안 됨

@@ -9,7 +9,8 @@ import { INTERESTS, getCategoryLabel } from '../../utils/categories';
 import { showToast } from '../../utils/toast';
 import { dispatch } from '../events';
 import { KST_FMT_DATE } from '../../utils/intl';
-import { navigateToInterestArchive } from './plant-detail';
+// v3.40 T8 (C4): navigateToInterestArchive 공용 helper로 이동.
+import { navigateToInterestArchive } from '../handlers/archive-nav';
 import type { User, Insight } from '../../state/user';
 
 /**

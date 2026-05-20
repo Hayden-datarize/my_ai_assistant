@@ -7,7 +7,8 @@ import { escapeHtml } from '../../utils/escapeHtml';
 import { getAnswerCountByInterest, getScrapCountByInterest } from '../../utils/interestCounts';
 import { getKstDateStr, formatRelative } from '../../utils/dates';
 // v3.39 T8 review (Codex 최종 P1-1): interestKeywords import 제거 — pickSearchKeyword path 폐기로 dead-code.
-import { switchTab } from '../nav';
+// v3.40 T8 (C4): navigateToInterestArchive 공용 helper로 이동 — archive-nav.ts (switchTab import 함께 이동).
+import { navigateToInterestArchive } from '../handlers/archive-nav';
 import type { User } from '../../state/user';
 import type { PlantState } from '../../state/plantTypes';
 
@@ -112,43 +113,9 @@ function makeActionChip(interestId: string): HTMLButtonElement {
  *
  * @internal — spec 직접 호출용 export.
  */
-export async function navigateToInterestArchive(interestId: string): Promise<void> {
-  // v3.39 T8 review: invalid interestId (whitelist miss 또는 'unknown') 사전 차단 —
-  // applyInterestFilter 내부에서 setCurrentInterestId가 null로 정정하지만,
-  // nav 진입점 자체에서 silent return으로 closeModal 부작용 차단.
-  // (insight-detail nav chip은 이미 'unknown' 차단 가드, plant-detail action chip은
-  //  유효 interest만 표시 — 본 guard는 defensive net.)
-  if (!interestId) return;
-
-  closeModal();
-  // Codex v3.36 P1-1 흡수: 동적 import — plant-detail이 stats chunk이라 archive handler를 끌어오지 않도록.
-  const { resetArchiveFilters, applyInterestFilter } = await import('../handlers/archive');
-  // v3.37 T2 (reviewer M-1): reset BEFORE switchTab — module state must be 'all' when hydrateArchive's rerenderList fires post-tab-change.
-  resetArchiveFilters();
-  // v3.39 T6 (Codex P0-2): currentInterestId 설정 + search input reset (applyInterestFilter 내부 처리).
-  // v3.39 T8 review: 이 한 줄이 entity filter SoT — 추가 search prefill 없음.
-  applyInterestFilter(interestId);
-  await switchTab('archive');
-
-  // focus 부여 (검색 입력 즉시 가능). search input value는 비어 있음.
-  const input = document.querySelector<HTMLInputElement>('#archiveSearch');
-  if (!input) return;
-  tryFocusWithPreventScroll(input);
-}
-
-/**
- * v3.37 T2 (Codex 사전 P2-1): `focus({ preventScroll })`이 throw하는 환경(구형 iOS Safari 14 이전, 일부 JSDOM-like)
- * 에서 옵션 없는 일반 focus로 graceful degrade.
- * @internal — spec 직접 호출 대상은 아니지만 navigateToInterestArchive 통해 간접 검증.
- */
-function tryFocusWithPreventScroll(input: HTMLInputElement): void {
-  try {
-    input.focus({ preventScroll: true });
-  } catch (err) {
-    console.warn('[plant-detail] focus({preventScroll}) fallback', err);
-    input.focus();
-  }
-}
+// v3.40 T8 (C4): navigateToInterestArchive + tryFocusWithPreventScroll → src/ui/handlers/archive-nav.ts 이동.
+// insight-detail.ts와 공유 helper (3 callsite). Codex 사전 P1-3 흡수: 내부 dynamic import 유지.
+// 본 위치는 closeModal/switchTab 한 줄 wrapper 역할 → 직접 caller가 archive-nav에서 import.
 
 /**
  * ISO → "YYYY년 M월 D일" (KST anchor).

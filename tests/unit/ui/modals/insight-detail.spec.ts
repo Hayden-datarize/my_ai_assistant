@@ -54,8 +54,9 @@ vi.mock('../../../../src/ui/events', () => ({
 }));
 
 // v3.38 T6: archive nav chip — navigateToInterestArchive spy.
+// v3.40 T8 (C4): mock path archive-nav.ts로 이동.
 const mockNavigateToInterestArchive = vi.fn();
-vi.mock('../../../../src/ui/modals/plant-detail', () => ({
+vi.mock('../../../../src/ui/handlers/archive-nav', () => ({
   navigateToInterestArchive: (...a: unknown[]) => mockNavigateToInterestArchive(...a),
 }));
 
