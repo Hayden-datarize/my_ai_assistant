@@ -12,10 +12,11 @@ const swSource = readFileSync(
   'utf-8',
 );
 
-describe('v3.20 H3: SW image pass-through', () => {
-  it('CACHE_NAME bumped to daily-growth-v9 (stale v8 SW eviction)', () => {
-    expect(swSource).toMatch(/CACHE_NAME\s*=\s*['"]daily-growth-v9['"]/);
-    expect(swSource).not.toMatch(/CACHE_NAME\s*=\s*['"]daily-growth-v8['"]/);
+describe('v3.20 H3 / v3.41 T3: SW pass-through + navigation guards', () => {
+  // v3.41 T3 (Codex P1 F3): v9→v10 bump.
+  it('CACHE_NAME bumped to daily-growth-v10 (v3.41 T3, stale v9 SW eviction)', () => {
+    expect(swSource).toMatch(/CACHE_NAME\s*=\s*['"]daily-growth-v10['"]/);
+    expect(swSource).not.toMatch(/CACHE_NAME\s*=\s*['"]daily-growth-v9['"]/);
   });
 
   it('image destination pass-through guard exists', () => {
@@ -38,5 +39,31 @@ describe('v3.20 H3: SW image pass-through', () => {
     const swrIdx = swSource.indexOf('Stale-while-revalidate');
     expect(imageGuardIdx).toBeGreaterThan(0);
     expect(swrIdx).toBeGreaterThan(imageGuardIdx);
+  });
+
+  // v3.41 T3: Non-GET pass-through (cache.put POST reject 차단).
+  it('non-GET pass-through guard exists (req.method !== GET)', () => {
+    expect(swSource).toMatch(/req\.method\s*!==\s*['"]GET['"]/);
+  });
+
+  // v3.41 T3: /api/ pass-through (Firebase Functions rewrite).
+  it('/api/ pass-through guard exists (Functions rewrite)', () => {
+    expect(swSource).toMatch(/url\.pathname\.startsWith\(['"]\/api\/['"]\)/);
+  });
+
+  // v3.41 T3: Navigation network-first.
+  it('navigation network-first with /index.html fallback', () => {
+    expect(swSource).toMatch(/req\.mode\s*===\s*['"]navigate['"]/);
+    expect(swSource).toMatch(/caches\.match\(['"]\/index\.html['"]\)/);
+  });
+
+  // v3.41 T3: Non-GET guard 위치 — image/api/navigation 분기보다 먼저.
+  it('non-GET guard is first (before any other branches)', () => {
+    const nonGetIdx = swSource.indexOf("req.method !== 'GET'");
+    const apiIdx = swSource.indexOf("'/api/'");
+    const navIdx = swSource.indexOf("req.mode === 'navigate'");
+    expect(nonGetIdx).toBeGreaterThan(0);
+    expect(apiIdx).toBeGreaterThan(nonGetIdx);
+    expect(navIdx).toBeGreaterThan(nonGetIdx);
   });
 });

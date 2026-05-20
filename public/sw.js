@@ -1,5 +1,8 @@
-// Service Worker for Daily Growth Assistant v1.3 (v3.20 H3: cross-origin image pass-through)
-const CACHE_NAME = 'daily-growth-v9';
+// Service Worker for Daily Growth Assistant v1.4
+// v3.20 H3: cross-origin image pass-through
+// v3.41 T3 (Codex P1 F3): CACHE_NAME bump v9→v10, GET-only intercept, navigation network-first,
+//   /api/ pass-through (Slack DM relay 등 functions 호출 차단 surface 제거)
+const CACHE_NAME = 'daily-growth-v10';
 const STATIC_ASSETS = [
   '/',
   '/index.html',
@@ -25,7 +28,31 @@ self.addEventListener('activate', event => {
 });
 
 self.addEventListener('fetch', event => {
-  const url = new URL(event.request.url);
+  const req = event.request;
+  const url = new URL(req.url);
+
+  // v3.41 T3 (Codex P1 F3): Non-GET (POST/PUT/DELETE/PATCH) pass-through.
+  // Slack DM relay POST 등이 stale-while-revalidate에 진입하면 cache.put이
+  // 'Request method POST is not supported' reject (silent telemetry noise).
+  if (req.method !== 'GET') {
+    return;
+  }
+
+  // v3.41 T3 (Codex P1 F3): /api/ pass-through — Firebase Functions rewrite는
+  // SW가 intercept하지 않음 (App Check token header / 인증 / 응답 stream 정합).
+  if (url.pathname.startsWith('/api/')) {
+    return;
+  }
+
+  // v3.41 T3 (Codex P1 F3): Navigation network-first with cached /index.html fallback.
+  // 기존 stale-while-revalidate가 old hashed chunk 참조하는 stale html을 navigation에
+  // 반환할 수 있어 404 cascade 발생. 새 SW (v10) activate 이후 reload부터 보장.
+  if (req.mode === 'navigate') {
+    event.respondWith(
+      fetch(req).catch(() => caches.match('/index.html').then((hit) => hit || Response.error()))
+    );
+    return;
+  }
 
   // Pass-through: let the browser handle Google Fonts directly so they are
   // evaluated against CSP font-src (not connect-src via SW context).
