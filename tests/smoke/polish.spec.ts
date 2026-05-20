@@ -77,10 +77,16 @@ test('focus-visible on first focusable shows visible outline (keyboard tab)', as
 test('disabled button has pointer-events: none', async ({ page }) => {
   await seedUser(page);
   await page.goto('/');
+  // v3.42 T2 (C3 carry): stable selector — `<button>` element만 (`<a class="btn">` 등 link variant
+  // 제외, attribute selector로 좁히면 첫 element가 onboarding/home 단계마다 다르지 않음).
+  // 그리고 setAttribute 후 force reflow → `:disabled` pseudo-class layout flush 보장.
+  await page.locator('button.btn').first().waitFor({ state: 'attached' });
   const pe = await page.evaluate(() => {
-    const btn = document.querySelector('.btn');
+    const btn = document.querySelector('button.btn');
     if (!btn) return null;
     btn.setAttribute('disabled', '');
+    // Force reflow — `:disabled` pseudo-class 즉시 평가 보장 (v3.42 T2 flake fix).
+    void (btn as HTMLElement).offsetHeight;
     return getComputedStyle(btn).pointerEvents;
   });
   expect(pe).toBe('none');
