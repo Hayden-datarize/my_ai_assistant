@@ -382,4 +382,31 @@ test('Gemini mock 호출이 실제 API에 새지 않는다', async ({ page }) =>
 
 ---
 
+## 19. Dynamic namespace import knip 추적 한계 + JSDoc semantic tag (2026-05-20, v3.44.1 graduate from v3.44 L1+L3)
+
+**Symptom**: Knip dead-code 분석에서 `import * as ns from './module'` 형태의 dynamic namespace import 후 `ns.exportName()` 호출은 unused로 잡힘.
+
+**Root cause**: knip은 namespace import의 dotted access를 export reference로 추적 못 함 (정적 분석 한계). 코드는 정상 작동하지만 도구는 false-positive.
+
+**Fix/Prevention**:
+
+1. **JSDoc `@public` tag로 명시**:
+
+   ```ts
+   /** @public — main.ts:23 dynamic namespace import (`home.mountHomeHandlers()`)로 호출. */
+   export function mountHomeHandlers(): void { ... }
+   ```
+
+   knip 6+ JSDoc tag 지원 — `@public` mark 시 unused 안 잡힘.
+
+2. **`@internal` tag**: test에만 export하고 production caller 없는 경우 marker. 단 knip은 `@internal`을 unused로 잡지 않음 (test usage 인식).
+
+3. **단순 import로 변경 (대안)**: `import { exportName } from './module'`. 단 code-splitting / lazy load 의도 시 namespace 유지 권장.
+
+**§18 (vi.mock factory export pattern)와 paired** — test에서 mock 함수 외부 export 패턴과 동일하게 semantic tag 우선.
+
+**관련 파일**: `src/ui/handlers/home.ts:249` (v3.44 사례), knip 6.x JSDoc tag docs.
+
+---
+
 **Last Updated**: 2026-05-20

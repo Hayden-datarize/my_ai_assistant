@@ -90,6 +90,17 @@ vite reporter chunked estimation은 dual-record 폐기 (v3.14.4가 마지막 사
 
 **경위 (v3.35 T4 graduation)**: v3.34에서 ranking 코드가 archive dynamic chunk로 emitted됐으나 canonical(index entry)은 size impact를 underestimate (+1.25 kB가 +3 B로만 reflected). archive 영역에 집중되는 변경은 dual record로 가시화 필수.
 
+**Dead-code audit 주기 (v3.44.1 graduate, v3.44 L4 DoD note)**:
+
+knip config의 `ignoreExportsUsedInFile: true` 옵션은 "같은 파일에서만 쓰이는 불필요한 export modifier"를 가린다 (진짜 dead code는 별도 catch). 단 public export surface가 실제로 audit되도록 주기적으로 옵션 없는 run 실행:
+
+- 매 3~5 사이클 또는 schema bump 시점 한 번:
+  ```bash
+  npx knip --no-progress --include-entry-exports
+  ```
+- 또는 `knip.json` 임시 `ignoreExportsUsedInFile: false` toggle 후 재실행
+- 잡힌 finding 중 진짜 public-only export는 `@public` JSDoc tag로 mark ([COMMON_MISTAKES.md §19](.claude/COMMON_MISTAKES.md) paired)
+
 **외부 SDK 추가 시 lazy chunk 위치 실측 의무 (v3.43 graduate, v3.41 L4 + v3.42 L9)**:
 
 vite vendor chunking이 외부 SDK를 자동으로 별도 chunk에 emit. 보안/외부 SDK 추가 시 chunk 위치 확인 의무:
