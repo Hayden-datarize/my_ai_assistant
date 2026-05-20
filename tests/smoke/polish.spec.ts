@@ -77,17 +77,20 @@ test('focus-visible on first focusable shows visible outline (keyboard tab)', as
 test('disabled button has pointer-events: none', async ({ page }) => {
   await seedUser(page);
   await page.goto('/');
-  // v3.42 T2 (C3 carry): stable selector — `<button>` element만 (`<a class="btn">` 등 link variant
-  // 제외, attribute selector로 좁히면 첫 element가 onboarding/home 단계마다 다르지 않음).
-  // 그리고 setAttribute 후 force reflow → `:disabled` pseudo-class layout flush 보장.
-  await page.locator('button.btn').first().waitFor({ state: 'attached' });
+  // v3.42 T2 (C3 carry) + Codex 사전 P1-1: synthetic `<button class="btn">`을 직접 append.
+  // 기존 `document.querySelector('button.btn')`은 onboarding/home DOM 단계마다 첫 element가
+  // 달라질 수 있는 DOM order 의존이라 flake. CSS `.btn:disabled` rule 검증이 목적이라
+  // production DOM 의존 없이 isolated element로 검증 — 가장 깨끗.
   const pe = await page.evaluate(() => {
-    const btn = document.querySelector('button.btn');
-    if (!btn) return null;
+    const btn = document.createElement('button');
+    btn.className = 'btn';
     btn.setAttribute('disabled', '');
-    // Force reflow — `:disabled` pseudo-class 즉시 평가 보장 (v3.42 T2 flake fix).
-    void (btn as HTMLElement).offsetHeight;
-    return getComputedStyle(btn).pointerEvents;
+    document.body.appendChild(btn);
+    // Force reflow — `:disabled` pseudo-class 즉시 평가 보장.
+    void btn.offsetHeight;
+    const result = getComputedStyle(btn).pointerEvents;
+    btn.remove();  // cleanup
+    return result;
   });
   expect(pe).toBe('none');
 });
