@@ -71,3 +71,60 @@ describe('migrateAnswer interestId backfill (v3.39 T2 — Codex 사전 P1-1)', (
     expect(raw.interestId).toBeUndefined();
   });
 });
+
+// v3.41 T2 fix (Codex 최종 P1-B): current-schema fast path도 evaluation normalize
+describe('migrateAnswer current-schema evaluation normalize (v3.41 T2 fix)', () => {
+  const baseAnswer = {
+    id: 'a1', questionId: 'q', text: 'hi', authorId: 'self',
+    createdAt: '2026-05-20T00:00:00Z', pinned: false, interestId: 'unknown',
+    schemaVersion: 1,
+  };
+
+  it('current-schema branch에서도 string score → integer normalize', () => {
+    const raw = { ...baseAnswer, evaluation: { score: '5', feedback: 'good' } };
+    const result = migrateAnswer(raw);
+    expect(result.evaluation).toEqual({ score: 5, feedback: 'good' });
+  });
+
+  it('current-schema branch에서 out-of-range score → fallback 3', () => {
+    const raw = { ...baseAnswer, evaluation: { score: 99, feedback: 'x' } };
+    const result = migrateAnswer(raw);
+    expect(result.evaluation?.score).toBe(3);
+  });
+
+  it('current-schema branch에서 negative score → fallback 3', () => {
+    const raw = { ...baseAnswer, evaluation: { score: -1, feedback: 'bad' } };
+    const result = migrateAnswer(raw);
+    expect(result.evaluation?.score).toBe(3);
+  });
+
+  it('current-schema branch에서 non-integer (소수) score → fallback 3', () => {
+    const raw = { ...baseAnswer, evaluation: { score: 2.7, feedback: 'half' } };
+    const result = migrateAnswer(raw);
+    expect(result.evaluation?.score).toBe(3);
+  });
+
+  it('current-schema branch에서 feedback non-string → empty string', () => {
+    const raw = { ...baseAnswer, evaluation: { score: 4, feedback: null } };
+    const result = migrateAnswer(raw);
+    expect(result.evaluation).toEqual({ score: 4, feedback: '' });
+  });
+
+  it('current-schema branch에서 evaluation 없으면 undefined 유지', () => {
+    const raw = baseAnswer;
+    const result = migrateAnswer(raw);
+    expect(result.evaluation).toBeUndefined();
+  });
+
+  it('current-schema branch에서 valid evaluation은 그대로', () => {
+    const raw = { ...baseAnswer, evaluation: { score: 3, feedback: 'ok' } };
+    const result = migrateAnswer(raw);
+    expect(result.evaluation).toEqual({ score: 3, feedback: 'ok' });
+  });
+
+  it('current-schema branch에서 evaluation이 non-object면 undefined로 drop', () => {
+    const raw = { ...baseAnswer, evaluation: 'corrupt-string' as unknown };
+    const result = migrateAnswer(raw);
+    expect(result.evaluation).toBeUndefined();
+  });
+});

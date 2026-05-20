@@ -40,6 +40,10 @@ export function migrateAnswer(raw: unknown): Answer {
       ...(r as Answer),
       pinned: typeof r.pinned === 'boolean' ? r.pinned : false,
       interestId: typeof r.interestId === 'string' ? r.interestId : 'unknown',
+      // v3.41 T2 fix (Codex 최종 P1-B): current-schema fast path도 evaluation
+      // normalize 통과 의무 — string score / out-of-range가 render escape에
+      // 의존하지 않고 read 시점에 차단. 3-layer (parse/migrate/render) 완성.
+      evaluation: normalizeStoredEvaluation((r as Answer).evaluation),
     };
   }
 
