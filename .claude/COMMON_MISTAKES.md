@@ -60,6 +60,8 @@
 
 **관련 파일**: `firebase.json` (CSP header), `index.html` (meta CSP), `src/services/{slack,gemini,rss}.ts`
 
+**→ §15 (외부 SDK 추가 시 CSP 3-layer 동시 갱신)** — 본 항목의 operational extension (Codex 최종 review 영역 paired link 보강).
+
 ---
 
 ## 4. P2/Minor 리뷰 항목 자동 적용 금지 (2026-04-20)
