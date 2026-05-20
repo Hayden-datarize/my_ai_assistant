@@ -7,10 +7,13 @@ import { getCachedUser } from '../../state/user';
 import { KST_FMT_KO } from '../../utils/intl';
 import { renderEntityChipRow } from '../components/archive-entity-chip';
 import { getEntityCounts } from '../handlers/archive';
+import { maybeShowByInterestNotice } from '../handlers/byInterestNotice';
 
 const ONBOARDING_KEY = 'archive-relocated-seen';
 
 export function renderArchive(container: HTMLElement): void {
+  // v3.40 T7 (C5): byInterest 의미 정정 안내 one-time toast (stats + archive 양쪽 trigger).
+  maybeShowByInterestNotice();
   // v3.27 T2b: entity chip row(1차) + question type row(2차) 2-row 하이라키.
   // ⭐ 스크랩 chip 제거 (entity chip 'scrap' 흡수, P0-4).
   // is-new 배지 + tutorial overlay 1회 (sessionStorage gate).
