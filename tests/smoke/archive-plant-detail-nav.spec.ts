@@ -58,7 +58,8 @@ test('v3.39 T7: plant action chip → archive 진입 시 currentInterestId 설�
   // 1) stale filter setup — archive 사전 진입 → 다른 검색어 입력해 currentInterestId/검색 state 오염.
   await page.locator('#bottomNav button[data-tab-id="archive"]').click();
   await page.locator('#archiveSearch').fill('인사');
-  await page.waitForTimeout(300); // debounce 200ms + margin
+  // v3.40 T11: waitForTimeout 제거 — toHaveValue가 debounce 200ms를 polling으로 흡수.
+  await expect(page.locator('#archiveSearch')).toHaveValue('인사', { timeout: 1_000 });
 
   // 2) stats 탭 → 정원 카드 클릭 → plant-detail modal open.
   // v3.40 T6: base.css :where(.garden-card) scroll-margin-bottom 확장 → 실제 .click() 통과.
@@ -110,8 +111,8 @@ test('v3.39 T7 + T8 review: plant action 진입 직전 stale #archiveSearch가 r
   // archive 탭 사전 진입 + stale 검색어 '오래된검색' 입력
   await page.locator('#bottomNav button[data-tab-id="archive"]').click();
   await page.locator('#archiveSearch').fill('오래된검색');
-  await page.waitForTimeout(300);
-  await expect(page.locator('#archiveSearch')).toHaveValue('오래된검색');
+  // v3.40 T11: waitForTimeout 제거 — toHaveValue 자체가 debounce 200ms를 polling으로 흡수.
+  await expect(page.locator('#archiveSearch')).toHaveValue('오래된검색', { timeout: 1_000 });
 
   // stats 진입 → 식물 카드 → modal → action chip
   await page.locator('#bottomNav button[data-tab-id="stats"]').click();

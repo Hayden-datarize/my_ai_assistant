@@ -197,10 +197,11 @@ test('v3.39 T7 + T8 review: state — currentInterestId 유지 중 search 사용
   //    text token 필터 추가 적용. ai_ml 분야 내 어떤 answer text도 '인사' 미포함 → 0건.
   //    엄격 핵심: '인사' literal이 본문에 있는 a-hr-1조차 entity filter 미스매치로 absent — 진짜 entity filter SoT.
   await page.locator('#archiveSearch').fill('인사');
-  await page.waitForTimeout(300); // debounce + margin
+  // v3.40 T11: waitForTimeout 제거 — 직후 toHaveCount expect가 debounce 200ms를 polling으로 자연 흡수.
+  await expect(page.locator('#archiveSearch')).toHaveValue('인사', { timeout: 1_000 });
 
   // hr_system answer는 분야 entity filter로 absent (이름은 'a-hr-1', text='인사제도 관련 답변' — token 매칭만 보면 visible 이어야 하지만 entity filter가 우선).
-  await expect(page.locator('.archive-card--answer[data-answer-id="a-hr-1"]')).toHaveCount(0);
+  await expect(page.locator('.archive-card--answer[data-answer-id="a-hr-1"]')).toHaveCount(0, { timeout: 1_000 });
   // ai_ml exact + legacy entity 통과한 entry도 '인사' token miss로 모두 absent.
   await expect(page.locator('.archive-card--answer[data-answer-id="a-ai-1"]')).toHaveCount(0);
   await expect(page.locator('.archive-card--answer[data-answer-id="a-ai-2"]')).toHaveCount(0);

@@ -63,7 +63,8 @@ test.describe('v3.13 Mission System', () => {
     await expect(textarea).toBeVisible({ timeout: 10_000 });
     await textarea.fill(ANSWER_TEXT);
     await page.locator('#submitBtn').click();
-    await page.waitForTimeout(300); // submit 후 sweep + state save 대기
+    // v3.40 T11 (Codex P1-4): cold-start + tab chunk load 고려 — 1_000ms 부족, 3_000ms 보수.
+    await page.waitForTimeout(3_000); // submit 후 sweep + state save 대기 (cold-start)
 
     // 미션 탭으로 이동 → hydrateMissions() 호출 + #missionsSection 가시
     await page.locator('.bottom-nav .nav-item', { hasText: '미션' }).click();
@@ -122,7 +123,8 @@ test.describe('v3.13 Mission System', () => {
     await expect(textarea).toBeVisible({ timeout: 10_000 });
     await textarea.fill(ANSWER_TEXT);
     await page.locator('#submitBtn').click();
-    await page.waitForTimeout(300); // submit 후 sweep + state save 대기
+    // v3.40 T11 (Codex P1-4): cold-start + tab chunk load 고려 — 1_000ms 부족, 3_000ms 보수.
+    await page.waitForTimeout(3_000); // submit 후 sweep + state save 대기 (cold-start)
 
     // 미션 탭으로 이동 → hydrateMissions() 호출 + #missionsSection 가시
     await page.locator('.bottom-nav .nav-item', { hasText: '미션' }).click();

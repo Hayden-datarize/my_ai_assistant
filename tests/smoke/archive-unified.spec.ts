@@ -59,8 +59,8 @@ test('v3.27 archive 통합 — entity chip + 핀 + 검색 1 path', async ({ page
 
   // 검색 (T3) — debounce 200ms + NFC normalize
   await page.locator('#archiveSearch').fill('핀');
-  await page.waitForTimeout(300); // debounce 200ms + margin
-  await expect(page.locator('.archive-card--scrap[data-briefing-id="b-pin"]')).toBeVisible();
+  // v3.40 T11: waitForTimeout 제거 — 직후 toBeVisible expect가 debounce 200ms polling 자연 흡수.
+  await expect(page.locator('.archive-card--scrap[data-briefing-id="b-pin"]')).toBeVisible({ timeout: 1_000 });
   await expect(page.locator('.archive-card--scrap[data-briefing-id="b-other"]')).toHaveCount(0);
 
   // aria-live="polite" #archiveList
