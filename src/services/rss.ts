@@ -1,5 +1,7 @@
 // v3.20 T5 (B1): RSS retry telemetry — DEV log + 24h rolling counter (v3.18.1 H2 carry).
 import { recordRetry } from '../utils/rssTelemetry';
+// v3.41 T4 (Codex P1 F4): RSS link scheme guard (write boundary).
+import { isSafeUrl } from '../utils/url';
 
 export interface FeedItem {
   title: string;
@@ -110,9 +112,16 @@ export async function fetchFeed(
                 console.warn('[rss] skip item with empty title/description', rawItem.link ?? '(no link)');
                 return [];
               }
+              // v3.41 T4 (Codex P1 F4): link이 unsafe scheme이면 item drop.
+              // RSS source가 신뢰 경계 밖이라 entry boundary에서 1차 차단.
+              const link = rawItem.link ?? '';
+              if (!isSafeUrl(link)) {
+                console.warn('[rss] skip item with unsafe link', link);
+                return [];
+              }
               return [{
                 title,
-                link: rawItem.link ?? '',
+                link,
                 description,
                 pubDate: rawItem.pubDate ?? '',
                 image: extractImage(rawItem),

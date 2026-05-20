@@ -44,3 +44,30 @@ export function isHttpsUrl(value: unknown): value is string {
     return false;
   }
 }
+
+/**
+ * v3.41 T4 (Codex P1 F4): briefing url용 안전 검증.
+ *
+ * - `http:` + `https:` 허용 (legacy/외부 RSS feed import 대비, isHttpsUrl 보다 관대)
+ * - `javascript:` / `data:` / `vbscript:` / `file:` / `blob:` 등 차단
+ * - bare path / 빈 hostname 거절
+ * - non-string 거절
+ *
+ * 정책 분리: image용 `isHttpsUrl`은 더 엄격 (https-only). briefing link는
+ * read/render path 양쪽에서 본 함수 호출. write boundary 추가 차단.
+ */
+const SAFE_PREFIX = /^https?:\/\//i;
+const SAFE_PROTOCOLS = new Set(['http:', 'https:']);
+
+export function isSafeUrl(value: unknown): value is string {
+  if (typeof value !== 'string') return false;
+  if (value !== value.trim()) return false;
+  if (!SAFE_PREFIX.test(value)) return false;
+  if (extractRawAuthority(value).length === 0) return false;
+  try {
+    const u = new URL(value);
+    return SAFE_PROTOCOLS.has(u.protocol) && u.hostname.length > 0;
+  } catch {
+    return false;
+  }
+}

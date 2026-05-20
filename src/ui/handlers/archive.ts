@@ -25,6 +25,8 @@ import type { Briefing } from '../../state/briefings';
 import { fireArchiveRevisitTrigger } from './missions-triggers';
 import { getKSTDateIso } from '../../state/missionEngine';
 import { matchesInterest } from '../../utils/interestKeywords';
+// v3.41 T4 (Codex P1 F4): render-side safeHref re-check.
+import { isSafeUrl } from '../../utils/url';
 
 let currentFilter = 'all';
 // v3.32 T3 (Codex 사전 P0-2): currentQuery 제거 — SoT 일원화.
@@ -1165,7 +1167,9 @@ function showArchiveDetail(payload: DetailPayload): void {
   } else {
     const b = payload.briefing;
     parts.push(`<div class="archive-detail-meta">${escapeHtml(b.date)} — 스크랩 기사</div>`);
-    parts.push(`<a class="archive-detail-link" href="${escapeHtml(b.url)}" target="_blank" rel="noopener noreferrer">${escapeHtml(b.title)}</a>`);
+    // v3.41 T4 (Codex P1 F4): render-side safeHref re-check (defense-in-depth).
+    const safeUrl = isSafeUrl(b.url) ? b.url : '#';
+    parts.push(`<a class="archive-detail-link" href="${escapeHtml(safeUrl)}" target="_blank" rel="noopener noreferrer">${escapeHtml(b.title)}</a>`);
     parts.push(`<div class="archive-detail-body">${escapeHtml(b.summary)}</div>`);
     if (b.memo) parts.push(`<div class="archive-detail-memo">📝 ${escapeHtml(b.memo)}</div>`);
   }

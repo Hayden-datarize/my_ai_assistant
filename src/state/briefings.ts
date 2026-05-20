@@ -1,4 +1,4 @@
-import { isHttpsUrl } from '../utils/url';
+import { isHttpsUrl, isSafeUrl } from '../utils/url';
 import { interestKeywords, matchKeyword } from '../utils/interestKeywords';
 import { showToast } from '../utils/toast';
 import { takeSnapshot, runSweep } from './achievements';
@@ -31,17 +31,22 @@ export interface Briefing {
 
 const KEY = 'briefings';
 
-// `b as Briefing` is an unchecked assertion at the localStorage boundary.
-// Today only `imageUrl` is validated downstream (via isHttpsUrl); other
-// fields (url, title, summary, sourceTitle, titleKo, summaryKo, ...) are
-// accepted as-is. Callers tolerate string drift on those fields.
+// v3.41 T4 (Codex P1 F4): url field에 isSafeUrl 강제 — javascript:/data:/file: 등
+// 차단. imageUrl은 더 엄격한 isHttpsUrl 유지. write + read + render 3-layer
+// guard (defense-in-depth) — read에서 drop, write에서 throw, render에서 safeHref
+// fallback. 정책 분리: link policy = isSafeUrl, image policy = isHttpsUrl.
 export function loadBriefings(): Briefing[] {
   try {
     const raw = JSON.parse(localStorage.getItem(KEY) ?? '[]') as unknown;
     if (!Array.isArray(raw)) return [];
-    const list = raw.map((b) => {
+    const list = raw.flatMap((b) => {
       // v3.28 T2 (P2-2): copy-based pinned 정규화 (P0-3 idempotency — 원본 mutation 금지).
       const briefing = b as Briefing & { pinned?: boolean; interestId?: string };
+      // v3.41 T4: url invalid → item drop (이전: 그대로 통과 → render anchor href 주입).
+      if (!isSafeUrl(briefing.url)) {
+        console.warn('[briefings] dropping item with unsafe url', briefing.url);
+        return [];
+      }
       const normalized: Briefing = {
         ...briefing,
         pinned: typeof briefing.pinned === 'boolean' ? briefing.pinned : false,
@@ -56,7 +61,7 @@ export function loadBriefings(): Briefing[] {
       if (normalized.imageUrl !== undefined && !isHttpsUrl(normalized.imageUrl)) {
         delete normalized.imageUrl;
       }
-      return normalized;
+      return [normalized];
     });
     // v3.39 T2 (Codex 사전 P1-3 mirror): catalog miss (외부 손상/legacy invalid id) → 'unknown' 정정.
     // normalizeInsightInterestIds 패턴 (user.ts:82) 동치 — pure validator + normalizer 분리.
@@ -87,6 +92,10 @@ export function saveBriefings(list: Briefing[]): void {
     }
     if (typeof b.memo !== 'string') {
       throw new Error(`saveBriefings: invalid memo at index ${i} (expected string)`);
+    }
+    // v3.41 T4 (Codex P1 F4): write boundary 차단 — invalid url storage 진입 차단.
+    if (!isSafeUrl(b.url)) {
+      throw new Error(`saveBriefings: unsafe url at index ${i} (${typeof b.url})`);
     }
     return {
       ...b,

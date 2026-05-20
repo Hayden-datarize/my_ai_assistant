@@ -10,13 +10,36 @@ describe('services/rss', () => {
       json: async () => ({
         status: 'ok',
         feed: { title: 'example blog' },
-        items: [{ title: 't', link: 'u', description: 'd', pubDate: '2026-04-19' }],
+        // v3.41 T4 (Codex P1 F4): link은 isSafeUrl 통과 의무 → valid https로 갱신.
+        items: [{ title: 't', link: 'https://example.com/post1', description: 'd', pubDate: '2026-04-19' }],
       }),
     }));
     const res = await fetchFeed('https://example.com/feed');
     expect(res.items).toHaveLength(1);
     expect(res.items[0]?.title).toBe('t');
     expect(res.sourceTitle).toBe('example blog');
+  });
+
+  // v3.41 T4 (Codex P1 F4): RSS link unsafe scheme item drop 회귀.
+  it('drops items with unsafe link (javascript:/data:/empty)', async () => {
+    vi.stubGlobal('fetch', vi.fn().mockResolvedValue({
+      ok: true,
+      json: async () => ({
+        status: 'ok',
+        feed: { title: 'mixed feed' },
+        items: [
+          { title: 'safe', link: 'https://example.com/safe', description: 'd', pubDate: '' },
+          { title: 'evil1', link: 'javascript:alert(1)', description: 'd', pubDate: '' },
+          { title: 'evil2', link: 'data:text/html,<script>', description: 'd', pubDate: '' },
+          { title: 'no-link', link: '', description: 'd', pubDate: '' },
+          { title: 'http-ok', link: 'http://example.com/legacy', description: 'd', pubDate: '' },
+        ],
+      }),
+    }));
+    vi.spyOn(console, 'warn').mockImplementation(() => {});
+    const res = await fetchFeed('https://example.com/feed');
+    expect(res.items).toHaveLength(2);
+    expect(res.items.map((i) => i.title)).toEqual(['safe', 'http-ok']);
   });
 
   it('returns empty shape when fetch rejects (timeout / abort)', async () => {

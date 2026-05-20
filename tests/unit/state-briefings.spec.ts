@@ -1,8 +1,9 @@
 import { describe, it, expect, beforeEach, vi } from 'vitest';
 import { saveBriefings, loadBriefings, toggleScrap, setRead, saveMemo, type Briefing } from '../../src/state/briefings';
 
+// v3.41 T4 (Codex P1 F4): url field에 isSafeUrl 검증 추가 — fixture는 valid https로 갱신.
 const seed = (): Briefing[] => [
-  { id: 'b1', date: '2026-04-19', url: 'u', title: 't', summary: 's', scrapped: false, read: false, memo: '', pinned: false, interestId: 'unknown' },
+  { id: 'b1', date: '2026-04-19', url: 'https://example.com/article', title: 't', summary: 's', scrapped: false, read: false, memo: '', pinned: false, interestId: 'unknown' },
 ];
 
 describe('state/briefings', () => {

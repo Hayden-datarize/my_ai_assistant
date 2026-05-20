@@ -17,6 +17,8 @@ import { loadChatHistory, appendChatMessage, type ChatMessage } from '../../stat
 import { fetchFeed, type FeedItem, type FeedResult } from '../../services/rss';
 import { generateQuestion, chat, evaluateAnswer, generateText } from '../../services/gemini';
 import { resolveQuestionInterestId } from '../../utils/gemini-parse';
+// v3.41 T4 (Codex P1 F4): render-side safeHref re-check.
+import { isSafeUrl } from '../../utils/url';
 import { autoSendAnswer } from '../../services/slack';
 import { summarizeOrTranslateBody, translateTitle, isSessionBlocked } from '../../services/translate';
 import { TranslateQueue } from '../translateQueue';
@@ -486,7 +488,9 @@ export function renderBriefingCard(b: Briefing, idx: number): HTMLElement {
   // Main link: image (optional) + initial fallback + overlay (source/title/summary)
   const main = document.createElement('a');
   main.className = 'card-main';
-  main.href = b.url;
+  // v3.41 T4 (Codex P1 F4): render-side safeHref re-check (defense-in-depth).
+  // loadBriefings에서 1차 drop되지만 손상 데이터 / future caller 안전망.
+  main.href = isSafeUrl(b.url) ? b.url : '#';
   main.target = '_blank';
   main.rel = 'noopener noreferrer';
   main.setAttribute('aria-label', `${b.title} — ${b.sourceTitle ?? '기사'}`);
