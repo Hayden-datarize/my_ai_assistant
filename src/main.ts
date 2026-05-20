@@ -3,6 +3,7 @@ import { mountSidebar } from './ui/sidebar';
 import { registerCoreHandlerListeners } from './ui/handlers/register';
 import { mountRewards } from './ui/rewards';
 import { qs } from './utils/dom';
+import { reportAsync } from './utils/reportAsync';
 
 const USER_STORAGE = 'user';
 
@@ -32,25 +33,28 @@ async function bootMainApp(): Promise<void> {
   await switchTab('home');
   // v3.15: onboarding 완료 사용자에게만 환영 정원 모달 1회 표시 (gardenIntroduced flag guard).
   // v3.40 T2: dynamic import — first-launch 1회만 chunk load.
-  void import('./ui/modals/welcome-garden').then(({ maybeShowWelcomeGarden }) => {
+  // v3.41 T5: reportAsync wrap (silent-fail L1 closure).
+  void reportAsync('welcome-garden', import('./ui/modals/welcome-garden').then(({ maybeShowWelcomeGarden }) => {
     maybeShowWelcomeGarden();
-  });
+  }));
 }
 
 function bootOnboarding(): void {
   const app = qs<HTMLElement>('#app');
   // v3.40 T2: dynamic import — 미온보딩 사용자만 chunk load.
-  void import('./ui/onboarding').then(({ renderOnboarding }) => {
+  // v3.41 T5: reportAsync wrap.
+  void reportAsync('onboarding', import('./ui/onboarding').then(({ renderOnboarding }) => {
     renderOnboarding(app);
     document.addEventListener('dg:onboarded', () => {
       location.reload();
     }, { once: true });
-  });
+  }));
 }
 
 function boot(): void {
   if (hasOnboarded()) {
-    void bootMainApp();
+    // v3.41 T5: reportAsync wrap — boot 전체 실패 catch.
+    void reportAsync('bootMainApp', bootMainApp());
   } else {
     bootOnboarding();
   }
