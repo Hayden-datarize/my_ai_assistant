@@ -27,7 +27,7 @@ import { openMemoModal } from '../modals/memo';
 import { createLangToggle, type LangToggleEl, type LangState } from '../components/cardLangToggle';
 import { checkAndIncrement, getCap, getTodayCount } from '../../state/usage';
 import { showCapToast, showTranslateError, showPartialTranslateFail } from '../translateToast';
-import { getCachedUser, getSaveErrorMessage, recordDailyAnswer, saveUser, type Insight } from '../../state/user';
+import { getCachedUser, getSaveErrorMessage, recordDailyAnswer, saveUser, validateInterestId, type Insight } from '../../state/user';
 import { parseInsightResponse } from '../../utils/gemini-parse';
 import { renderGardenMini } from '../components/garden-grid';
 import { scrollToGardenSection } from './stats-shared';
@@ -970,8 +970,8 @@ export async function submitAnswer(): Promise<void> {
   const questionId = qTextEl?.dataset['questionId'] ?? 'q_unknown';
   const questionType = qTextEl?.dataset['type'] ?? 'unknown';
   // v3.39 T4: data-interest-id (T3 renderQuestion에서 채움) → makeAnswer.interestId.
-  // dataset 값이 빈 문자열인 경우도 'unknown' 폴백 (`||` short-circuit).
-  const interestId = qTextEl?.dataset['interestId'] || 'unknown';
+  // v3.40 T5 C2 (Codex P2-1): dataset이 corrupt이면 validateInterestId가 'unknown' 폴백.
+  const interestId = validateInterestId(qTextEl?.dataset['interestId'] ?? 'unknown');
 
   const answer = makeAnswer({
     id: `a_${Date.now()}_${Math.random().toString(36).slice(2, 8)}`,

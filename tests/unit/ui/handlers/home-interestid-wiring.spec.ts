@@ -244,6 +244,17 @@ describe('submitAnswer interestId (v3.39 T4)', () => {
     expect(passed['interestId']).toBe('unknown');
   });
 
+  // v3.40 T5 C2 (Codex P2-1): dataset corrupt → validateInterestId double-close → unknown
+  it('data-interest-id corrupt(__invalid__) → validateInterestId 통과 후 unknown 폴백', async () => {
+    setupQuestionDom({ interestId: '__invalid__' });
+    const { submitAnswer } = await import('../../../../src/ui/handlers/home');
+    await submitAnswer();
+
+    expect(mockMakeAnswer).toHaveBeenCalledOnce();
+    const passed = mockMakeAnswer.mock.calls[0]![0] as Record<string, unknown>;
+    expect(passed['interestId']).toBe('unknown');
+  });
+
   it('data-interest-id 빈 문자열 → unknown 폴백', async () => {
     setupQuestionDom({ interestId: '' });
     const { submitAnswer } = await import('../../../../src/ui/handlers/home');

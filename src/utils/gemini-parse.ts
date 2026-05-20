@@ -99,8 +99,8 @@ export function parseInsightResponse(raw: string): { text: string; interestId: s
  *
  * Resolve 규칙:
  * - rawId가 INTERESTS whitelist 통과 → 그대로
- * - rawId invalid/empty/undefined → userInterests[0] 폴백
- * - userInterests=[] → 'unknown' sentinel
+ * - rawId invalid/empty/undefined → userInterests에서 first valid 폴백 (v3.40 T5 C2 — Codex P2-1)
+ * - userInterests=[] 또는 모두 invalid → 'unknown' sentinel
  *
  * deterministic / idempotent — 같은 input → 같은 output.
  */
@@ -108,10 +108,12 @@ export function resolveQuestionInterestId(
   rawId: string | undefined,
   userInterests: string[],
 ): string {
-  if (!rawId) return userInterests[0] ?? 'unknown';
-  const validated = validateInterestId(rawId);
-  if (validated !== 'unknown') return validated;
-  return userInterests[0] ?? 'unknown';
+  if (rawId) {
+    const validated = validateInterestId(rawId);
+    if (validated !== 'unknown') return validated;
+  }
+  // v3.40 T5 C2 (Codex P2-1): userInterests[0]이 invalid면 first valid 검색.
+  return userInterests.find((id) => validateInterestId(id) !== 'unknown') ?? 'unknown';
 }
 
 export interface QuestionResponse {

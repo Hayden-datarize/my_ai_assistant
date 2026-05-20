@@ -65,4 +65,15 @@ describe('resolveQuestionInterestId (v3.39 T3)', () => {
     expect(resolveQuestionInterestId(undefined, [])).toBe('unknown');
     expect(resolveQuestionInterestId('fake', [])).toBe('unknown');
   });
+
+  // v3.40 T5 C2 (Codex P2-1): userInterests에 invalid 섞여 있을 때 first valid fallback
+  it('invalid rawId + userInterests에 invalid 섞여 있으면 first valid 반환', () => {
+    expect(resolveQuestionInterestId('fake', ['__invalid__', 'ai_ml', 'hr_system'])).toBe('ai_ml');
+  });
+  it('undefined rawId + userInterests에 invalid 섞여 있으면 first valid', () => {
+    expect(resolveQuestionInterestId(undefined, ['__bad__', 'ai_ml'])).toBe('ai_ml');
+  });
+  it('invalid rawId + userInterests 모두 invalid → unknown', () => {
+    expect(resolveQuestionInterestId('fake', ['__invalid__', '__bad__'])).toBe('unknown');
+  });
 });
