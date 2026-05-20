@@ -1,4 +1,4 @@
-import { openModal, closeModal } from './shared';
+import { openModal } from './shared';
 import { loadUserData } from '../../state/user';
 import { INTEREST_LABEL } from '../components/garden-grid';
 import { getPlantIcon, STAGE_LABEL, STAGE_THRESHOLDS, TROPHY_MARK } from '../../state/plantCatalog';

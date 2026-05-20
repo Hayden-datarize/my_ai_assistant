@@ -237,4 +237,20 @@ test('Gemini mock 호출이 실제 API에 새지 않는다', async ({ page }) =>
 
 ---
 
-**Last Updated**: 2026-05-13
+## 12. interest id ≠ keyword 토큰 (matchesInterest helper, 2026-05-20, v3.40 graduate)
+
+**Symptom**: `matchKeyword(text, interestId)` 사용 시 본문이 `'AI/ML'`/`'AI'`/`'OpenAI'`인데 `'ai_ml'` literal 없어 결과 hide. v3.39 T8 P1-1 (interest nav 토큰 검색 과도 제한) + 13사이클 누적 Codex 사전 catch.
+
+**Root cause**: interest id (`'ai_ml'`, `'hr_system'`)는 `INTERESTS.id` slug. keyword token 아님.
+
+**Fix/Prevention**:
+
+- **`matchesInterest(text: string, id: string): boolean`** (`src/utils/interestKeywords.ts:75`) — interest id를 keyword 집합으로 변환 후 매칭.
+- **`entityMatchesInterest(e: ArchiveEntity, id: string | null): boolean`** (`src/ui/handlers/archive.ts:198`) — entity-level wrapper. `interestId === id` exact + legacy 'unknown' fallback keyword 일관 적용.
+- archive/insight/stats entity-interest 매칭은 위 2개 helper만 사용.
+
+**관련 파일**: `src/utils/interestKeywords.ts`, `src/ui/handlers/archive.ts`, `src/state/user.ts`
+
+---
+
+**Last Updated**: 2026-05-20

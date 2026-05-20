@@ -90,6 +90,50 @@ vite reporter chunked estimation은 dual-record 폐기 (v3.14.4가 마지막 사
 
 **경위 (v3.35 T4 graduation)**: v3.34에서 ranking 코드가 archive dynamic chunk로 emitted됐으나 canonical(index entry)은 size impact를 underestimate (+1.25 kB가 +3 B로만 reflected). archive 영역에 집중되는 변경은 dual record로 가시화 필수.
 
+### Schema bump 시 chain superset 필수 spot (v3.40 graduate, 13사이클 ROI)
+
+- migration chain (V2→V3→...→VN) — 모든 prior version에 N으로 가는 경로
+- `src/state/user.ts` load (3 spot: hydrate / persist / shape guard) — hard-coded version path 포함
+- 신규 entity 추가 시 entity-별 storage migration도 동일
+
+### Spec reviewer checklist (v3.40 graduate, v3.39 T6 사례)
+
+새 predicate/helper/event 정의 시:
+
+- **predicate-defined vs wired**: caller 전수 grep 후 spec §wiring sites에 명시 (v3.39 T6 wiring 미적용 사례)
+- **mutation paths 전수 grep** (COMMON_MISTAKES §9 confirm)
+- **test mock path stale 여부** (COMMON_MISTAKES §11 confirm)
+
+### Codex 사전 review default checklist (v3.40 graduate, inline)
+
+prompt 신규 파일 미작성 — Codex 사전 review prompt에 명시 불요. default checklist로 자동 검토:
+
+1. Schema chain superset coverage (위 3 spot)
+2. interest id ≠ keyword 토큰 (matchesInterest helper 사용 여부 — COMMON_MISTAKES §12)
+3. predicate-defined vs wired (caller grep + wiring sites)
+4. mutation paths 전수 grep
+5. test mock path stale 여부
+
+### Subagent controller fallback 정책 (v3.40 graduate, v3.39 T2/T6 사례)
+
+subagent dispatch 후 controller 의무 검증 3단계:
+
+1. **commit 정합**: `git log --oneline -5`로 expected commit이 main에 반영됐는지 확인
+2. **영향 범위 grep 재확인**: subagent가 보고한 영향 범위 외 누락 여부 (예: fixture sweep 일부 미완)
+3. **차분 vitest/smoke**: 영향 spec 단위 실행 → PASS 확인
+
+미완 발견 시: controller가 직접 마무리 + retro §lessons에 사례 명시.
+
+### code-reviewer M-rating nit 격상 검토 의무 (v3.40 graduate, v3.39 T8 사례)
+
+code-reviewer agent의 M-rating nit이 다음에 해당하면 P1 격상 검토:
+
+- **사용자 가시 동작 변경** (UX nit)
+- **data invariant 영향** (silent corruption 가능)
+- **smoke spec workaround 패턴** (production 미해결, 예: dispatchEvent 우회)
+
+격하 사유는 retro §lessons에 명시. 격상 후에는 in-cycle fix 의무.
+
 ---
 
 ## Deploy 패턴 (v3.14.4 T14 graduation)
