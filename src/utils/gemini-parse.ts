@@ -136,6 +136,45 @@ export interface QuestionResponse {
  *
  * @internal Caller: home.ts hydrateQuestion (live path + cached path 공통).
  */
+/**
+ * v3.41 T2 (Codex P1 F2): AI 평가 score/feedback runtime guard.
+ *
+ * Gemini가 string score / out-of-range / non-integer / malformed JSON /
+ * plain text 등을 반환해도 fallback `{score:3, feedback:''}`로 흡수.
+ * caller에 throw 전파하지 않음 — v3.40 L1 silent fail lesson 회피 위해
+ * console.warn으로 telemetry는 남김.
+ *
+ * 보안: archive/stats render path 진입 전 마지막 type guard. XSS surface
+ * (string score → innerHTML interpolation) graduated lesson.
+ */
+export function parseEvaluationResponse(raw: string): { score: number; feedback: string } {
+  const fallback = { score: 3, feedback: '' };
+  let data: unknown;
+  try {
+    data = parseJsonText<unknown>(raw);
+  } catch (err) {
+    console.warn('[parseEvaluationResponse] parse failed', err);
+    return fallback;
+  }
+  if (!data || typeof data !== 'object') return fallback;
+  const obj = data as Record<string, unknown>;
+  let score = 3;
+  if ('score' in obj) {
+    const s = Number(obj['score']);
+    if (Number.isInteger(s) && s >= 1 && s <= 5) {
+      score = s;
+    } else {
+      console.warn('[parseEvaluationResponse] invalid score', obj['score']);
+    }
+  }
+  let feedback = '';
+  if ('feedback' in obj) {
+    const f = obj['feedback'];
+    if (typeof f === 'string') feedback = f.slice(0, 500);
+  }
+  return { score, feedback };
+}
+
 export function parseQuestionResponse(
   raw: string,
   userInterests: string[],

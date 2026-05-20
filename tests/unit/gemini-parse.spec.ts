@@ -1,5 +1,6 @@
-import { describe, it, expect } from 'vitest';
+import { describe, it, expect, vi, beforeEach } from 'vitest';
 import {
+  parseEvaluationResponse,
   parseJsonText,
   parseQuestionResponse,
   resolveQuestionInterestId,
@@ -75,5 +76,80 @@ describe('resolveQuestionInterestId (v3.39 T3)', () => {
   });
   it('invalid rawId + userInterests 모두 invalid → unknown', () => {
     expect(resolveQuestionInterestId('fake', ['__invalid__', '__bad__'])).toBe('unknown');
+  });
+});
+
+describe('parseEvaluationResponse (v3.41 T2 — Codex P1 F2)', () => {
+  beforeEach(() => {
+    vi.spyOn(console, 'warn').mockImplementation(() => {});
+  });
+
+  it('valid {score, feedback} 그대로', () => {
+    const r = parseEvaluationResponse('{"score":4,"feedback":"good"}');
+    expect(r).toEqual({ score: 4, feedback: 'good' });
+  });
+
+  it('string score → Number coerce 후 clamp', () => {
+    const r = parseEvaluationResponse('{"score":"5","feedback":"x"}');
+    expect(r).toEqual({ score: 5, feedback: 'x' });
+  });
+
+  it('score > 5 → fallback 3 + warn', () => {
+    const r = parseEvaluationResponse('{"score":6,"feedback":"x"}');
+    expect(r).toEqual({ score: 3, feedback: 'x' });
+    expect(console.warn).toHaveBeenCalledWith('[parseEvaluationResponse] invalid score', 6);
+  });
+
+  it('score < 1 → fallback 3', () => {
+    const r = parseEvaluationResponse('{"score":-1,"feedback":""}');
+    expect(r.score).toBe(3);
+  });
+
+  it('non-integer (소수) → fallback 3', () => {
+    const r = parseEvaluationResponse('{"score":2.5,"feedback":"half"}');
+    expect(r.score).toBe(3);
+  });
+
+  it('feedback이 null이면 empty string', () => {
+    const r = parseEvaluationResponse('{"score":3,"feedback":null}');
+    expect(r.feedback).toBe('');
+  });
+
+  it('Gemini fenced code block (```json {...}```) 처리', () => {
+    const r = parseEvaluationResponse('```json\n{"score":2,"feedback":"meh"}\n```');
+    expect(r).toEqual({ score: 2, feedback: 'meh' });
+  });
+
+  it('garbage prefix + valid JSON', () => {
+    const r = parseEvaluationResponse('응답: {"score":4,"feedback":"nice"}');
+    expect(r).toEqual({ score: 4, feedback: 'nice' });
+  });
+
+  it('malformed JSON → fallback {3, ""} + warn', () => {
+    const r = parseEvaluationResponse('{"score":4,"feedback":');
+    expect(r).toEqual({ score: 3, feedback: '' });
+    expect(console.warn).toHaveBeenCalled();
+  });
+
+  it('plain text (JSON 없음) → fallback', () => {
+    const r = parseEvaluationResponse('5점 정도 됩니다');
+    expect(r).toEqual({ score: 3, feedback: '' });
+  });
+
+  it('empty object → fallback', () => {
+    const r = parseEvaluationResponse('{}');
+    expect(r).toEqual({ score: 3, feedback: '' });
+  });
+
+  it('feedback이 500자 초과 시 slice', () => {
+    const longFeedback = 'a'.repeat(600);
+    const r = parseEvaluationResponse(`{"score":3,"feedback":"${longFeedback}"}`);
+    expect(r.feedback.length).toBe(500);
+  });
+
+  it('XSS 시도 (script tag string) — feedback 그대로 보관 (render path에서 escape 의무)', () => {
+    const r = parseEvaluationResponse('{"score":3,"feedback":"<script>alert(1)</script>"}');
+    expect(r.feedback).toBe('<script>alert(1)</script>');
+    // 렌더 path가 escapeHtml 책임 (보안 contract: parser는 정제 X, render가 escape O)
   });
 });

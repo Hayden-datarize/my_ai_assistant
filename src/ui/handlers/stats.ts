@@ -447,7 +447,7 @@ function showDayDetail(date: string, onClose?: () => void): void {
     <article class="day-detail-card">
       ${a.type ? `<span class="archive-type">${escapeHtml(toKoType(a.type))}</span>` : ''}
       <div class="archive-detail-body">${escapeHtml(a.text).replace(/\n/g, '<br>')}</div>
-      ${a.evaluation ? `<div class="archive-detail-eval">AI ${a.evaluation.score}점 · ${escapeHtml(a.evaluation.feedback)}</div>` : ''}
+      ${a.evaluation ? `<div class="archive-detail-eval">AI ${escapeHtml(String(a.evaluation.score))}점 · ${escapeHtml(a.evaluation.feedback)}</div>` : ''}
     </article>
   `);
   openModal({ title: `${date} 기록 ${answers.length}개`, bodyHtml: parts.join(''), onClose });

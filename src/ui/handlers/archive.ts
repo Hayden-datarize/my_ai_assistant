@@ -1159,7 +1159,8 @@ function showArchiveDetail(payload: DetailPayload): void {
     parts.push(`<div class="archive-detail-meta">${escapeHtml(when)}${a.type ? ` · ${escapeHtml(toKoType(a.type))}` : ''}</div>`);
     parts.push(`<div class="archive-detail-body">${escapeHtml(a.text).replace(/\n/g, '<br>')}</div>`);
     if (a.evaluation) {
-      parts.push(`<div class="archive-detail-eval">AI 평가 ${a.evaluation.score}점 — ${escapeHtml(a.evaluation.feedback)}</div>`);
+      // v3.41 T2 (Codex P1 F2): score escape — string score 주입 surface 차단.
+      parts.push(`<div class="archive-detail-eval">AI 평가 ${escapeHtml(String(a.evaluation.score))}점 — ${escapeHtml(a.evaluation.feedback)}</div>`);
     }
   } else {
     const b = payload.briefing;

@@ -15,6 +15,22 @@ import { getKstDateStr } from '../utils/dates';
  * - invalid (catalog miss) string 정정은 `normalizeAnswerInterestIds`(user.ts)가 별도 담당
  *   (pure migrator는 type guard만, semantic guard는 caller boundary에서).
  */
+/**
+ * v3.41 T2 (Codex P1 F2): localStorage / legacy evaluation field를 안전한
+ * `{score:number, feedback:string}` shape으로 normalize. invalid 시 undefined.
+ *
+ * 보안: archive/stats render path가 evaluation.score를 innerHTML interpolation —
+ * read-time type guard로 XSS surface 차단. graduated lesson (escapeHtml).
+ */
+function normalizeStoredEvaluation(raw: unknown): { score: number; feedback: string } | undefined {
+  if (!raw || typeof raw !== 'object') return undefined;
+  const r = raw as Record<string, unknown>;
+  const s = Number(r['score']);
+  const score = Number.isInteger(s) && s >= 1 && s <= 5 ? s : 3;
+  const feedback = typeof r['feedback'] === 'string' ? r['feedback'].slice(0, 500) : '';
+  return { score, feedback };
+}
+
 export function migrateAnswer(raw: unknown): Answer {
   const r = (raw ?? {}) as Partial<Answer> & Record<string, unknown>;
 
@@ -31,9 +47,9 @@ export function migrateAnswer(raw: unknown): Answer {
   const legacyAnswer = typeof r['answer'] === 'string' ? (r['answer'] as string) : '';
   const legacyDate = typeof r['date'] === 'string' ? (r['date'] as string) : '';
   const legacyType = typeof r['type'] === 'string' ? (r['type'] as string) : undefined;
-  const legacyEval = (r['evaluation'] && typeof r['evaluation'] === 'object')
-    ? (r['evaluation'] as { score: number; feedback: string })
-    : undefined;
+  // v3.41 T2 (Codex P1 F2): legacy evaluation read-time normalize
+  // (score clamp 1-5, feedback string guard, otherwise drop). idempotent.
+  const legacyEval = normalizeStoredEvaluation(r['evaluation']);
 
   const createdAt = typeof r.createdAt === 'string'
     ? r.createdAt
@@ -48,7 +64,8 @@ export function migrateAnswer(raw: unknown): Answer {
     authorId: String(r.authorId ?? 'self'),
     createdAt,
     type: legacyType ?? (typeof r.type === 'string' ? (r.type as string) : undefined),
-    evaluation: legacyEval ?? (r.evaluation as { score: number; feedback: string } | undefined),
+    // v3.41 T2 (Codex P1 F2): Phase B branch도 동일 normalize.
+    evaluation: legacyEval ?? normalizeStoredEvaluation(r.evaluation),
     date: legacyDate || (typeof r.date === 'string' ? (r.date as string) : undefined),
     // v3.28 T2 (P2-2): legacy 분기도 pinned 정규화 (raw가 pinned 가질 가능성 미미하지만 invariant 일관성).
     pinned: typeof r.pinned === 'boolean' ? r.pinned : false,
