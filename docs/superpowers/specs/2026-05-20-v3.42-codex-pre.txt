@@ -1,0 +1,23 @@
+**종합 분류: PROCEED_AFTER_FIXES**
+
+P0 없음.
+
+P1-1. T2 selector가 아직 “stable” 기준에 못 미칩니다.  
+[spec §2.3](/Users/hayden/Hayden_AX_Project/my_ai_assistance/docs/superpowers/specs/2026-05-20-v3.42-carry-cleanup-design.md:68)는 DOM race를 원인 후보로 잡았는데, 구현은 [tests/smoke/polish.spec.ts](/Users/hayden/Hayden_AX_Project/my_ai_assistance/tests/smoke/polish.spec.ts:83)의 `button.btn`.first()라 여전히 DOM order 의존입니다. 게다가 spec 후보의 `#archiveBulkDelete`는 [archive.ts](/Users/hayden/Hayden_AX_Project/my_ai_assistance/src/ui/tabs/archive.ts:28)에서 `.btn` 클래스가 없어 `.btn:disabled` rule 검증 대상이 아닙니다.  
+Amend 권고: `button.btn` 대신 테스트 내 synthetic `<button class="btn">`를 append하거나, 최소 `#submitBtn` 고정 selector로 바꾸세요. Synthetic button이 가장 깨끗합니다.
+
+P1-2. T3 dynamic import의 App Check header 경로가 테스트로 잠기지 않았습니다.  
+[slack.ts](/Users/hayden/Hayden_AX_Project/my_ai_assistance/src/services/slack.ts:27)는 dynamic import로 바뀌었지만 [slack.spec.ts](/Users/hayden/Hayden_AX_Project/my_ai_assistance/tests/unit/services/slack.spec.ts:22)는 fetch 발생만 확인하고 `getAppCheckToken()` 호출 또는 `X-Firebase-AppCheck` header를 확인하지 않습니다. mock path가 stale해져도 null fallback/try-catch 때문에 통과할 수 있습니다.  
+Amend 권고: mocked `getAppCheckToken.mockResolvedValueOnce('test-token')` 후 fetch headers에 `X-Firebase-AppCheck: test-token`이 들어가는 unit case를 추가하세요.
+
+P2-1. Bundle 예상이 현재 산출물과 다릅니다.  
+[spec §4.2](/Users/hayden/Hayden_AX_Project/my_ai_assistance/docs/superpowers/specs/2026-05-20-v3.42-carry-cleanup-design.md:127)의 “translateToast 동일, firebase SDK 계속 들어감”은 현재 빌드 산출물 기준 부정확합니다. `appCheck-*.js`가 별도 lazy chunk로 분리되어 있고, `translateToast`는 dynamic import wrapper만 갖습니다.  
+Amend 권고: bundle quad를 `index/home/translateToast/appCheck`로 명시. 제 측정값은 gzip 기준 `index 9379`, `home 12402`, `translateToast 2136`, `appCheck 13215` bytes였습니다.
+
+P2-2. CLAUDE.md graduated checklist 결과가 spec에 기록되지 않았습니다.  
+이번 변경은 schema/mutation/predicate 신규 surface가 사실상 0이지만, [CLAUDE.md](/Users/hayden/Hayden_AX_Project/my_ai_assistance/CLAUDE.md:99) checklist상 “caller grep / mutation paths / test mock stale / schema chain”의 N/A 근거를 짧게 남기는 편이 맞습니다. 작은 사이클 원칙상 v3.43 carry로 넘겨도 됩니다. 단, P1-2의 mock stale은 T3 직접 범위라 inline 권장입니다.
+
+검증:
+`npm test -- tests/unit/briefings-dedup.spec.ts tests/lint/rss-source-allowlist.spec.ts tests/unit/services/slack.spec.ts` 통과: 24/24.  
+T1 unique URL count는 실제 14로 확인했습니다.  
+Playwright 단일 smoke는 preview 서버가 `listen EPERM ::1:4173`로 시작 실패해서 test body까지 못 갔습니다.

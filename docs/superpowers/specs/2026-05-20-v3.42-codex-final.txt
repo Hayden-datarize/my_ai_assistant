@@ -1,0 +1,38 @@
+**분류: APPROVED_WITH_NOTES**
+
+**P0** 없음.
+
+**P1** 없음.  
+T0 review fix의 P1 2건은 닫힌 것으로 봅니다: synthetic button은 [tests/smoke/polish.spec.ts](/Users/hayden/Hayden_AX_Project/my_ai_assistance/tests/smoke/polish.spec.ts:77) 내부 `createElement('button')`로 격리됐고, App Check header 3 cases는 [tests/unit/services/slack.spec.ts](/Users/hayden/Hayden_AX_Project/my_ai_assistance/tests/unit/services/slack.spec.ts:70)부터 token/null/throw 경로를 잠급니다.
+
+**P2 / Notes**
+
+1. Bundle 기록은 `appCheck`만 prompt 값과 5B 차이 있습니다. 실측 CLI gzip:
+   `index 9379`, `home 1779 + 10623 = 12402`, `translateToast 2136`, `appCheck 13215`.  
+   prompt의 `appCheck 13220`은 Vite reporter 반올림/환경차로 보이며 deploy blocker는 아닙니다.
+
+2. CLAUDE.md graduated checklist 결과는 코드상 검증됐지만, v3.42 spec/retro에 남기는 작업은 v3.43 carry로 두는 게 적정합니다. 변경 파일 기준 schema/migration/user-state 변경 0, 신규 predicate/event 0, App Check mock path는 실제 `npm test -- tests/unit/services/slack.spec.ts` 11/11로 확인됐습니다.
+
+**종합**
+
+- T1: [home.ts](/Users/hayden/Hayden_AX_Project/my_ai_assistance/src/ui/handlers/home.ts:753)의 `interestToFeeds`는 lifehacker 없음, [briefings-dedup.spec.ts](/Users/hayden/Hayden_AX_Project/my_ai_assistance/tests/unit/briefings-dedup.spec.ts:98)는 14 unique로 정합, allowlist에서도 lifehacker 제거 확인.
+- T2: production DOM selector 의존 0. `rg`로 `document.querySelector('.btn')`/`.btn` locator 잔존 없음.
+- T3: [slack.ts](/Users/hayden/Hayden_AX_Project/my_ai_assistance/src/services/slack.ts:26)는 dynamic import + try/catch + null fallback, header는 token 있을 때만 첨부.
+- v3.41 carry: C2/C3/C9 close. C1/C4/C5/C6/C7은 backlog 유지가 맞습니다.
+
+**Heatmap**
+
+| 영역 | 상태 | Risk |
+|---|---:|---|
+| T1 RSS drift | Closed | Low |
+| T2 synthetic button | Closed | Low, smoke는 sandbox port 제한으로 미실행 |
+| T3 App Check dynamic import | Closed | Low |
+| P1-2 mock factory | Closed | Low |
+| Bundle quad | Note | Low, `appCheck` 5B 기록 차 |
+| v3.43 carry P2-2 | Keep | Low, 문서화 carry |
+
+**검증**
+
+통과: `npm run lint -- --quiet`, `npm test` 222 files / 1546 tests, `npm --prefix functions test` 24 tests, `npm run build`, `git diff --check 5fa9e6c^..HEAD`.
+
+미실행: Playwright smoke는 preview server bind가 `EPERM` (`::1:4173`, `127.0.0.1:4173`)로 test body 진입 전 실패. 배포 전 로컬/CI에서 `npx playwright test tests/smoke/polish.spec.ts` 1회 확인 권장.
