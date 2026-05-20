@@ -19,3 +19,6 @@ firebase-debug.log
 .claude/*
 !.claude/COMMON_MISTAKES.md
 !.claude/LEARNINGS_INDEX.md
+
+# v3.44.1: Claude Code project-level ignore file (machine-specific)
+.claudeignore
