@@ -1,0 +1,204 @@
+검증 기준: 코드 변경 없이 audit만 수행했습니다. `npm run build`, `npx tsc --noEmit`, `npm --prefix functions run build`는 모두 exit 0. 번들 실측은 `index-*.js` gzip 9,034 B, `archive-*.js` 합산 gzip 9,119 B. `npx knip --production`은 exit 1로 unused 리포트를 냈지만, 현재 설정상 `public/sw.js`, `functions/src/index.ts` 같은 실제 배포 entrypoint도 unused로 오탐합니다.
+
+### [P0] Public Slack DM Relay Has No Server-Side Request Authentication
+
+- **File**: [functions/src/sendAnswerDm.ts:28](/Users/hayden/Hayden_AX_Project/my_ai_assistance/functions/src/sendAnswerDm.ts:28)
+- **Category**: Security A.5
+- **Symptom**: 누구나 함수 URL로 직접 POST하면 회사 이메일 대상 Slack DM 전송을 시도할 수 있습니다. CORS는 브라우저 제약일 뿐 curl/server-side 호출을 막지 못합니다.
+- **Root cause**:
+```ts
+export const sendAnswerDm = onRequest(
+  { secrets: [SLACK_BOT_TOKEN], maxInstances: 1, cors: CORS_ORIGINS, region: 'us-central1' },
+  async (req, res) => {
+    if (req.method !== 'POST') {
+```
+  이후 body email만 `@datarize.ai` suffix로 검사하고 `sendDmAsBot(...)`를 호출합니다. App Check/Auth/HMAC/timestamp replay guard가 없습니다.
+- **Why now**: v3.40 배포 후 production bot token 권한이 붙은 공개 relay입니다. `user_not_found`/success 차이로 Slack membership enumeration도 가능합니다.
+- **Suggested fix**: Firebase App Check `enforceAppCheck` 또는 인증된 Firebase Auth 세션을 요구하고, public 응답은 generic failure로 통일. rate limit key도 검증된 identity + IP 계층으로 분리.
+- **Effort**: M
+- **Risk**: Slack 테스트/자동 전송 smoke, Firebase Hosting rewrite, App Check rollout.
+
+### [P1] AI Evaluation Score Can Inject HTML Into Detail Modals
+
+- **File**: [src/ui/handlers/archive.ts:1162](/Users/hayden/Hayden_AX_Project/my_ai_assistance/src/ui/handlers/archive.ts:1162), [src/ui/handlers/stats.ts:450](/Users/hayden/Hayden_AX_Project/my_ai_assistance/src/ui/handlers/stats.ts:450), [src/services/gemini.ts:88](/Users/hayden/Hayden_AX_Project/my_ai_assistance/src/services/gemini.ts:88)
+- **Category**: Security A.1, Arch-Debt C.6
+- **Symptom**: Gemini 또는 손상된 localStorage가 `score`를 string으로 넣으면 archive/stats modal `bodyHtml`에 raw interpolation 됩니다.
+- **Root cause**:
+```ts
+return parseJsonText<{ score: number; feedback: string }>(text);
+```
+```ts
+parts.push(`<div class="archive-detail-eval">AI 평가 ${a.evaluation.score}점 — ${escapeHtml(a.evaluation.feedback)}</div>`);
+```
+- **Why now**: `innerHTML` sink + `escapeHtml` 누락은 graduated XSS lesson 위반입니다. `answer-detail.ts`는 score type guard가 있는데 archive/stats path가 빠졌습니다.
+- **Suggested fix**: `parseEvaluationResponse()`를 만들어 `score`를 runtime number 1-5로 clamp/guard하고, `migrateAnswer`/`setAnswerEvaluation`에서도 invalid evaluation drop 또는 normalize. 렌더링은 text node 또는 `escapeHtml(String(score))`.
+- **Effort**: S
+- **Risk**: AI 평가 표시, legacy answer migration.
+
+### [P1] Service Worker Still Serves Stale App Shell And Intercepts Same-Origin API POSTs
+
+- **File**: [public/sw.js:2](/Users/hayden/Hayden_AX_Project/my_ai_assistance/public/sw.js:2), [public/sw.js:87](/Users/hayden/Hayden_AX_Project/my_ai_assistance/public/sw.js:87)
+- **Category**: Security/Performance A.3, B.5
+- **Symptom**: deploy 직후 cached `/index.html`이 먼저 반환되어 old hashed chunk를 요청할 수 있습니다. `/api/sendAnswerDm` POST도 generic cache branch를 통과해 `cache.put()` rejected promise를 만들 수 있습니다.
+- **Root cause**:
+```js
+const CACHE_NAME = 'daily-growth-v9';
+const STATIC_ASSETS = ['/', '/index.html', '/manifest.json'];
+```
+```js
+event.respondWith(
+  caches.match(event.request).then(cached => {
+    const fetchPromise = fetch(event.request).then(response => {
+```
+- **Why now**: stale SW 사고가 이미 v3.2a/v3.11.1 hotfix로 graduated 되어 있습니다. v3.41 전 app shell 전략을 닫는 게 맞습니다.
+- **Suggested fix**: `event.request.method !== 'GET'` 및 `/api/`는 pass-through. navigation/`/index.html`은 network-first with cached fallback. `CACHE_NAME` bump.
+- **Effort**: S
+- **Risk**: offline fallback, Playwright SW-block assumptions.
+
+### [P1] Briefing Link URL Is Not Scheme-Validated
+
+- **File**: [src/state/briefings.ts:34](/Users/hayden/Hayden_AX_Project/my_ai_assistance/src/state/briefings.ts:34), [src/ui/handlers/home.ts:489](/Users/hayden/Hayden_AX_Project/my_ai_assistance/src/ui/handlers/home.ts:489), [src/ui/handlers/archive.ts:1167](/Users/hayden/Hayden_AX_Project/my_ai_assistance/src/ui/handlers/archive.ts:1167)
+- **Category**: Security A.6
+- **Symptom**: RSS/localStorage의 `url`이 `javascript:`/`data:`/malformed scheme이면 카드와 archive detail anchor에 들어갑니다.
+- **Root cause**:
+```ts
+// Today only `imageUrl` is validated downstream (via isHttpsUrl); other
+// fields (url, title, summary, sourceTitle, titleKo, summaryKo, ...) are
+// accepted as-is.
+```
+```ts
+main.href = b.url;
+parts.push(`<a class="archive-detail-link" href="${escapeHtml(b.url)}" ...>`);
+```
+- **Why now**: 이미 `isHttpsUrl()`가 있는데 `imageUrl`에만 적용됩니다. 외부 RSS는 신뢰 경계 밖입니다.
+- **Suggested fix**: `fetchFeed` 또는 `saveBriefings` boundary에서 `url`도 `isHttpsUrl`로 강제. invalid item은 drop하거나 disabled link로 렌더.
+- **Effort**: S
+- **Risk**: http-only legacy feed link 노출 감소.
+
+### [P1] Boot-Time Dynamic Imports Can Fail Silently
+
+- **File**: [src/main.ts:35](/Users/hayden/Hayden_AX_Project/my_ai_assistance/src/main.ts:35)
+- **Category**: Performance B.5
+- **Symptom**: home/onboarding/welcome chunk load 실패 시 unhandled rejection만 남고 사용자는 빈 화면 또는 부분 mount를 볼 수 있습니다.
+- **Root cause**:
+```ts
+void import('./ui/modals/welcome-garden').then(({ maybeShowWelcomeGarden }) => {
+  maybeShowWelcomeGarden();
+});
+```
+```ts
+void import('./ui/onboarding').then(({ renderOnboarding }) => {
+...
+void bootMainApp();
+```
+- **Why now**: v3.40 silent-fail lesson L1 재발 후보입니다. SW stale chunk와 결합하면 blast radius가 커집니다.
+- **Suggested fix**: `reportAsync(label, promise)` 단일 helper로 `.catch(console.warn + toast/fallback)` 통합. `bootMainApp()`도 catch.
+- **Effort**: S
+- **Risk**: boot error UX 문구, onboarding smoke.
+
+### [P1] Archive Period Filter Is Visible But Still Deferred
+
+- **File**: [src/ui/handlers/archive.ts:115](/Users/hayden/Hayden_AX_Project/my_ai_assistance/src/ui/handlers/archive.ts:115), [src/ui/tabs/archive.ts:28](/Users/hayden/Hayden_AX_Project/my_ai_assistance/src/ui/tabs/archive.ts:28)
+- **Category**: Arch-Debt C.5, C.10
+- **Symptom**: 사용자는 “이번 주/이번 달” select를 볼 수 있지만 실제 필터는 동작하지 않고 “v3.2 준비 중” toast만 뜹니다.
+- **Root cause**:
+```ts
+export function handleArchivePeriodChange(): void {
+  showToast('기간 필터는 v3.2에서 준비 중입니다');
+}
+```
+- **Why now**: v3.41 기준으로 v3.2 deferred UI가 production에 남아 있습니다. CustomEvent는 wired지만 behavior가 placeholder입니다.
+- **Suggested fix**: 기간 필터를 `rerenderList()` predicate에 연결하거나, 구현 전까지 select를 숨겨 dead control 제거.
+- **Effort**: S-M
+- **Risk**: archive filtering/search/pin count interaction.
+
+### [P2] First Briefing Click Can Perform Multiple Synchronous Storage Writes
+
+- **File**: [src/ui/handlers/home.ts:545](/Users/hayden/Hayden_AX_Project/my_ai_assistance/src/ui/handlers/home.ts:545), [src/ui/handlers/missions-triggers.ts:14](/Users/hayden/Hayden_AX_Project/my_ai_assistance/src/ui/handlers/missions-triggers.ts:14)
+- **Category**: Performance B.4
+- **Symptom**: 첫 briefing click에서 `setRead()` 저장 후 mission trigger가 1-2회 각각 `saveUser()`와 full sweep을 수행할 수 있습니다.
+- **Root cause**:
+```ts
+setRead(idx);
+...
+fireBriefingViewTrigger(now);
+...
+fireCrossInterestTrigger(now);
+```
+```ts
+tickMissionProgress(u, action, now);
+saveUser(u);
+const curr = takeSnapshot();
+```
+- **Why now**: caller-side dispatch / sweep delta false-negative lesson 이후 trigger가 분산되어 같은 frame write가 늘었습니다.
+- **Suggested fix**: `fireTriggers(actions[], now)` batch entrypoint로 user load/tick/save/sweep 1회화.
+- **Effort**: M
+- **Risk**: mission completion/reward event ordering.
+
+### [P2] Layer Map Is No Longer Enforced At Several Boundaries
+
+- **File**: [src/state/user.ts:2](/Users/hayden/Hayden_AX_Project/my_ai_assistance/src/state/user.ts:2), [src/state/migration.ts:77](/Users/hayden/Hayden_AX_Project/my_ai_assistance/src/state/migration.ts:77), [src/utils/gemini-parse.ts:1](/Users/hayden/Hayden_AX_Project/my_ai_assistance/src/utils/gemini-parse.ts:1)
+- **Category**: Arch-Debt C.1, C.9
+- **Symptom**: `state/`가 `ui/`를 import하고, `migration.ts`와 `user.ts`가 runtime cycle을 가집니다. `utils/`도 state validator에 의존합니다.
+- **Root cause**:
+```ts
+import { MSG } from '../ui/messages';
+import { dispatch } from '../ui/events';
+```
+```ts
+import { validateInterestId } from './user';
+```
+- **Why now**: schema chain superset은 graduated lesson입니다. migration/user cycle은 다음 schema bump 때 regression surface를 키웁니다.
+- **Suggested fix**: pure `state/userValidators.ts`와 `domain/messages.ts`로 분리. state는 domain event를 반환하고 UI가 dispatch/toast 담당.
+- **Effort**: L
+- **Risk**: rewards, migration, save error copy.
+
+### [P2] Knip Is Installed But Not Configured For This Deploy Topology
+
+- **File**: [package.json:13](/Users/hayden/Hayden_AX_Project/my_ai_assistance/package.json:13)
+- **Category**: Arch-Debt C.7
+- **Symptom**: `knip --production` reports deployed files as unused, including `public/sw.js` and `functions/src/index.ts`, so dead-code audit is noisy.
+- **Root cause**:
+```json
+"devDependencies": {
+  ...
+  "knip": "^6.14.1",
+```
+  No root knip config defines Vite HTML, Firebase Functions, service worker, or generated `functions/lib` handling.
+- **Why now**: v3.41 audit wants knip as signal; current output cannot be used as-is for sprint scope.
+- **Suggested fix**: add `knip.json` with project entries for `index.html`, `public/sw.js`, `functions/src/index.ts`; ignore `functions/lib/**`; then triage true unused exports.
+- **Effort**: S
+- **Risk**: test-only exports and intentional public helpers may need explicit ignore tags.
+
+**검증 노트**
+- CSP: `script-src 'self'`, no `unsafe-eval`, no script `unsafe-inline`. `style-src-attr 'unsafe-inline'` remains due inline styles.
+- External hosts: Gemini/RSS covered by `connect-src`; Slack frontend uses same-origin `/api/sendAnswerDm`, backend calls `slack.com/api`.
+- Secrets: production source has no hard-coded Slack token/API key; `SLACK_BOT_TOKEN` uses `defineSecret`.
+
+**Heatmap**
+
+| Axis | P0 | P1 | P2 |
+|---|---:|---:|---:|
+| A.1 XSS | 0 | 1 | 0 |
+| A.2 CSP | 0 | 0 | 0 |
+| A.3 Service Worker | 0 | 1 | 0 |
+| A.4 Secrets | 0 | 0 | 0 |
+| A.5 Functions backend | 1 | 0 | 0 |
+| A.6 localStorage/input trust | 0 | 1 | 0 |
+| B.4 Storage thrash | 0 | 0 | 1 |
+| B.5 Async race/silent fail | 0 | 1 | 0 |
+| C.1/C.9 Layer/coupling | 0 | 0 | 1 |
+| C.5/C.10 Events/TODO | 0 | 1 | 0 |
+| C.7 Dead code tooling | 0 | 0 | 1 |
+
+**v3.41 추천 Scope**
+
+| 안 | 포함 | Task 수 | 판단 |
+|---|---|---:|---|
+| 조심형 | P0 Slack auth만 hotfix, v3.41에는 XSS/SW/URL | 4-6 | production abuse 차단 우선 |
+| 표준 | P0 + P1 전체: Slack auth, evaluation guard, SW, URL validation, boot catch, archive period | 8-10 | 권장. 보안/가시 UX/배포 안정성 균형 |
+| 야심 | 표준 + storage batch + layer split 일부 + knip config | 12-15 | 다음 schema bump 전 debt까지 줄임 |
+
+**Hotfix 판단**
+
+P0가 있으므로 v3.41 sprint 진입 전 `sendAnswerDm` 공개 relay 인증/abuse 차단은 hotfix 권고입니다. 최소 hotfix는 App Check/Auth enforcement + generic Slack error response + backend regression test입니다.
