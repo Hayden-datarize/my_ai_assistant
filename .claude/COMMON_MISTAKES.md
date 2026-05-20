@@ -384,9 +384,12 @@ test('Gemini mock 호출이 실제 API에 새지 않는다', async ({ page }) =>
 
 ## 19. Dynamic namespace import knip 추적 한계 + JSDoc semantic tag (2026-05-20, v3.44.1 graduate from v3.44 L1+L3)
 
-**Symptom**: Knip dead-code 분석에서 `import * as ns from './module'` 형태의 dynamic namespace import 후 `ns.exportName()` 호출은 unused로 잡힘.
+**Symptom**: Knip dead-code 분석에서 namespace-object 형태의 import 후 dotted access (`ns.exportName()`)는 unused로 잡힘. 두 형태 모두 해당:
 
-**Root cause**: knip은 namespace import의 dotted access를 export reference로 추적 못 함 (정적 분석 한계). 코드는 정상 작동하지만 도구는 false-positive.
+1. **static namespace import**: `import * as ns from './module'` + `ns.exportName()`
+2. **dynamic namespace import** (v3.44 실제 사례): `const ns = await import('./module')` + `ns.exportName()`
+
+**Root cause**: knip은 namespace-object access를 export reference로 추적 못 함 (정적 분석 한계). 코드는 정상 작동하지만 도구는 false-positive.
 
 **Fix/Prevention**:
 

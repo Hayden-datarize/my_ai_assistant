@@ -25,6 +25,7 @@ const CORS_ORIGINS = [
   'https://my-ai-assistant-904f3.firebaseapp.com',
 ];
 
+/** @public — Firebase Cloud Function HTTPS callable export. firebase deploy로 us-central1에 mounted, client는 same-origin rewrite (`/api/sendAnswerDm`)로 호출. v3.44.1 T4 audit 명령에서 unused로 잡힌 expected noise 차단 (Codex 최종 P3 in-cycle). */
 export const sendAnswerDm = onRequest(
   { secrets: [SLACK_BOT_TOKEN], maxInstances: 1, cors: CORS_ORIGINS, region: 'us-central1' },
   async (req, res) => {
