@@ -62,7 +62,7 @@ test('v3.39 T7: plant action chip → archive 진입 시 currentInterestId 설�
   await expect(page.locator('#archiveSearch')).toHaveValue('인사', { timeout: 1_000 });
 
   // 2) stats 탭 → 정원 카드 클릭 → plant-detail modal open.
-  // v3.40 T6: base.css :where(.garden-card) scroll-margin-bottom 확장 → 실제 .click() 통과.
+  // v3.40 T6 (Codex 최종 P1-1): scroll-margin selector 확장만 — fixed-nav pointer-events intercept는 미해결, dispatchEvent F13 carry.
   await page.locator('#bottomNav button[data-tab-id="stats"]').click();
   const card = page.locator('.garden-card[data-interest-id="leadership"]');
   await expect(card).toBeVisible();

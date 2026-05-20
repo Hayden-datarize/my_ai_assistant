@@ -107,7 +107,7 @@ test('v3.39 T7 + T8 review: exact hit — insight-detail nav 후 interestId=ai_m
   await expect(page.locator('.archive-card--answer')).toHaveCount(4);
 
   // 2) insight 카드 클릭 → openInsightDetailModal
-  // v3.40 T6 (C3 + L4): base.css :where() scroll-margin-bottom 확장 → 실제 .click() 통과.
+  // v3.40 T6 (Codex 최종 P1-1): scroll-margin selector 확장만 — fixed-nav pointer-events intercept는 미해결, dispatchEvent F13 carry.
   const insightCard = page.locator('.archive-insight-card[data-insight-id="ins-ai-1"]');
   await insightCard.scrollIntoViewIfNeeded();
   await insightCard.dispatchEvent('click');
@@ -144,7 +144,7 @@ test('v3.39 T7 + T8 review: legacy fallback — interestId=unknown answer가 BRA
   await page.locator('#bottomNav button[data-tab-id="archive"]').click();
   // hydration anchor: archive list 렌더 완료까지 대기 (insight card click handler bind 보장).
   await expect(page.locator('.archive-insight-card[data-insight-id="ins-ai-1"]')).toBeVisible();
-  // v3.40 T6: scroll-margin-bottom 적용 → scrollIntoView + 실제 .click() 통과.
+  // v3.40 T6 (Codex 최종 P1-1): scroll-margin selector 확장만 — fixed-nav pointer-events intercept는 미해결, dispatchEvent F13 carry.
   const insightCardA = page.locator('.archive-insight-card[data-insight-id="ins-ai-1"]');
   await insightCardA.scrollIntoViewIfNeeded();
   await insightCardA.dispatchEvent('click');
@@ -176,7 +176,7 @@ test('v3.39 T7 + T8 review: state — currentInterestId 유지 중 search 사용
   await page.locator('#bottomNav button[data-tab-id="archive"]').click();
   // hydration anchor: archive list 렌더 완료까지 대기.
   await expect(page.locator('.archive-insight-card[data-insight-id="ins-ai-1"]')).toBeVisible();
-  // v3.40 T6: scroll-margin-bottom 적용 → scrollIntoView + 실제 .click() 통과.
+  // v3.40 T6 (Codex 최종 P1-1): scroll-margin selector 확장만 — fixed-nav pointer-events intercept는 미해결, dispatchEvent F13 carry.
   const insightCardB = page.locator('.archive-insight-card[data-insight-id="ins-ai-1"]');
   await insightCardB.scrollIntoViewIfNeeded();
   await insightCardB.dispatchEvent('click');

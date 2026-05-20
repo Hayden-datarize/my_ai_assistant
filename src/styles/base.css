@@ -34,8 +34,10 @@ h3 { font-size: 1.1rem; }
 
 /* v3.17 T6 — fixed-nav overlap 본질 해법 (carry-B from v3.16 lesson #4).
    :where() specificity 0 → 기존 element override 가능. JS scrollIntoView fix와 양립.
-   v3.40 T6 (C3 + L4 + Codex P1-1): archive/insight/plant/mission 카드 selector 확장 —
-   archive nav chip이 dispatchEvent('click') 우회 없이 실제 .click() 통하도록. */
+   v3.40 T6 (C3 + L4 + Codex P1-1): archive/insight/plant/mission 카드 selector 확장.
+   주의: 본 selector 확장은 scroll-margin 적용 영역만 늘리며, mobile fixed bottom-nav
+   pointer-events intercept 자체는 해결 못 함. smoke는 dispatchEvent('click') 유지
+   (production .click() 전환은 v3.41 F13 carry — nav z-index/pointer-events 진단 필요). */
 :where(input, textarea, [data-scroll-target],
        .archive-card, .archive-insight-card,
        .plant-action-chip, .insight-archive-nav-chip,

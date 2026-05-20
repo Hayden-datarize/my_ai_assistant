@@ -77,7 +77,7 @@ test('v3.39 T7: insight-detail nav chip → archive 진입 시 currentInterestId
   await expect(page.locator('.archive-insight-card[data-insight-id="ins-ai-1"]')).toBeVisible();
 
   // 2) insight 카드 클릭 → modal open.
-  // v3.40 T6: base.css :where(.archive-insight-card) scroll-margin-bottom 확장 → scrollIntoView + .click() 통과.
+  // v3.40 T6 (Codex 최종 P1-1): scroll-margin selector 확장만 — dispatchEvent F13 carry.
   const card1 = page.locator('.archive-insight-card[data-insight-id="ins-ai-1"]');
   await card1.scrollIntoViewIfNeeded();
   await card1.dispatchEvent('click');
@@ -141,7 +141,7 @@ test('v3.39 T7: insight interestId="unknown" 시 nav chip 미노출 (보호 inva
 
   await page.goto('/');
   await page.locator('#bottomNav button[data-tab-id="archive"]').click();
-  // v3.40 T6: scroll-margin-bottom 적용 → 실제 .click() 통과.
+  // v3.40 T6 (Codex 최종 P1-1): scroll-margin selector 확장만 — fixed-nav pointer-events intercept는 미해결, dispatchEvent F13 carry.
   await expect(page.locator('.archive-insight-card[data-insight-id="ins-unknown"]')).toBeVisible();
   await page.locator('.archive-insight-card[data-insight-id="ins-unknown"]').dispatchEvent('click');
   const modal = page.locator('.insight-detail');
