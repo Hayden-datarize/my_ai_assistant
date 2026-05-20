@@ -41,7 +41,8 @@ function mkBriefing(over: Partial<Briefing>): Briefing {
   return {
     id: 'b',
     date: '2026-05-10',
-    url: '',
+    // v3.41 T4: isSafeUrl 검증 (write boundary).
+    url: 'https://example.com/scrap',
     title: 'title',
     summary: 'summary',
     scrapped: true,

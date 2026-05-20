@@ -74,11 +74,7 @@
   position: absolute; left: 12px; top: 50%; transform: translateY(-50%);
   font-size: 1rem; pointer-events: none;
 }
-.archive-period {
-  padding: 6px 12px; border-radius: var(--radius-sm);
-  border: 1px solid var(--border); background: var(--bg-card);
-  font-size: 0.8rem; color: var(--text-primary); font-family: var(--font-body);
-}
+/* v3.41 T6 (Codex P1 F6): .archive-period rule 제거 (dead control). */
 
 /* Archive header row — heading + select-mode action buttons */
 .archive-header-row {

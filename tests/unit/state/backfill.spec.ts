@@ -31,11 +31,11 @@ describe('backfillGarden', () => {
     const briefings = [
       ...Array.from({ length: 3 }, (_, i) => ({
         id: `${i}`, scrapped: true, title: 'AI 발표', summary: '', memo: '',
-        sourceTitle: '', url: '', date: '',
+        sourceTitle: '', url: 'https://example.com', date: '',
       })),
       ...Array.from({ length: 2 }, (_, i) => ({
         id: `m${i}`, scrapped: true, title: 'AI 발표', summary: '', memo: '메모',
-        sourceTitle: '', url: '', date: '',
+        sourceTitle: '', url: 'https://example.com', date: '',
       })),
     ];
     const u = makeUser(briefings);
@@ -47,7 +47,7 @@ describe('backfillGarden', () => {
   it('cumulativeActivity 25 → stage 3, lastEngagedAt = 진입 시점 (C3 fix)', () => {
     const briefings = Array.from({ length: 25 }, (_, i) => ({
       id: `${i}`, scrapped: true, title: 'AI',
-      summary: '', memo: '', sourceTitle: '', url: '', date: '2024-01-01',
+      summary: '', memo: '', sourceTitle: '', url: 'https://example.com', date: '2024-01-01',
     }));
     const u = makeUser(briefings);
     const before = Date.now();
@@ -62,7 +62,7 @@ describe('backfillGarden', () => {
   it('cumulativeActivity 160+ → stage 5, unlockedAt 셋', () => {
     const briefings = Array.from({ length: 200 }, (_, i) => ({
       id: `${i}`, scrapped: true, title: 'AI',
-      summary: '', memo: '', sourceTitle: '', url: '', date: '',
+      summary: '', memo: '', sourceTitle: '', url: 'https://example.com', date: '',
     }));
     const u = makeUser(briefings);
     backfillGarden(u);
@@ -95,7 +95,7 @@ describe('backfillGarden', () => {
 
   it('interests 외 entry 자동 생성 안 함 (interests filter)', () => {
     // briefing title에 'AI'가 있어도 interests=['ai_ml']이면 'pm' entry 없음
-    const briefings = [{ id: '1', scrapped: true, title: 'AI', summary: '', memo: '', sourceTitle: '', url: '', date: '' }];
+    const briefings = [{ id: '1', scrapped: true, title: 'AI', summary: '', memo: '', sourceTitle: '', url: 'https://example.com', date: '' }];
     const u = makeUser(briefings, ['ai_ml']);
     backfillGarden(u);
     expect(u.plantStateByInterest['pm']).toBeUndefined();
@@ -108,7 +108,7 @@ describe('backfillGarden', () => {
     // takeSnapshot/runSweep import가 backfillGarden.ts에 없으므로 이 테스트 자체가 통과되면 증명.
     const briefings = Array.from({ length: 50 }, (_, i) => ({
       id: `${i}`, scrapped: true, title: 'AI',
-      summary: '', memo: '', sourceTitle: '', url: '', date: '',
+      summary: '', memo: '', sourceTitle: '', url: 'https://example.com', date: '',
     }));
     const u = makeUser(briefings);
     // sweep를 mock하지 않고 실행 — 에러/사이드이펙트 없어야 함
@@ -120,8 +120,8 @@ describe('backfillGarden', () => {
   it('C4 (v3.16): briefing.memo가 undefined여도 backfillGarden은 throw하지 않음', () => {
     // legacy/loose cast 시 memo가 undefined일 수 있는 case
     const briefings = [
-      { id: '1', scrapped: true, title: 'AI 발표', summary: '', memo: undefined as unknown as string, sourceTitle: '', url: '', date: '' },
-      { id: '2', scrapped: true, title: 'AI 트렌드', summary: '', memo: '정상', sourceTitle: '', url: '', date: '' },
+      { id: '1', scrapped: true, title: 'AI 발표', summary: '', memo: undefined as unknown as string, sourceTitle: '', url: 'https://example.com', date: '' },
+      { id: '2', scrapped: true, title: 'AI 트렌드', summary: '', memo: '정상', sourceTitle: '', url: 'https://example.com', date: '' },
     ];
     const u = makeUser(briefings);
     // memo undefined에서도 throw하지 않음

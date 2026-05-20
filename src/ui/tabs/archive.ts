@@ -25,7 +25,7 @@ export function renderArchive(container: HTMLElement): void {
   // 이후 추가/삭제는 dg:archive:updated 이벤트로 refreshEntityCounts() 자동 재계산.
   const counts = getEntityCounts();
   // eslint-disable-next-line no-restricted-syntax -- trusted static template, counts is number Record (toString-safe)
-  container.innerHTML = `<div class="archive-section" id="archiveTab"><div class="archive-header-row"><h2 style="margin-bottom:4px;">📚 나의 성장 아카이브</h2><div class="archive-header-actions"><button id="archiveSelectToggle" type="button" aria-pressed="false">선택</button><button id="archiveBulkDelete" type="button" disabled>선택 항목 삭제 (0)</button></div></div>${onboardingHtml}<p id="archiveCount">카테고리별로 기록을 필터링할 수 있어요</p>${renderEntityChipRow('all', counts)}<div class="archive-search-wrap"><span class="archive-search-icon">🔍</span><input type="search" class="archive-search" id="archiveSearch" aria-label="archive 검색" placeholder="질문, 답변, 인사이트 검색..."></div><div id="archiveSearchSummary"></div><div style="display:flex;gap:8px;align-items:center;margin-bottom:12px;flex-wrap:wrap;"><select class="archive-period" id="archivePeriod"><option value="all">전체 기간</option><option value="week">이번 주</option><option value="month">이번 달</option></select><div class="archive-filters" id="archiveFilters" style="margin-bottom:0;"><button class="filter-chip active" data-filter="all" title="답변 모든 유형">전체</button><button class="filter-chip" data-filter="분석" title="현상을 분석하고 원인을 파악하는 질문">🔍 분석형</button><button class="filter-chip" data-filter="전환" title="기존 관점을 바꿔 새로운 시각으로 보는 질문">🔄 전환형</button><button class="filter-chip" data-filter="실무" title="업무에 바로 적용할 수 있는 실천 중심 질문">🛠️ 실무형</button><button class="filter-chip" data-filter="성장" title="장기적 커리어와 역량 성장을 돌아보는 질문">🌱 성장형</button><button class="filter-chip" data-filter="트렌드" title="업계 트렌드와 변화를 읽는 질문">📊 트렌드</button></div></div><div id="archiveList" aria-live="polite"></div></div>`;
+  container.innerHTML = `<div class="archive-section" id="archiveTab"><div class="archive-header-row"><h2 style="margin-bottom:4px;">📚 나의 성장 아카이브</h2><div class="archive-header-actions"><button id="archiveSelectToggle" type="button" aria-pressed="false">선택</button><button id="archiveBulkDelete" type="button" disabled>선택 항목 삭제 (0)</button></div></div>${onboardingHtml}<p id="archiveCount">카테고리별로 기록을 필터링할 수 있어요</p>${renderEntityChipRow('all', counts)}<div class="archive-search-wrap"><span class="archive-search-icon">🔍</span><input type="search" class="archive-search" id="archiveSearch" aria-label="archive 검색" placeholder="질문, 답변, 인사이트 검색..."></div><div id="archiveSearchSummary"></div><div style="display:flex;gap:8px;align-items:center;margin-bottom:12px;flex-wrap:wrap;"><div class="archive-filters" id="archiveFilters" style="margin-bottom:0;"><button class="filter-chip active" data-filter="all" title="답변 모든 유형">전체</button><button class="filter-chip" data-filter="분석" title="현상을 분석하고 원인을 파악하는 질문">🔍 분석형</button><button class="filter-chip" data-filter="전환" title="기존 관점을 바꿔 새로운 시각으로 보는 질문">🔄 전환형</button><button class="filter-chip" data-filter="실무" title="업무에 바로 적용할 수 있는 실천 중심 질문">🛠️ 실무형</button><button class="filter-chip" data-filter="성장" title="장기적 커리어와 역량 성장을 돌아보는 질문">🌱 성장형</button><button class="filter-chip" data-filter="트렌드" title="업계 트렌드와 변화를 읽는 질문">📊 트렌드</button></div></div><div id="archiveList" aria-live="polite"></div></div>`;
 
   populateList(container);
   bindHandlers(container);
@@ -116,11 +116,7 @@ function bindHandlers(container: HTMLElement): void {
     });
   }
 
-  // archivePeriod change → dg:archive:period-change
-  const archivePeriod = container.querySelector<HTMLSelectElement>('#archivePeriod');
-  if (archivePeriod) archivePeriod.addEventListener('change', () => {
-    document.dispatchEvent(new CustomEvent('dg:archive:period-change'));
-  });
+  // v3.41 T6 (Codex P1 F6): archivePeriod dispatcher 제거 (dead control).
 
   // filter-chip click → dg:archive:filter (이벤트 위임)
   const archiveFilters = container.querySelector<HTMLElement>('#archiveFilters');

@@ -31,8 +31,8 @@ export interface Briefing {
 
 const KEY = 'briefings';
 
-// v3.41 T4 (Codex P1 F4): url field에 isSafeUrl 강제 — javascript:/data:/file: 등
-// 차단. imageUrl은 더 엄격한 isHttpsUrl 유지. write + read + render 3-layer
+// v3.41 T4 (Codex P1 F4): url field에 isSafeUrl 강제 — JS pseudo-scheme / data / file 등
+// 차단 (allow-list http+https only). imageUrl은 더 엄격한 isHttpsUrl 유지. write + read + render 3-layer
 // guard (defense-in-depth) — read에서 drop, write에서 throw, render에서 safeHref
 // fallback. 정책 분리: link policy = isSafeUrl, image policy = isHttpsUrl.
 export function loadBriefings(): Briefing[] {

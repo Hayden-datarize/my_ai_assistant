@@ -25,8 +25,8 @@ export interface EventMap {
   'dg:home:summarize-chat': undefined;
   'dg:home:generate-insight-card': undefined;
   // archive (3) — matches tabs/archive.ts exactly
+  // v3.41 T6 (Codex P1 F6): 'dg:archive:period-change' 제거 (dead control, v3.2 deferred placeholder).
   'dg:archive:search': undefined;
-  'dg:archive:period-change': undefined;
   'dg:archive:filter': { filter: string };
   // v3.27 T4 (Codex 사전 P1-4) — togglePin entity별 storage 정합 후 archive re-render trigger.
   'dg:archive:updated': { entity: 'answer' | 'scrap' | 'insight'; id: string };
@@ -77,7 +77,7 @@ export const EVENT_NAMES: readonly EventName[] = [
   'dg:home:switch-tab', 'dg:home:refresh-briefings', 'dg:home:update-char-count',
   'dg:home:toggle-hint', 'dg:home:submit-answer', 'dg:home:send-chat',
   'dg:home:summarize-chat', 'dg:home:generate-insight-card',
-  'dg:archive:search', 'dg:archive:period-change', 'dg:archive:filter', 'dg:archive:updated',
+  'dg:archive:search', 'dg:archive:filter', 'dg:archive:updated',
   'dg:stats:weekly-report', 'dg:stats:growth-analysis',
   'dg:nav:tab-changed',
   'dg:reward:xp-float',
@@ -95,9 +95,10 @@ export const EVENT_NAMES: readonly EventName[] = [
 /**
  * Events deferred to v3.2 — handlers in v3.1 register a stub listener.
  * v3.23 T8 graduate: summarize-chat / generate-insight-card / weekly-report / growth-analysis
- * 4건 실구현으로 제거. dismiss-backup / archive:period-change 2건만 잔존.
+ * 4건 실구현으로 제거.
+ * v3.41 T6 graduate: archive:period-change 제거 (dead control, v3.42+에 search/pin 통합 검토).
+ * dismiss-backup 1건만 잔존.
  */
 export const V32_DEFERRED_EVENTS: readonly EventName[] = [
   'dg:home:dismiss-backup',
-  'dg:archive:period-change',
 ] as const;

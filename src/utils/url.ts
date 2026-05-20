@@ -48,12 +48,12 @@ export function isHttpsUrl(value: unknown): value is string {
 /**
  * v3.41 T4 (Codex P1 F4): briefing url용 안전 검증.
  *
- * - `http:` + `https:` 허용 (legacy/외부 RSS feed import 대비, isHttpsUrl 보다 관대)
- * - `javascript:` / `data:` / `vbscript:` / `file:` / `blob:` 등 차단
+ * - http: + https: 허용 (legacy/외부 RSS feed import 대비, isHttpsUrl 보다 관대)
+ * - JS pseudo-scheme / data: / vbscript / file / blob 등 차단 (allow-list 방식)
  * - bare path / 빈 hostname 거절
  * - non-string 거절
  *
- * 정책 분리: image용 `isHttpsUrl`은 더 엄격 (https-only). briefing link는
+ * 정책 분리: image용 isHttpsUrl 은 더 엄격 (https-only). briefing link는
  * read/render path 양쪽에서 본 함수 호출. write boundary 추가 차단.
  */
 const SAFE_PREFIX = /^https?:\/\//i;

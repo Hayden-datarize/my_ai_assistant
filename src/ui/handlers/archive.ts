@@ -114,9 +114,7 @@ export function handleArchiveSearch(): void {
   rerenderList();
 }
 
-export function handleArchivePeriodChange(): void {
-  showToast('기간 필터는 v3.2에서 준비 중입니다');
-}
+// v3.41 T6 (Codex P1 F6): handleArchivePeriodChange 제거 (dead control, dispatcher/listener 동시 제거).
 
 export function handleArchiveUpdated(): void {
   refreshEntityCounts();

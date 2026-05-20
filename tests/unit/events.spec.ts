@@ -40,14 +40,19 @@ describe('events', () => {
     // v3.23 T9: +1 insights event (`dg:insights:removed`).
     // v3.25 T1: +1 insights event (`dg:insights:updated` — interestId 분야 chip 수동 정정).
     // v3.27 T4: +1 archive event (`dg:archive:updated` — pin 토글 후 re-render trigger).
-    expect(EVENT_NAMES).toHaveLength(28);
-    expect(new Set(EVENT_NAMES).size).toBe(28);
+    // v3.41 T6: -1 (dg:archive:period-change 제거, dead control).
+    expect(EVENT_NAMES).toHaveLength(27);
+    expect(new Set(EVENT_NAMES).size).toBe(27);
+    // v3.41 T6 defense: period-change 잔존 확인 차단.
+    expect(EVENT_NAMES).not.toContain('dg:archive:period-change' as never);
   });
 
-  it('V32_DEFERRED_EVENTS lists the 2 잔존 stubs (v3.23 T8 graduated 4건 제거)', () => {
+  it('V32_DEFERRED_EVENTS lists the 1 잔존 stub (v3.41 T6 graduated archive:period-change)', () => {
     // v3.23 T8: summarize-chat / generate-insight-card / weekly-report / growth-analysis 4건
-    // 실구현 graduate. dismiss-backup / archive:period-change 2건만 잔존.
-    expect(V32_DEFERRED_EVENTS).toHaveLength(2);
+    // 실구현 graduate.
+    // v3.41 T6: archive:period-change 1건 추가 graduate (dead control 제거).
+    // dismiss-backup 1건만 잔존.
+    expect(V32_DEFERRED_EVENTS).toHaveLength(1);
     for (const e of V32_DEFERRED_EVENTS) expect(EVENT_NAMES).toContain(e);
   });
 });

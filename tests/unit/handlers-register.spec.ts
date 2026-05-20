@@ -5,7 +5,7 @@ const archiveSpies = vi.hoisted(() => ({
   hydrateArchive: vi.fn(),
   handleArchiveFilter: vi.fn(),
   handleArchiveSearch: vi.fn(),
-  handleArchivePeriodChange: vi.fn(),
+  // v3.41 T6 (Codex P1 F6): handleArchivePeriodChange mock 제거 (dead control).
   handleArchiveUpdated: vi.fn(),
   handleInsightsChanged: vi.fn(),
 }));

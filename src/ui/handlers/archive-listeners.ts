@@ -16,11 +16,7 @@ export function registerArchiveListeners(): () => void {
         .then((m) => m.handleArchiveSearch())
         .catch((err) => warn('search', err));
     }),
-    on('dg:archive:period-change', () => {
-      void import('./archive')
-        .then((m) => m.handleArchivePeriodChange())
-        .catch((err) => warn('period-change', err));
-    }),
+    // v3.41 T6 (Codex P1 F6): period-change listener 제거 (dead control).
     on('dg:archive:updated', () => {
       void import('./archive')
         .then((m) => m.handleArchiveUpdated())
