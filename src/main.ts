@@ -2,8 +2,6 @@ import { mountNav, switchTab } from './ui/nav';
 import { mountSidebar } from './ui/sidebar';
 import { registerCoreHandlerListeners } from './ui/handlers/register';
 import { mountRewards } from './ui/rewards';
-import { renderOnboarding } from './ui/onboarding';
-import { maybeShowWelcomeGarden } from './ui/modals/welcome-garden';
 import { qs } from './utils/dom';
 
 const USER_STORAGE = 'user';
@@ -30,16 +28,22 @@ async function bootMainApp(): Promise<void> {
   mountSidebar();
   mountRewards();
   await switchTab('home');
-  // v3.15: onboarding 완료 사용자에게만 환영 정원 모달 1회 표시 (gardenIntroduced flag guard)
-  maybeShowWelcomeGarden();
+  // v3.15: onboarding 완료 사용자에게만 환영 정원 모달 1회 표시 (gardenIntroduced flag guard).
+  // v3.40 T2: dynamic import — first-launch 1회만 chunk load.
+  void import('./ui/modals/welcome-garden').then(({ maybeShowWelcomeGarden }) => {
+    maybeShowWelcomeGarden();
+  });
 }
 
 function bootOnboarding(): void {
   const app = qs<HTMLElement>('#app');
-  renderOnboarding(app);
-  document.addEventListener('dg:onboarded', () => {
-    location.reload();
-  }, { once: true });
+  // v3.40 T2: dynamic import — 미온보딩 사용자만 chunk load.
+  void import('./ui/onboarding').then(({ renderOnboarding }) => {
+    renderOnboarding(app);
+    document.addEventListener('dg:onboarded', () => {
+      location.reload();
+    }, { once: true });
+  });
 }
 
 function boot(): void {
