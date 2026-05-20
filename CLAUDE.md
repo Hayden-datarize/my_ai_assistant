@@ -195,10 +195,12 @@ code-reviewer agent의 M-rating nit이 다음에 해당하면 P1 격상 검토:
 사전/최종 review는 subagent dispatch가 아니라 아래 CLI 직접 호출을 기본값으로 한다:
 
 ```bash
-codex exec --skip-git-repo-check -o /tmp/<cycle>-codex-<pre|final>.txt "<prompt>"
+codex exec --skip-git-repo-check -o /tmp/<cycle>-codex-<pre|final>.txt "<prompt>" < /dev/null
 ```
 
 v3.30 T0에서 subagent dispatch가 background drop되어 결과 회수에 실패했다. v3.30 T7에서는 `codex exec` 직접 호출이 production stale count P1을 catch했다. 따라서 Codex 2-pass는 direct CLI 우선, 실패 시 controller self-review fallback을 retro에 명시한다.
+
+**stdin redirect 의무 (v3.44 graduate, v3.43 L4 ROI)**: `codex exec "$PROMPT"` foreground/background 호출 시 `< /dev/null` redirect 명시 (위 default command에도 포함됨). 미명시 시 "Reading additional input from stdin..." 메시지로 stall + output file 미생성. v3.43 T3 1차 시도가 background로 stall, 2차 시도 `< /dev/null` foreground로 정상 완료한 사례에서 graduate.
 
 ### Single Fix Point Preference (v3.31 L5)
 
