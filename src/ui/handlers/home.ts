@@ -246,6 +246,7 @@ function applyTheme(): void {
   document.body.classList.toggle('dark', t === 'dark');
 }
 
+/** @public — `src/main.ts:23` dynamic namespace import (`home.mountHomeHandlers()`)로 호출. knip이 namespace usage를 추적 못 해 unused로 잡혀 v3.44 T1에서 JSDoc @public tag로 명시 (Codex 사전 review P0 흡수). */
 export function mountHomeHandlers(): void {
   applyTheme();
 
