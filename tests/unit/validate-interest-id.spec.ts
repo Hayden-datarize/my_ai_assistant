@@ -83,7 +83,7 @@ describe('isValidUserShape — Insight entry shape (v3.25 T2)', () => {
     localStorage.setItem('user', JSON.stringify(u));
     const result = getCachedUser();
     expect(result).not.toBeNull();
-    expect(result!.schemaVersion).toBe(9);  // v3.39 T1: chain v6→v7→v8→v9
+    expect(result!.schemaVersion).toBe(10);  // v3.48: chain v6→v7→v8→v9→v10
     expect(result!.insights[0]!.interestId).toBe('unknown');
   });
 });
