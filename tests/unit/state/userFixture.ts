@@ -29,7 +29,7 @@ export function mkUser(over: Partial<Omit<User, 'schemaVersion' | 'missions'>> &
     xp: 0,
     earnedBadges: {},
     gamificationMigrated: false,
-    schemaVersion: 9,
+    schemaVersion: 10,
     missions: { ...DEFAULT_MISSIONS, ...mOver },
     plantStateByInterest: {},
     gardenIntroduced: false,
@@ -37,6 +37,7 @@ export function mkUser(over: Partial<Omit<User, 'schemaVersion' | 'missions'>> &
     streakFreeze: { count: 2, lastEarnedAt: '2026-05-07' },
     insights: [],
     xpHistory: [],
+    freezeHistory: [],
     ...rest,
   };
 }

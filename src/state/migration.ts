@@ -111,7 +111,7 @@ import type { PlantState } from './plantTypes';
 export function migrateUserToV2(raw: unknown): User {
   const r = (raw ?? {}) as Record<string, unknown>;
   // v3.39 T1 (Codex 사전 P0-1): chain superset — v9 user → same reference (downgrade 차단).
-  if (r.schemaVersion === 9) return r as unknown as User;
+  if (r.schemaVersion === 9 || r.schemaVersion === 10) return r as unknown as User;
   // v3.27 T1 (Codex 사전 P0-1): chain superset — v8 user → same reference (forward-compat).
   if (r.schemaVersion === 8) return r as unknown as User;
   const v2 = { ...r, schemaVersion: 2 } as Record<string, unknown>;
@@ -218,7 +218,7 @@ export function migrateUserToV3(raw: unknown): User {
     missions?: Partial<User['missions']>;
   };
   // v3.39 T1 (Codex 사전 P0-1): chain superset — v9 user → same reference (downgrade 차단).
-  if (v?.schemaVersion === 9) return v as unknown as User;
+  if (v?.schemaVersion === 9 || v?.schemaVersion === 10) return v as unknown as User;
   // v3.27 T1 (Codex 사전 P0-1): chain superset — v8 user → same reference (forward-compat).
   // v8을 v4~v7 superset 분기에 합류시키면 mission normalize로 NEW reference가 되어 invariant 위반.
   if (v?.schemaVersion === 8) return v as unknown as User;
@@ -277,7 +277,7 @@ export function migrateUserToV4(u: unknown): User {
   // v3.25 T2 (chain superset): v7도 v6의 superset이므로 동일 분기 적용.
   // v3.27 T1 (Codex 사전 P0-1): v8도 v7의 superset이므로 동일 분기 적용.
   // v3.39 T1 (Codex 사전 P0-1): v9도 v8의 superset이므로 동일 분기 적용 (downgrade 차단).
-  if (r.schemaVersion === 4 || r.schemaVersion === 5 || r.schemaVersion === 6 || r.schemaVersion === 7 || r.schemaVersion === 8 || r.schemaVersion === 9) return r as unknown as User;
+  if (r.schemaVersion === 4 || r.schemaVersion === 5 || r.schemaVersion === 6 || r.schemaVersion === 7 || r.schemaVersion === 8 || r.schemaVersion === 9 || r.schemaVersion === 10) return r as unknown as User;
 
   // v3 → v4 lazy: 빈 정원 + flag 0
   const migrated = {
@@ -313,7 +313,7 @@ export function migrateUserToV5(u: unknown): User {
   // v3.25 T2 (chain superset): v7도 v6의 superset이므로 동일 분기 적용.
   // v3.27 T1 (Codex 사전 P0-1): v8도 v7의 superset이므로 동일 분기 적용.
   // v3.39 T1 (Codex 사전 P0-1): v9도 v8의 superset이므로 동일 분기 적용 (downgrade 차단).
-  if (r.schemaVersion === 5 || r.schemaVersion === 6 || r.schemaVersion === 7 || r.schemaVersion === 8 || r.schemaVersion === 9) return r as unknown as User;
+  if (r.schemaVersion === 5 || r.schemaVersion === 6 || r.schemaVersion === 7 || r.schemaVersion === 8 || r.schemaVersion === 9 || r.schemaVersion === 10) return r as unknown as User;
 
   // v4 → v5 lazy: streakFreeze 신규 또는 손상 시 default.
   // v3.22 P2-2: 머신 TZ 무관하게 KST 자정 anchor (Intl.DateTimeFormat).
@@ -365,7 +365,7 @@ export function migrateUserToV6(u: unknown): User {
   // v3.25 T2 (chain superset): v7도 v6의 superset이므로 동일 분기 적용.
   // v3.27 T1 (Codex 사전 P0-1): v8도 v7의 superset이므로 동일 분기 적용.
   // v3.39 T1 (Codex 사전 P0-1): v9도 v8의 superset이므로 동일 분기 적용 (downgrade 차단).
-  if (r.schemaVersion === 6 || r.schemaVersion === 7 || r.schemaVersion === 8 || r.schemaVersion === 9) return r as unknown as User;
+  if (r.schemaVersion === 6 || r.schemaVersion === 7 || r.schemaVersion === 8 || r.schemaVersion === 9 || r.schemaVersion === 10) return r as unknown as User;
 
   // v5까지 lift (V5 early-return이 v6 guard됨 — 불필요 이중 lift 없음)
   const v5 = migrateUserToV5(u);
@@ -401,7 +401,7 @@ export function migrateUserToV7(u: unknown): User {
 
   // v3.27 T1 (Codex 사전 P0-1): v8도 v7의 superset이므로 same reference.
   // v3.39 T1 (Codex 사전 P0-1): v9도 v8의 superset이므로 same reference (downgrade 차단).
-  if (r.schemaVersion === 7 || r.schemaVersion === 8 || r.schemaVersion === 9) return r as unknown as User;
+  if (r.schemaVersion === 7 || r.schemaVersion === 8 || r.schemaVersion === 9 || r.schemaVersion === 10) return r as unknown as User;
 
   // v6까지 lift (V6 early-return이 v7 guard됨 — 불필요 이중 lift 없음)
   const v6 = migrateUserToV6(u);
@@ -452,7 +452,7 @@ export function migrateUserToV8(u: unknown): User {
   // v3.39 T1 (Codex 사전 P0-1): chain superset — v9 user → same reference (downgrade 차단).
   // v9 user가 v8 backfill path로 흘러가면 schemaVersion 9 → 8로 downgrade 위험 + new reference 생성.
   // 반드시 v8 분기보다 먼저 위치할 것.
-  if (r.schemaVersion === 9) return r as unknown as User;
+  if (r.schemaVersion === 9 || r.schemaVersion === 10) return r as unknown as User;
 
   if (r.schemaVersion === 8) {
     // 이미 v8이지만 already-v8 path에서도 insights/pinned/xpHistory invariant 보장 (P1 흡수 + per-task review fix)
@@ -519,12 +519,25 @@ export function migrateUserToV8(u: unknown): User {
 export function migrateUserToV9(u: unknown): User {
   const r = u as Record<string, unknown> & { schemaVersion?: number };
 
-  if (r.schemaVersion === 9) {
-    return r as unknown as User; // idempotent
+  if (r.schemaVersion === 9 || r.schemaVersion === 10) {
+    return r as unknown as User; // idempotent (v3.48: v10 chain superset — downgrade 차단)
   }
 
   // v8까지 lift (V8 early-return이 v9 guard됨 — 불필요 이중 lift 없음)
   const v8 = migrateUserToV8(u);
   const v8r = v8 as unknown as Record<string, unknown>;
   return { ...v8r, schemaVersion: 9 } as unknown as User;
+}
+
+/**
+ * v3.48: v9→v10 lazy migration — freezeHistory 배열 도입 (xpHistory v8 선례).
+ * chain superset — v10 user는 same reference (downgrade barrier).
+ */
+export function migrateUserToV10(u: unknown): User {
+  const r = u as Record<string, unknown> & { schemaVersion?: number; freezeHistory?: unknown };
+  if (r.schemaVersion === 10) return r as unknown as User; // idempotent / downgrade barrier
+  const v9 = migrateUserToV9(u);
+  const v9r = v9 as unknown as Record<string, unknown>;
+  const freezeHistory = Array.isArray(v9r.freezeHistory) ? v9r.freezeHistory : [];
+  return { ...v9, schemaVersion: 10 as const, freezeHistory } as unknown as User;
 }

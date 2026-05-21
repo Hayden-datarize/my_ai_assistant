@@ -18,18 +18,19 @@ describe('user schema v2 migration', () => {
     expect(v2.interests).toEqual(['AI']);
   });
 
-  it('loadUserData: schemaVersion 없으면 lazy migrate v1→v9 + saveUser 1회', () => {
+  it('loadUserData: schemaVersion 없으면 lazy migrate v1→v10 + saveUser 1회', () => {
     localStorage.setItem('user', JSON.stringify({ name: '하든', interests: [], onboardedAt: '2026-01-01', streak: 0, lastActiveDate: '', xp: 0, level: 1 }));
     const u = loadUserData()!;
-    expect(u.schemaVersion).toBe(9);  // v3.39 T1: v9으로 업그레이드
+    expect(u.schemaVersion).toBe(10);  // v3.48: v10으로 업그레이드
     expect(u).not.toHaveProperty('level');
     expect(u.earnedBadges).toEqual({});
     expect(u.streakFreeze.count).toBe(2);
     expect(u.streakFreeze.lastEarnedAt).toMatch(/^\d{4}-\d{2}-\d{2}$/);
     expect(u.insights).toEqual([]);   // v3.23 T1: insights 기본값 []
     expect(u.xpHistory).toEqual([]);  // v3.27 T1: xpHistory 기본값 []
+    expect(u.freezeHistory).toEqual([]);  // v3.48: freezeHistory 기본값 []
     const raw = JSON.parse(localStorage.getItem('user')!);
-    expect(raw.schemaVersion).toBe(9);
+    expect(raw.schemaVersion).toBe(10);
   });
 
   it('loadUserData: schemaVersion 3 idempotent (재호출해도 동일)', () => {

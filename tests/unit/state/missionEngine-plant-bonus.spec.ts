@@ -16,7 +16,7 @@ function makeUserWithPlants(
     xp: 0,
     earnedBadges: {},
     gamificationMigrated: true,
-    schemaVersion: 9,
+    schemaVersion: 10,
     missions: {
       active: missionsActive,
       cumulative: { dailyCount: 0, weeklyCount: 0, monthlyCount: 0 },
