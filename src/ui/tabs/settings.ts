@@ -8,7 +8,9 @@ import { resetToastDedup } from '../translateToast';
 import { clearSessionBlock } from '../../services/translate';
 import { MSG } from '../messages';
 import { loadAnswers, deleteAllAnswers, saveAnswers } from '../../state/persistence';
-import { getSaveErrorMessage } from '../../state/user';
+import { getSaveErrorMessage, loadUserData, getFreezeHistory } from '../../state/user';
+import { getNextFreezeEtaDays } from '../../state/freezeEngine';
+import { escapeHtml } from '../../utils/escapeHtml';
 
 const STORAGE_KEY_APIKEY = 'dg_gemini_key'; // legacy storage key — preserved for cutover compat
 const USER_STORAGE = 'user';
@@ -34,13 +36,46 @@ document.addEventListener('dg:interests:changed', () => {
 export function renderSettings(container: HTMLElement): void {
   // v3.24 T3: indent 압축 (production-safe).
   // eslint-disable-next-line no-restricted-syntax -- trusted static template, no interpolation
-  container.innerHTML = `<div class="settings-section" id="settingsTab"><h2 style="margin-bottom:16px;">⚙️ 설정</h2><section class="settings-group"><div class="settings-group-title">관심 분야</div><div id="currentInterests" class="settings-interests-display"></div><button type="button" id="editInterestsBtn" class="btn btn-outline btn-block" style="margin-top:8px;">수정</button></section><section class="settings-group"><div class="settings-group-title">Gemini API 키</div><input type="password" id="apiKeyInput" autocomplete="off" placeholder="AI...로 시작하는 키" style="width:100%;padding:10px;border:1px solid var(--border);border-radius:var(--radius-sm);background:var(--bg-input);color:var(--text-primary);" /><button type="button" id="saveApiKeyBtn" class="btn btn-primary btn-block mt-16" style="margin-top:8px;">저장</button><div id="apiKeyStatus" style="margin-top:8px;font-size:0.85rem;"></div><details style="margin-top:12px;"><summary style="cursor:pointer;font-size:0.9rem;">API 키 발급 받기</summary><ol style="font-size:0.85rem;margin-top:8px;line-height:1.6;padding-left:20px;"><li><a href="https://aistudio.google.com/app/apikey" target="_blank" rel="noopener noreferrer">Google AI Studio</a> 접속 (Google 계정 로그인 필요)</li><li>"Create API Key" 클릭 → 새 프로젝트 또는 기존 프로젝트 선택</li><li>생성된 키 ("AI..."로 시작) 복사해 위 입력란에 붙여넣기</li><li>"저장" 버튼 클릭</li></ol><p style="font-size:0.8rem;color:var(--text-secondary);margin-top:8px;">※ API 키는 이 브라우저에만 저장됩니다. Gemini 무료 한도 (분당 60회 요청) 내에서 사용 가능합니다.</p></details></section><section class="settings-group" data-testid="translate-settings"><div class="settings-group-title">Gemini 번역</div><label for="translateCap" style="display:block;font-size:0.9rem;margin-bottom:6px;">일일 번역 한도: <span id="translateCapValue" aria-live="polite" style="font-weight:600;"></span></label><input type="range" id="translateCap" min="30" max="500" step="10" style="width:100%;" /><div style="font-size:0.85rem;color:var(--text-secondary);margin-top:8px;">오늘 사용량: <span id="translateUsageDisplay" aria-live="polite">0</span>건</div><button type="button" id="clearTranslationCacheBtn" class="btn btn-secondary btn-block" style="margin-top:12px;">번역 캐시 초기화</button></section><section class="settings-group"><div class="settings-group-title">Slack 봇 알림</div><input type="email" id="slackEmailInput" placeholder="you@datarize.ai" autocomplete="email" style="width:100%;padding:10px;border:1px solid var(--border);border-radius:var(--radius-sm);background:var(--bg-input);color:var(--text-primary);" /><div style="display:flex;gap:8px;margin-top:8px;"><button type="button" id="testSlackBtn" class="btn btn-secondary" style="flex:1;">🔗 테스트</button><button type="button" id="saveSlackBtn" class="btn btn-primary" style="flex:1;">💾 저장</button></div><div id="slackAutoRow" style="display:none;align-items:center;justify-content:space-between;margin-top:12px;"><label for="slackAutoToggle" style="font-size:0.9rem;">답변 제출 시 자동 전송</label><input type="checkbox" id="slackAutoToggle" /></div><button type="button" id="clearSlackBtn" class="btn btn-secondary" style="display:none;margin-top:8px;width:100%;">🗑️ 연결 해제</button><div id="slackTestResult" style="margin-top:8px;font-size:0.85rem;"></div><details class="slack-help" style="margin-top:12px;"><summary style="cursor:pointer;font-size:0.9rem;">DM이 안 온다면?</summary><ol style="font-size:0.85rem;margin-top:8px;line-height:1.6;padding-left:20px;"><li>Slack 워크스페이스(@datarize.ai)에 가입되어 있는지 확인</li><li>입력한 이메일이 Slack 가입 이메일과 일치하는지 확인</li><li>새로고침 후 다시 시도</li><li>그래도 안 되면 HR/GA에 문의 (sukjoon.hwang@datarize.ai)</li></ol></details><details class="settings-help" style="margin-top:12px;"><summary style="cursor:pointer;font-size:0.9rem;">도움말</summary><ul style="font-size:0.85rem;margin-top:8px;line-height:1.6;padding-left:20px;"><li>회사 슬랙(Datarize)에 등록된 이메일을 입력하세요.</li><li>워크스페이스 admin이 봇을 미리 설치한 상태여야 합니다 (HR/IT 문의).</li><li>본인 DM으로 답변과 인사이트가 전송됩니다.</li></ul></details></section><section class="settings-group"><div class="settings-group-title">데이터 삭제</div><p class="settings-help" style="font-size:0.85rem;color:var(--text-secondary);margin-bottom:12px;">archive 답변을 모두 삭제해요. 삭제 후 5초 안에 되돌릴 수 있어요.</p><button id="deleteAllAnswersBtn" type="button" class="btn btn-secondary btn-block" disabled>전체 답변 초기화</button></section></div>`;
+  container.innerHTML = `<div class="settings-section" id="settingsTab"><h2 style="margin-bottom:16px;">⚙️ 설정</h2><section class="settings-group"><div class="settings-group-title">관심 분야</div><div id="currentInterests" class="settings-interests-display"></div><button type="button" id="editInterestsBtn" class="btn btn-outline btn-block" style="margin-top:8px;">수정</button></section><section class="settings-group"><div class="settings-group-title">Gemini API 키</div><input type="password" id="apiKeyInput" autocomplete="off" placeholder="AI...로 시작하는 키" style="width:100%;padding:10px;border:1px solid var(--border);border-radius:var(--radius-sm);background:var(--bg-input);color:var(--text-primary);" /><button type="button" id="saveApiKeyBtn" class="btn btn-primary btn-block mt-16" style="margin-top:8px;">저장</button><div id="apiKeyStatus" style="margin-top:8px;font-size:0.85rem;"></div><details style="margin-top:12px;"><summary style="cursor:pointer;font-size:0.9rem;">API 키 발급 받기</summary><ol style="font-size:0.85rem;margin-top:8px;line-height:1.6;padding-left:20px;"><li><a href="https://aistudio.google.com/app/apikey" target="_blank" rel="noopener noreferrer">Google AI Studio</a> 접속 (Google 계정 로그인 필요)</li><li>"Create API Key" 클릭 → 새 프로젝트 또는 기존 프로젝트 선택</li><li>생성된 키 ("AI..."로 시작) 복사해 위 입력란에 붙여넣기</li><li>"저장" 버튼 클릭</li></ol><p style="font-size:0.8rem;color:var(--text-secondary);margin-top:8px;">※ API 키는 이 브라우저에만 저장됩니다. Gemini 무료 한도 (분당 60회 요청) 내에서 사용 가능합니다.</p></details></section><section class="settings-group" data-testid="translate-settings"><div class="settings-group-title">Gemini 번역</div><label for="translateCap" style="display:block;font-size:0.9rem;margin-bottom:6px;">일일 번역 한도: <span id="translateCapValue" aria-live="polite" style="font-weight:600;"></span></label><input type="range" id="translateCap" min="30" max="500" step="10" style="width:100%;" /><div style="font-size:0.85rem;color:var(--text-secondary);margin-top:8px;">오늘 사용량: <span id="translateUsageDisplay" aria-live="polite">0</span>건</div><button type="button" id="clearTranslationCacheBtn" class="btn btn-secondary btn-block" style="margin-top:12px;">번역 캐시 초기화</button></section><section class="settings-group"><div class="settings-group-title">Slack 봇 알림</div><input type="email" id="slackEmailInput" placeholder="you@datarize.ai" autocomplete="email" style="width:100%;padding:10px;border:1px solid var(--border);border-radius:var(--radius-sm);background:var(--bg-input);color:var(--text-primary);" /><div style="display:flex;gap:8px;margin-top:8px;"><button type="button" id="testSlackBtn" class="btn btn-secondary" style="flex:1;">🔗 테스트</button><button type="button" id="saveSlackBtn" class="btn btn-primary" style="flex:1;">💾 저장</button></div><div id="slackAutoRow" style="display:none;align-items:center;justify-content:space-between;margin-top:12px;"><label for="slackAutoToggle" style="font-size:0.9rem;">답변 제출 시 자동 전송</label><input type="checkbox" id="slackAutoToggle" /></div><button type="button" id="clearSlackBtn" class="btn btn-secondary" style="display:none;margin-top:8px;width:100%;">🗑️ 연결 해제</button><div id="slackTestResult" style="margin-top:8px;font-size:0.85rem;"></div><details class="slack-help" style="margin-top:12px;"><summary style="cursor:pointer;font-size:0.9rem;">DM이 안 온다면?</summary><ol style="font-size:0.85rem;margin-top:8px;line-height:1.6;padding-left:20px;"><li>Slack 워크스페이스(@datarize.ai)에 가입되어 있는지 확인</li><li>입력한 이메일이 Slack 가입 이메일과 일치하는지 확인</li><li>새로고침 후 다시 시도</li><li>그래도 안 되면 HR/GA에 문의 (sukjoon.hwang@datarize.ai)</li></ol></details><details class="settings-help" style="margin-top:12px;"><summary style="cursor:pointer;font-size:0.9rem;">도움말</summary><ul style="font-size:0.85rem;margin-top:8px;line-height:1.6;padding-left:20px;"><li>회사 슬랙(Datarize)에 등록된 이메일을 입력하세요.</li><li>워크스페이스 admin이 봇을 미리 설치한 상태여야 합니다 (HR/IT 문의).</li><li>본인 DM으로 답변과 인사이트가 전송됩니다.</li></ul></details></section><section class="settings-group"><div class="settings-group-title">❄️ Streak Freeze</div><div id="freezeStatus" class="settings-freeze-status" style="font-size:0.95rem;"></div><div id="freezeHistory" class="settings-freeze-history" style="margin-top:8px;font-size:0.85rem;color:var(--text-secondary);line-height:1.7;"></div><details style="margin-top:12px;"><summary style="cursor:pointer;font-size:0.9rem;">Streak Freeze란?</summary><p style="font-size:0.85rem;color:var(--text-secondary);margin-top:8px;line-height:1.6;">결석한 날 연속 기록을 대신 지켜주는 보호막이에요. 7일마다 1개씩 자동 충전되고(최대 2개), 빠진 날 자동으로 사용돼요.</p></details></section><section class="settings-group"><div class="settings-group-title">데이터 삭제</div><p class="settings-help" style="font-size:0.85rem;color:var(--text-secondary);margin-bottom:12px;">archive 답변을 모두 삭제해요. 삭제 후 5초 안에 되돌릴 수 있어요.</p><button id="deleteAllAnswersBtn" type="button" class="btn btn-secondary btn-block" disabled>전체 답변 초기화</button></section></div>`;
   // Track this container before bindHandlers so it can be used via currentSettingsContainer.
   currentSettingsContainer = container;
   bindHandlers();
   bindSlackHandlers(container);
   bindInterestsHandlers(container);
   wireTranslateSection(container);
+  wireFreezeSection(container);
+}
+
+// v3.48: Streak Freeze 현황 read-render (보유 + 다음 충전 + 활동 내역).
+function wireFreezeSection(container: HTMLElement): void {
+  const statusEl = container.querySelector<HTMLDivElement>('#freezeStatus');
+  const histEl = container.querySelector<HTMLDivElement>('#freezeHistory');
+  if (!statusEl || !histEl) return;
+  const u = loadUserData();
+  if (!u) { statusEl.textContent = '보유 정보를 불러올 수 없어요.'; return; }
+
+  const count = u.streakFreeze.count;
+  const eta = getNextFreezeEtaDays(u);
+  const etaText = eta === null
+    ? '가득 참 (2/2)'
+    : eta === 0
+      ? '곧 충전돼요 (답변 시)'
+      : `다음 ❄️까지 약 ${eta}일 (답변 시 충전)`;
+  statusEl.textContent = `보유: ❄️ ${count} / 2 · ${etaText}`;
+
+  const hist = getFreezeHistory(10);
+  if (hist.length === 0) {
+    histEl.textContent = '아직 내역이 없어요.';
+    return;
+  }
+  const rows = hist.map((h) => {
+    const md = `${Number(h.date.slice(5, 7))}/${Number(h.date.slice(8, 10))}`;
+    // 사전 review P1-4: consumeFreezeForGap은 일부만 cover(preserved=false)일 수 있어 "연속 유지" 단정 금지.
+    const label = h.kind === 'earned' ? `❄️ +${h.amount} 충전` : `❄️ -${h.amount} 사용`;
+    return `<div>${escapeHtml(md)} · ${escapeHtml(label)}</div>`;
+  }).join('');
+  // eslint-disable-next-line no-restricted-syntax -- md/label은 숫자+정적 문자열, escapeHtml 적용
+  histEl.innerHTML = rows;
 }
 
 function wireTranslateSection(container: HTMLElement): void {
