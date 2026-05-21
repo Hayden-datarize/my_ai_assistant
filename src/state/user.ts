@@ -383,11 +383,14 @@ export function recordDailyAnswer(xpDelta: number): void {
   // v3.21 T5 (Option B): consume 결과 캡처 → saveUser 성공 후 dispatch (false-fire 방지).
   let freezeConsumed = 0;
   let freezePreserved = true;
+  let freezeEarned = 0;  // v3.48: regen grant 캡처 (history earned entry용)
 
   if (u.lastActiveDate !== today) {
     // v3.21 T3: Duolingo 정석 — regen 먼저 → consume → streak update.
     // 1주+ 결석한 사용자가 진입 시 regen 안 하면 freeze cover 못 함 (사전 review R2).
+    const freezeBefore = u.streakFreeze.count;
     regenerateFreeze(u, now);
+    freezeEarned = u.streakFreeze.count - freezeBefore;  // v3.48
 
     if (!u.lastActiveDate) {
       // 신규 user (lastActiveDate empty) → streak 1로 시작 (R10).
@@ -413,6 +416,12 @@ export function recordDailyAnswer(xpDelta: number): void {
   // optional type이라 push 전 init 가드 (migrate가 default [] 보장하므로 production user는 항상 array, fixture 호환용).
   if (!Array.isArray(u.xpHistory)) u.xpHistory = [];
   u.xpHistory.push({ date: today, xpEarned: xpDelta });
+
+  // v3.48: freeze 활동 내역 — 충전/사용 통합 (같은 atomic write에 포함).
+  // earned/consumed 모두 `lastActiveDate !== today` 블록에서만 0 초과 → 같은 날 재답변 시 push 없음.
+  if (!Array.isArray(u.freezeHistory)) u.freezeHistory = [];
+  if (freezeEarned > 0) u.freezeHistory.push({ date: today, kind: 'earned', amount: freezeEarned });
+  if (freezeConsumed > 0) u.freezeHistory.push({ date: today, kind: 'consumed', amount: freezeConsumed });
 
   // mission progress tick (xp 보너스 포함) — saveUser 이전에 in-memory 변경
   tickMissionProgress(u, 'answer', now);
@@ -483,4 +492,18 @@ export function getXpHistory(days: number = 30): XpHistoryView[] {
     all.push({ date, cumulativeXp: cumulative });
   }
   return all.slice(-days);
+}
+
+/** v3.48: Streak Freeze 활동 내역 view — 최근 entry desc, limit slice. */
+export interface FreezeHistoryView {
+  date: string;
+  kind: 'earned' | 'consumed';
+  amount: number;
+}
+
+export function getFreezeHistory(limit = 10): FreezeHistoryView[] {
+  const user = getCachedUser();
+  const raw = user?.freezeHistory ?? [];
+  if (raw.length === 0) return [];
+  return raw.slice(-limit).reverse().map((h) => ({ date: h.date, kind: h.kind, amount: h.amount }));
 }
