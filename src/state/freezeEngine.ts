@@ -70,3 +70,18 @@ export function consumeFreezeForGap(
   u.streakFreeze.count -= consumed;
   return { consumed, preserved: consumed === gap };
 }
+
+/**
+ * v3.48: 다음 ❄️ 충전까지 남은 일수 (예상 — regen은 답변 시점 실행).
+ * count >= cap이면 null (가득 참). lastEarnedAt 손상 또는 이미 경과 시 0.
+ */
+export function getNextFreezeEtaDays(
+  u: { streakFreeze: { count: number; lastEarnedAt: string } },
+  now: Date = new Date(),
+): number | null {
+  if (u.streakFreeze.count >= FREEZE_CAP) return null;
+  const lastMs = Date.parse(`${u.streakFreeze.lastEarnedAt}T00:00:00+09:00`);
+  if (!Number.isFinite(lastMs)) return 0;
+  const remainingMs = lastMs + SEVEN_DAYS_MS - now.getTime();
+  return Math.max(0, Math.ceil(remainingMs / 86400_000));
+}

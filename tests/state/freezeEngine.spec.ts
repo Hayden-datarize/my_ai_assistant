@@ -1,5 +1,5 @@
 import { describe, it, expect } from 'vitest';
-import { regenerateFreeze, consumeFreezeForGap } from '../../src/state/freezeEngine';
+import { regenerateFreeze, consumeFreezeForGap, getNextFreezeEtaDays } from '../../src/state/freezeEngine';
 import type { User } from '../../src/state/user';
 
 const baseUser = (overrides: Partial<User['streakFreeze']>): User => ({
@@ -93,5 +93,29 @@ describe('consumeFreezeForGap', () => {
     const r = consumeFreezeForGap(u, 3);
     expect(r).toEqual({ consumed: 0, preserved: false });
     expect(u.streakFreeze.count).toBe(0);
+  });
+});
+
+describe('getNextFreezeEtaDays (v3.48)', () => {
+  const at = (iso: string) => new Date(iso);
+
+  it('count=2 (cap) → null (가득 참)', () => {
+    const u = { streakFreeze: { count: 2, lastEarnedAt: '2026-05-20' } };
+    expect(getNextFreezeEtaDays(u, at('2026-05-22T00:00:00+09:00'))).toBeNull();
+  });
+
+  it('count<2, 7일 중 2일 경과 → 약 5일', () => {
+    const u = { streakFreeze: { count: 1, lastEarnedAt: '2026-05-20' } };
+    expect(getNextFreezeEtaDays(u, at('2026-05-22T00:00:00+09:00'))).toBe(5);
+  });
+
+  it('count<2, 이미 7일 경과(remaining<0) → 0', () => {
+    const u = { streakFreeze: { count: 0, lastEarnedAt: '2026-05-01' } };
+    expect(getNextFreezeEtaDays(u, at('2026-05-22T00:00:00+09:00'))).toBe(0);
+  });
+
+  it('lastEarnedAt 손상 → 0', () => {
+    const u = { streakFreeze: { count: 0, lastEarnedAt: 'not-a-date' } };
+    expect(getNextFreezeEtaDays(u, at('2026-05-22T00:00:00+09:00'))).toBe(0);
   });
 });
