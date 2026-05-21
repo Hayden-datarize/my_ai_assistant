@@ -234,7 +234,7 @@ function bindSlackHandlers(container: HTMLElement): void {
           question: '샘플 — Daily Growth Slack 연결 테스트',
           answer: '본인 DM에 봇 메시지가 도착하면 연결 성공입니다.',
         });
-        setResult('✅ 전송 성공 — Slack DM을 확인하세요.', 'ok');
+        setResult('✅ 전송 요청 보냄 — DM이 안 오면 도움말 참조.', 'ok');
       } catch (e) {
         const msg = e instanceof Error ? e.message : String(e);
         setResult(`❌ 전송 실패 — ${msg}`, 'err');
