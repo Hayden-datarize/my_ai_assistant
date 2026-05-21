@@ -217,7 +217,7 @@ describe('v3.17 T6 — scroll-margin CSS UX (carry-B)', () => {
   // v3.40 T6 신규: archive/insight/plant/mission/garden 카드 selector 회귀 가드
   it('v3.40 T6: archive/insight/plant/mission/garden 카드 selector 포함', () => {
     expect(baseCss).toMatch(/\.archive-card,\s*\.archive-insight-card/);
-    expect(baseCss).toMatch(/\.plant-action-chip,\s*\.insight-archive-nav-chip/);
+    expect(baseCss).toMatch(/\.plant-action-chip,\s*\.plant-action-home-chip,\s*\.insight-archive-nav-chip/);
     expect(baseCss).toMatch(/\.mission-card,\s*\.garden-card/);
   });
 });

@@ -36,10 +36,19 @@
   border-radius: var(--radius-sm);
 }
 
+/* v3.47: 다음 단계 nudge — primary 톤 격려 메시지 */
+.plant-detail-nudge {
+  color: var(--primary);
+  font-weight: 600;
+  font-size: var(--font-size-sm);
+  margin-top: var(--space-1, 4px);
+}
+
 /* v3.36 T2: plant detail modal action chip (이 분야로 archive 탐색)
  * v3.38 T7c: insight detail modal nav chip도 동일 토큰 재사용 (DRY) */
 .plant-action-chip,
-.insight-archive-nav-chip {
+.insight-archive-nav-chip,
+.plant-action-home-chip {
   margin-top: var(--space-4);
   padding: var(--space-2) var(--space-4);
   background: var(--primary-ultra-light);
@@ -55,13 +64,15 @@
 }
 
 .plant-action-chip:hover,
-.insight-archive-nav-chip:hover {
+.insight-archive-nav-chip:hover,
+.plant-action-home-chip:hover {
   background: var(--primary);
   color: white;
 }
 
 .plant-action-chip:focus-visible,
-.insight-archive-nav-chip:focus-visible {
+.insight-archive-nav-chip:focus-visible,
+.plant-action-home-chip:focus-visible {
   box-shadow: var(--focus-ring);
   outline: none;
 }

@@ -40,7 +40,7 @@ h3 { font-size: 1.1rem; }
    (production .click() 전환은 v3.41 F13 carry — nav z-index/pointer-events 진단 필요). */
 :where(input, textarea, [data-scroll-target],
        .archive-card, .archive-insight-card,
-       .plant-action-chip, .insight-archive-nav-chip,
+       .plant-action-chip, .plant-action-home-chip, .insight-archive-nav-chip,
        .mission-card, .garden-card) {
   scroll-margin-top: calc(var(--nav-height) + 16px);
   scroll-margin-bottom: var(--content-bottom-pad);
