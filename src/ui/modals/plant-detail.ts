@@ -1,4 +1,5 @@
-import { openModal } from './shared';
+import { openModal, closeModal } from './shared';
+import { switchTab } from '../nav';
 import { loadUserData } from '../../state/user';
 import { INTEREST_LABEL } from '../components/garden-grid';
 import { getPlantIcon, STAGE_LABEL, STAGE_THRESHOLDS, TROPHY_MARK } from '../../state/plantCatalog';
@@ -84,6 +85,12 @@ function renderBody(_u: User, interestId: string, plant: PlantState): HTMLElemen
   // v3.36 T1: action chip (DOM element + onclick listener)
   root.append(makeActionChip(interestId));
 
+  // v3.47: 재참여 CTA — 홈으로 이동(전체 피드, 스크랩이 식물 활동 경로).
+  // 표시 조건: 시들었거나 아직 만개 전(stage<5). 만개+건강일 때만 숨김.
+  if (wilting || plant.stage < 5) {
+    root.append(makeHomeChip());
+  }
+
   return root;
 }
 
@@ -96,6 +103,24 @@ function makeActionChip(interestId: string): HTMLButtonElement {
   btn.addEventListener('click', () => {
     void navigateToInterestArchive(interestId).catch((err) => {
       console.warn('[plant-action] navigate failed', err);
+    });
+  });
+  return btn;
+}
+
+// v3.47: 홈 재참여 버튼. base .plant-action-chip 클래스 미사용 — 기존 smoke의
+// .plant-action-chip 단일 셀렉터 strict-mode 2-match 회피 (사전 review P0-1).
+function makeHomeChip(): HTMLButtonElement {
+  const btn = document.createElement('button');
+  btn.type = 'button';
+  btn.className = 'plant-action-home-chip';
+  btn.textContent = '🌱 홈에서 오늘 브리핑 보기';
+  btn.setAttribute('aria-label', '홈으로 이동해 오늘 브리핑 보기');
+  btn.addEventListener('click', () => {
+    closeModal();
+    // 사전 review P1-3: archive chip과 parity — home chunk load reject 시 unhandled rejection 방지.
+    void switchTab('home').catch((err) => {
+      console.warn('[plant-action] home nav failed', err);
     });
   });
   return btn;

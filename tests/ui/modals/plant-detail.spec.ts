@@ -401,3 +401,45 @@ describe('plant-detail nudge (v3.47)', () => {
     expect(document.querySelector('.plant-detail-nudge')!.textContent).toContain('딱 1번');
   });
 });
+
+describe('plant-detail home chip (v3.47)', () => {
+  beforeEach(() => {
+    document.body.replaceChildren();
+    localStorage.clear();
+  });
+
+  const seed = (plant: PlantState) =>
+    saveUser(mkUser({
+      interests: ['leadership'],
+      gardenBackfilled: true,
+      plantStateByInterest: { leadership: plant } satisfies Record<string, PlantState>,
+    }));
+
+  it('stage 2 (건강) → 홈 버튼 존재', () => {
+    seed({ stage: 2, cumulativeActivity: 10, lastEngagedAt: new Date().toISOString() });
+    openPlantDetailModal('leadership');
+    const btn = document.querySelector('.plant-action-home-chip');
+    expect(btn).toBeTruthy();
+    expect(btn!.getAttribute('aria-label')).toBe('홈으로 이동해 오늘 브리핑 보기');
+  });
+
+  it('stage 5 + 건강 → 홈 버튼 부재', () => {
+    seed({ stage: 5, cumulativeActivity: 200, lastEngagedAt: new Date().toISOString() });
+    openPlantDetailModal('leadership');
+    expect(document.querySelector('.plant-action-home-chip')).toBeFalsy();
+  });
+
+  it('stage 5 + 시듦(8일 전) → 홈 버튼 존재', () => {
+    const eightDaysAgo = new Date(Date.now() - 8 * 24 * 60 * 60 * 1000).toISOString();
+    seed({ stage: 5, cumulativeActivity: 200, lastEngagedAt: eightDaysAgo });
+    openPlantDetailModal('leadership');
+    expect(document.querySelector('.plant-action-home-chip')).toBeTruthy();
+  });
+
+  it('stage 1 + 시듦 → 홈 버튼 존재', () => {
+    const eightDaysAgo = new Date(Date.now() - 8 * 24 * 60 * 60 * 1000).toISOString();
+    seed({ stage: 1, cumulativeActivity: 2, lastEngagedAt: eightDaysAgo });
+    openPlantDetailModal('leadership');
+    expect(document.querySelector('.plant-action-home-chip')).toBeTruthy();
+  });
+});
