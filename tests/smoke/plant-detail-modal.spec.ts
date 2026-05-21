@@ -99,6 +99,41 @@ test('v3.36 + v3.39 T8 review: plant action chip → archive 탭 + #archiveSearc
   await expect(page.locator('#archiveSearch')).toHaveValue('');
 });
 
+// v3.47: 시든 식물 재참여 CTA → 홈 탭 이동
+test('v3.47: 시든 식물 홈 버튼 → 홈 탭 활성', async ({ page }) => {
+  await primeOnboardedUser(page, { interests: ['leadership'], schemaVersion: 4 });
+  await page.addInitScript(() => {
+    const userRaw = localStorage.getItem('user');
+    if (!userRaw) return;
+    const u = JSON.parse(userRaw);
+    const eightDaysAgo = new Date(Date.now() - 8 * 24 * 60 * 60 * 1000).toISOString();
+    u.plantStateByInterest = {
+      leadership: { stage: 2, cumulativeActivity: 10, lastEngagedAt: eightDaysAgo },
+    };
+    u.gardenBackfilled = true;
+    u.gardenIntroduced = true;
+    localStorage.setItem('user', JSON.stringify(u));
+    sessionStorage.setItem('dg.briefings.auto-refresh-tried', '1');
+  });
+
+  await page.goto('/');
+  await page.locator('#bottomNav button[data-tab-id="stats"]').click();
+  const card = page.locator('.garden-card[data-interest-id="leadership"]');
+  await expect(card).toBeVisible();
+  await card.click();
+
+  const modal = page.locator('.plant-detail-modal');
+  await expect(modal).toBeVisible();
+  // 시든 식물 → 홈 버튼 보임
+  const homeBtn = page.locator('.plant-action-home-chip');
+  await expect(homeBtn).toBeVisible();
+
+  await homeBtn.click();
+  // modal 닫힘 + 홈 탭 활성
+  await expect(modal).not.toBeVisible();
+  await expect(page.locator('#bottomNav button[data-tab-id="home"]')).toHaveClass(/active/);
+});
+
 // v3.37 T3: stale filter setup → plant action → entity/filter all reset + #archiveSearch focus 회귀 가드.
 // (v3.36 P2-1 + P2-2 carry-forward 청산. T2 reviewer I-2 흡수 — switchTab race + tab-changed listener
 //  race end-to-end 검증. Production switchTab은 pendingSwitchToken race guard + dg:nav:tab-changed
