@@ -11,7 +11,8 @@
     "test:watch": "vitest",
     "test:smoke": "playwright test",
     "lint": "eslint \"src/**/*.ts\" \"tests/**/*.ts\" --no-error-on-unmatched-pattern",
-    "knip": "knip --no-progress"
+    "knip": "knip --no-progress",
+    "verify:referrer": "node scripts/verify-referrer.mjs"
   },
   "devDependencies": {
     "@eslint/js": "^8.57.1",
@@ -19,6 +20,7 @@
     "@types/node": "^20.11.0",
     "@typescript-eslint/eslint-plugin": "^7.0.0",
     "@typescript-eslint/parser": "^7.0.0",
+    "dotenv": "^17.4.2",
     "eslint": "^8.57.0",
     "jsdom": "^24.0.0",
     "knip": "^6.14.1",
