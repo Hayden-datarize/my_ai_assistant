@@ -57,6 +57,15 @@ describe('sendAnswerDm Phase B contract — App Check verify + 정보 누출 차
     expect(res.body).toEqual({ error: 'app_check_required' });
   });
 
+  it('req.body null → 400 invalid_body (App Check 통과 후 가드)', async () => {
+    const req = makeReq(baseBody);
+    (req as { body: unknown }).body = null;
+    const res = makeRes();
+    await _handleSendAnswerDm(req, res, mockTokenGetter);
+    expect(res.statusCode).toBe(400);
+    expect(res.body).toEqual({ error: 'invalid_body' });
+  });
+
   it('App Check token invalid → 401 app_check_invalid', async () => {
     mockVerifyToken.mockRejectedValueOnce(new Error('bad token'));
     const req = makeReq(baseBody);

@@ -52,7 +52,14 @@ export async function _handleSendAnswerDm(
     res.status(401).json({ error: 'app_check_invalid' });
     return;
   }
-  const body = req.body as Partial<AnswerDmRequest>;
+  // v3.46 P2-A: App Check 통과 후 req.body가 null/undefined/non-object이면
+  // 아래 body.email 접근 시 TypeError → onRequest 미처리 500. 400으로 명시 차단.
+  const rawBody = req.body;
+  if (rawBody === null || typeof rawBody !== 'object') {
+    res.status(400).json({ error: 'invalid_body' });
+    return;
+  }
+  const body = rawBody as Partial<AnswerDmRequest>;
   if (typeof body.email !== 'string' || !body.email.endsWith(ALLOWED_DOMAIN)) {
     res.status(400).json({ error: 'invalid_email' });
     return;

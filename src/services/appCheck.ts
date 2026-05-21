@@ -1,11 +1,14 @@
 /**
  * v3.41 T1 (Codex P0 F1): Firebase App Check — Slack DM relay 공개 abuse 차단.
  *
- * Phase A (현재): site key 등록 + frontend `getAppCheckToken()` deploy.
- *                 Console enforce OFF / Monitor mode → 사용자 충격 없이 token 발급률
- *                 24h monitor.
- * Phase B (T8 retro 후 별도 deploy): backend `enforceAppCheck: true` + Console
- *                 Enforce ON. controller가 사용자 명시 후 진행.
+ * 2-phase rollout 완료:
+ * - Phase A (v3.41): site key 등록 + frontend `getAppCheckToken()` deploy.
+ *                    Console Monitor mode → token 발급률 24h monitor (≥99% 확인).
+ * - Phase B (v3.45): backend가 `firebase-admin/app-check` `verifyToken()` 수동
+ *                    미들웨어로 X-Firebase-AppCheck 헤더 검증 (functions/src/sendAnswerDm.ts).
+ *                    onRequest는 HttpsOptions `enforceAppCheck` 옵션 미지원이라 코드
+ *                    옵션이 아닌 수동 verify가 primary. Console "Enforce" 토글은 미래
+ *                    Firestore/Storage 등 신규 endpoint 대비 deep defense.
  *
  * 정책:
  * - SITE_KEY 미설정 (env 누락) 시 silent fallback (token null) — 개발 환경 호환
