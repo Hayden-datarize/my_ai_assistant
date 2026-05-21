@@ -1,4 +1,4 @@
-import { describe, it, expect, beforeEach, vi } from 'vitest';
+import { describe, it, expect, beforeEach, afterEach, vi } from 'vitest';
 import { openPlantDetailModal } from '../../../src/ui/modals/plant-detail';
 import { saveUser } from '../../../src/state/user';
 import { closeModal } from '../../../src/ui/modals/shared';
@@ -441,5 +441,46 @@ describe('plant-detail home chip (v3.47)', () => {
     seed({ stage: 1, cumulativeActivity: 2, lastEngagedAt: eightDaysAgo });
     openPlantDetailModal('leadership');
     expect(document.querySelector('.plant-action-home-chip')).toBeTruthy();
+  });
+});
+
+describe('plant-detail home chip click (v3.47)', () => {
+  beforeEach(() => {
+    document.body.replaceChildren();
+    localStorage.clear();
+    // 사전 review P0-2: 이전 describe가 등록한 shared/archive/interestKeywords doMock 해제 → 실제 모듈 사용.
+    // vi.resetModules()는 module 캐시만 비우고 등록된 doMock은 해제하지 않음.
+    vi.doUnmock('../../../src/ui/modals/shared');
+    vi.doUnmock('../../../src/ui/handlers/archive');
+    vi.doUnmock('../../../src/utils/interestKeywords');
+    vi.resetModules();
+  });
+
+  afterEach(() => {
+    vi.doUnmock('../../../src/ui/nav');
+    vi.resetModules();
+  });
+
+  it('홈 버튼 클릭 → closeModal 먼저, 그 다음 switchTab("home")', async () => {
+    // 사전 review P1-2: spy 호출 시점에 modal이 이미 닫혀 있어야 순서 보장.
+    const switchTabSpy = vi.fn(async () => {
+      expect(document.querySelector('.dg-modal')).toBeFalsy();
+    });
+    vi.doMock('../../../src/ui/nav', () => ({ switchTab: switchTabSpy }));
+    // mock(nav) 반영 + 실제(shared) — fresh 모듈을 동적 import해 static switchTab가 spy를 집어든다.
+    const { openPlantDetailModal: openFresh } = await import('../../../src/ui/modals/plant-detail');
+
+    saveUser(mkUser({
+      interests: ['leadership'],
+      gardenBackfilled: true,
+      plantStateByInterest: { leadership: { stage: 2, cumulativeActivity: 10 } } satisfies Record<string, PlantState>,
+    }));
+    openFresh('leadership');
+    expect(document.querySelector('.dg-modal')).toBeTruthy();  // P0-2 회귀 가드 — 실제 openModal로 렌더 확인
+    const btn = document.querySelector<HTMLButtonElement>('.plant-action-home-chip')!;
+    btn.click();
+
+    expect(document.querySelector('.dg-modal')).toBeFalsy();  // closeModal 동작
+    expect(switchTabSpy).toHaveBeenCalledWith('home');
   });
 });
