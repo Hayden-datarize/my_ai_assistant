@@ -46,4 +46,10 @@ describe('v10 freezeHistory validation (v3.48)', () => {
     seed({ ...baseV10, freezeHistory: 'x' });
     expect(getCachedUser()).toBeNull();
   });
+
+  // 최종 review P1: 분수 streakFreeze.count → corrupt (self-corruption 체인 차단)
+  it('streakFreeze.count 분수 → corrupt(null)', () => {
+    seed({ ...baseV10, streakFreeze: { count: 1.5, lastEarnedAt: '2026-05-20' } });
+    expect(getCachedUser()).toBeNull();
+  });
 });

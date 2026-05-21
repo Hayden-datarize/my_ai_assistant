@@ -284,7 +284,8 @@ function isValidUserShape(u: unknown): u is User {
   if (sv >= 5 && sv <= 10) {
     const sf = r.streakFreeze as { count?: unknown; lastEarnedAt?: unknown } | undefined | null;
     if (!sf || typeof sf !== 'object') return false;
-    if (typeof sf.count !== 'number' || !Number.isFinite(sf.count) || sf.count < 0 || sf.count > 2) return false;
+    // v3.48 최종 review P1: count는 정수 require (분수 count → freezeHistory.amount 분수 push → 다음 hydrate self-corrupt 차단).
+    if (typeof sf.count !== 'number' || !Number.isInteger(sf.count) || sf.count < 0 || sf.count > 2) return false;
     if (typeof sf.lastEarnedAt !== 'string' || sf.lastEarnedAt.length === 0) return false;
   }
 
