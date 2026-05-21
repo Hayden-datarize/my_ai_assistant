@@ -462,9 +462,12 @@ describe('plant-detail home chip click (v3.47)', () => {
   });
 
   it('홈 버튼 클릭 → closeModal 먼저, 그 다음 switchTab("home")', async () => {
-    // 사전 review P1-2: spy 호출 시점에 modal이 이미 닫혀 있어야 순서 보장.
-    const switchTabSpy = vi.fn(async () => {
-      expect(document.querySelector('.dg-modal')).toBeFalsy();
+    // 사전 review P1-2 + 최종 review P2: spy 내부 assert는 rejected promise가 production .catch()에
+    // 삼켜져 false-confidence. 대신 호출 시점 DOM 상태를 동기 캡처 → 클릭 후 외부에서 assert (견고).
+    let modalPresentAtSwitch: boolean | null = null;
+    const switchTabSpy = vi.fn(() => {
+      modalPresentAtSwitch = document.querySelector('.dg-modal') !== null;
+      return Promise.resolve();
     });
     vi.doMock('../../../src/ui/nav', () => ({ switchTab: switchTabSpy }));
     // mock(nav) 반영 + 실제(shared) — fresh 모듈을 동적 import해 static switchTab가 spy를 집어든다.
@@ -480,7 +483,8 @@ describe('plant-detail home chip click (v3.47)', () => {
     const btn = document.querySelector<HTMLButtonElement>('.plant-action-home-chip')!;
     btn.click();
 
-    expect(document.querySelector('.dg-modal')).toBeFalsy();  // closeModal 동작
     expect(switchTabSpy).toHaveBeenCalledWith('home');
+    expect(modalPresentAtSwitch).toBe(false);  // switchTab 호출 시점에 closeModal이 이미 실행됨 (순서 증명)
+    expect(document.querySelector('.dg-modal')).toBeFalsy();  // closeModal 동작
   });
 });
