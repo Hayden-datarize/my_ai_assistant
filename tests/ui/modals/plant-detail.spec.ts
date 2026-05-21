@@ -339,3 +339,65 @@ describe('navigateToInterestArchive sequence (v3.37 T2)', () => {
     expect(handleSearchSpy).not.toHaveBeenCalled();
   });
 });
+
+describe('plant-detail nudge (v3.47)', () => {
+  beforeEach(() => {
+    document.body.replaceChildren();
+    localStorage.clear();
+  });
+
+  it('stage 2, cum 10 → 일반 nudge "다음 단계까지 15번 더"', () => {
+    saveUser(mkUser({
+      interests: ['leadership'],
+      gardenBackfilled: true,
+      plantStateByInterest: { leadership: { stage: 2, cumulativeActivity: 10 } } satisfies Record<string, PlantState>,
+    }));
+    openPlantDetailModal('leadership');
+    const nudge = document.querySelector('.plant-detail-nudge');
+    expect(nudge).toBeTruthy();
+    expect(nudge!.textContent).toContain('15');
+    expect(nudge!.textContent).toContain('더 가꾸면');
+  });
+
+  it('stage 2, cum 23 → 임박 nudge "딱 2번!" (remaining ≤ 3)', () => {
+    saveUser(mkUser({
+      interests: ['leadership'],
+      gardenBackfilled: true,
+      plantStateByInterest: { leadership: { stage: 2, cumulativeActivity: 23 } } satisfies Record<string, PlantState>,
+    }));
+    openPlantDetailModal('leadership');
+    expect(document.querySelector('.plant-detail-nudge')!.textContent).toContain('딱 2번');
+  });
+
+  it('stage 5 (만개) → nudge 부재', () => {
+    saveUser(mkUser({
+      interests: ['leadership'],
+      gardenBackfilled: true,
+      plantStateByInterest: { leadership: { stage: 5, cumulativeActivity: 200 } } satisfies Record<string, PlantState>,
+    }));
+    openPlantDetailModal('leadership');
+    expect(document.querySelector('.plant-detail-nudge')).toBeFalsy();
+  });
+
+  // 사전 review P1-1: <=3 경계(inclusive) 고정
+  it('stage 2, cum 22 → remaining 3 경계 → "딱 3번!" (inclusive)', () => {
+    saveUser(mkUser({
+      interests: ['leadership'],
+      gardenBackfilled: true,
+      plantStateByInterest: { leadership: { stage: 2, cumulativeActivity: 22 } } satisfies Record<string, PlantState>,
+    }));
+    openPlantDetailModal('leadership');
+    expect(document.querySelector('.plant-detail-nudge')!.textContent).toContain('딱 3번');
+  });
+
+  // 사전 review P1-1: 손상 데이터 clamp (cum>=threshold인데 stage 미진화) → remaining 최소 1
+  it('stage 4, cum 160 (손상) → clamp remaining 1 → "딱 1번!"', () => {
+    saveUser(mkUser({
+      interests: ['leadership'],
+      gardenBackfilled: true,
+      plantStateByInterest: { leadership: { stage: 4, cumulativeActivity: 160 } } satisfies Record<string, PlantState>,
+    }));
+    openPlantDetailModal('leadership');
+    expect(document.querySelector('.plant-detail-nudge')!.textContent).toContain('딱 1번');
+  });
+});

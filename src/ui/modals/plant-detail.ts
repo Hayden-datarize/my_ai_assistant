@@ -46,6 +46,19 @@ function renderBody(_u: User, interestId: string, plant: PlantState): HTMLElemen
     ? `<div class="plant-detail-progress">만개 ${escapeHtml(TROPHY_MARK)}</div>`
     : `<div class="plant-detail-progress">${cum} / ${STAGE_THRESHOLDS[plant.stage - 1]}</div>`;
 
+  // v3.47: 다음 단계 nudge (stage 1~4). remaining clamp≥1 — 손상 데이터(cum≥threshold인데 미진화) 방어.
+  const nudgeHtml = plant.stage === 5
+    ? ''
+    : (() => {
+        // STAGE_THRESHOLDS는 4-tuple(idx 0~3) — stage 1~4만 이 branch라 항상 정의되나, noUncheckedIndexedAccess 대비 ?? 0.
+        const threshold = STAGE_THRESHOLDS[plant.stage - 1] ?? 0;
+        const remaining = Math.max(1, threshold - cum);
+        const copy = remaining <= 3
+          ? `🎯 다음 단계까지 딱 ${remaining}번!`
+          : `🎯 다음 단계까지 ${remaining}번 더 가꾸면 돼요`;
+        return `<div class="plant-detail-nudge">${copy}</div>`;
+      })();
+
   const unlockedHtml = plant.unlockedAt
     ? `<div class="plant-detail-unlocked">✨ ${escapeHtml(formatKoreanDate(plant.unlockedAt))} 도달</div>`
     : '';
@@ -66,7 +79,7 @@ function renderBody(_u: User, interestId: string, plant: PlantState): HTMLElemen
   const root = document.createElement('div');
   root.className = 'plant-detail-modal';
   // eslint-disable-next-line no-restricted-syntax -- bodyNode 내부 static HTML, 각 sub-string은 escapeHtml 적용 끝
-  root.innerHTML = stageHtml + progressHtml + unlockedHtml + engagedHtml + wiltingHtml + countsHtml;
+  root.innerHTML = stageHtml + progressHtml + nudgeHtml + unlockedHtml + engagedHtml + wiltingHtml + countsHtml;
 
   // v3.36 T1: action chip (DOM element + onclick listener)
   root.append(makeActionChip(interestId));
