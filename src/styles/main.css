@@ -227,6 +227,7 @@
   /* v3.13 T6 — Missions section */
   .missions-section { margin: var(--space-4) 0; }
 
+  /* === v3.49 missions grid === */
   .mission-group { margin-bottom: var(--space-3); }
   .mission-group__header {
     display: flex; align-items: center; gap: var(--space-2); width: 100%;
@@ -234,26 +235,70 @@
     cursor: pointer; font-size: var(--font-size-sm); font-weight: 600; text-align: left;
   }
   .mission-group__title { flex: 1; }
-  .mission-group__progress { color: var(--text-secondary); font-weight: 500; font-size: var(--font-size-xs); }
+  .mission-group__progress { color: var(--text-secondary); font-weight: 500; font-size: 0.75rem; }
   .mission-group__chevron { transition: transform var(--duration-fast) var(--ease-standard); }
   .mission-group__header[aria-expanded="false"] .mission-group__chevron { transform: rotate(-90deg); }
-  .mission-group__list { list-style: none; margin: var(--space-2) 0 0; padding: 0; display: flex; flex-direction: column; gap: 4px; }
 
+  /* grid 컨테이너 (list-form __list 폐기) */
+  .mission-group__grid {
+    display: grid;
+    grid-template-columns: 1fr;
+    gap: var(--space-2);
+    list-style: none;
+    margin: var(--space-2) 0 0;
+    padding: 0;
+  }
+  @media (min-width: 376px) {
+    .mission-group__grid { grid-template-columns: repeat(2, 1fr); }
+  }
+  @media (min-width: 768px) {
+    .mission-group__grid { grid-template-columns: repeat(auto-fill, minmax(180px, 1fr)); }
+  }
+
+  /* card — token 실측 매핑 (Codex P1-5) */
   .mission-card {
-    display: flex; align-items: center; gap: var(--space-2);
-    padding: var(--space-2) var(--space-3); background: var(--bg-card); border: 1px solid var(--border); border-radius: var(--radius-sm);
-    font-size: var(--font-size-xs);
+    display: grid; grid-template-rows: auto 1fr auto;
+    justify-items: center; gap: var(--space-1);
+    padding: var(--space-3);
+    border-radius: var(--radius-lg);
+    background: var(--bg-card);
+    box-shadow: 0 1px 3px rgba(0,0,0,0.08), 0 1px 2px rgba(0,0,0,0.04);
+    position: relative;
+    list-style: none;
   }
-  .mission-card__title { flex: 1; min-width: 0; }
-  .mission-card__progress {
-    display: inline-flex; align-items: center; gap: var(--space-1);
-    min-width: 72px; height: 6px; background: var(--border); border-radius: 3px; position: relative;
-  }
-  .mission-card__bar { display: block; height: 100%; background: var(--success); border-radius: 3px; }
-  .mission-card__count { font-size: var(--font-size-xs); color: var(--text-secondary); margin-left: var(--space-1); }
-  .mission-card__reward { font-size: var(--font-size-xs); color: var(--success); font-weight: 600; }
-  .mission-card__check { color: var(--success); font-weight: 700; }
+  .mission-card__title { font-size: 0.875rem; text-align: center; margin: 0; font-weight: 500; color: var(--text-primary); }
+  .mission-card__reward { font-size: 0.75rem; color: var(--success); font-weight: 600; }
+  .mission-card__check  { position: absolute; top: var(--space-1); right: var(--space-1); color: var(--success); font-weight: 700; }
   .mission-card--completed { opacity: 0.6; }
+
+  /* progress ring — Codex P1-5: --surface-2 → --border (dark theme 가시성), --color-primary-vivid → --primary */
+  .mission-card__ring { display: inline-flex; position: relative; align-items: center; justify-content: center; }
+  .mission-card__ring-track    { fill: none; stroke: var(--border); stroke-width: 4; }
+  .mission-card__ring-progress { fill: none; stroke: var(--primary); stroke-width: 4;
+                                 transform: rotate(-90deg); transform-origin: center;
+                                 transition: stroke-dashoffset var(--duration-base) var(--ease-out-soft); }
+  .mission-card__ring-text { position: absolute; inset: 0; display: grid; place-items: center;
+                             font-size: 0.75rem; font-weight: 600; color: var(--text-primary); }
+
+  /* sparkle */
+  .mission-card--sparkle { animation: mission-sparkle 0.4s var(--ease-out-soft) 1; }
+  .mission-card--sparkle::before,
+  .mission-card--sparkle::after {
+    content: "✨"; position: absolute; font-size: 12px;
+    animation: mission-sparkle-particle 0.4s var(--ease-out-soft) 1; pointer-events: none;
+  }
+  .mission-card--sparkle::before { top: var(--space-1); left: var(--space-1); }
+  .mission-card--sparkle::after  { bottom: var(--space-1); left: 50%; }
+  @keyframes mission-sparkle {
+    0%   { transform: scale(1); }
+    50%  { transform: scale(1.05); }
+    100% { transform: scale(1); }
+  }
+  @keyframes mission-sparkle-particle {
+    0%   { opacity: 0; transform: translateY(4px) scale(0.8); }
+    60%  { opacity: 1; transform: translateY(-4px) scale(1.1); }
+    100% { opacity: 0; transform: translateY(-8px) scale(0.9); }
+  }
 
   /* v3.13 T7 — mission-complete toast */
   .toast--mission { background: var(--success); color: white; }
@@ -271,6 +316,10 @@
 
   @media (prefers-reduced-motion: reduce) {
     .mission-group__chevron { transition: none; }
+    .mission-card--sparkle { animation: none; }
+    .mission-card--sparkle::before,
+    .mission-card--sparkle::after { animation: none; opacity: 0; }
+    .mission-card__ring-progress { transition: none; }
   }
 
   /* v3.23 T5: stats range modal (주간 리포트 / 성장 분석 공유) */
