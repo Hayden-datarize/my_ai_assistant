@@ -41,25 +41,33 @@ describe('renderMissionsSection', () => {
     expect(card.querySelector('.mission-card__check')?.textContent).toBe('✓');
   });
 
-  it('target ≥ 2 미션 → progressbar role + aria-valuenow/max', () => {
+  // v3.49: progressbar role → SVG ring으로 대체 (renderRing, role="img" + aria-label, circle.mission-card__ring-progress)
+  it('target ≥ 2 미션 → ring SVG aria-label에 진행 표시', () => {
     const active: MissionInstance[] = [
       { defId: 'monthly-answers-20', period: 'monthly', windowStart: 0, progress: 5, completed: false },
     ];
     const root = mount(active);
-    const pb = root.querySelector('[role="progressbar"]')!;
-    expect(pb.getAttribute('aria-valuenow')).toBe('5');
-    expect(pb.getAttribute('aria-valuemax')).toBe('20');
+    const ringWrap = root.querySelector('.mission-card__ring')!;
+    expect(ringWrap.getAttribute('role')).toBe('img');
+    expect(ringWrap.getAttribute('aria-label')).toBe('진행 5/20');
+    expect(root.querySelector('circle.mission-card__ring-progress')).not.toBeNull();
   });
 
-  it('target = 1 미션 → progressbar 생략', () => {
+  // v3.49: ring은 target=1에서도 노출 (게임화 정책 — 항상 progress 시각화), 단 ratio=0
+  it('target = 1 미션 → ring 노출 (ratio=0, full dashoffset)', () => {
     const active: MissionInstance[] = [
       { defId: 'daily-answer-1', period: 'daily', windowStart: 0, progress: 0, completed: false },
     ];
     const root = mount(active);
-    expect(root.querySelector('[role="progressbar"]')).toBeNull();
+    const ring = root.querySelector('circle.mission-card__ring-progress')!;
+    expect(ring).not.toBeNull();
+    // ratio=0 → dashoffset === circumference (2π·20 ≈ 125.66)
+    const off = Number(ring.getAttribute('stroke-dashoffset'));
+    expect(off).toBeGreaterThan(125);
+    expect(off).toBeLessThan(126);
   });
 
-  it('chevron toggle: aria-expanded=true → 클릭 → false + 리스트 hidden', () => {
+  it('chevron toggle: aria-expanded=true → 클릭 → false + 그리드 hidden', () => {
     const active: MissionInstance[] = [
       { defId: 'daily-answer-1', period: 'daily', windowStart: 0, progress: 0, completed: false },
     ];
@@ -68,7 +76,8 @@ describe('renderMissionsSection', () => {
     expect(btn.getAttribute('aria-expanded')).toBe('true');
     btn.click();
     expect(btn.getAttribute('aria-expanded')).toBe('false');
-    const list = root.querySelector('.mission-group__list') as HTMLElement;
+    // v3.49: __list → __grid (CSS grid responsive)
+    const list = root.querySelector('.mission-group__grid') as HTMLElement;
     expect(list.hidden).toBe(true);
   });
 
