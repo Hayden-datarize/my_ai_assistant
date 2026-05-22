@@ -50,8 +50,15 @@ export function renderGardenGrid(root: HTMLElement, user: User): void {
     // v3.24 T3: indent 압축 (production-safe).
     return `<button type="button" class="garden-card${wiltClass}${bloomClass}" data-interest-id="${escapeHtml(id)}" aria-label="${label} 정원 정보"><span class="garden-emoji">${icon}</span><span class="garden-name">${label}${trophy}</span><span class="garden-stage-label">${stageLabel}</span><span class="garden-cum-count">${cumCount}회</span></button>`;
   }).join('');
+  // v3.50 T4 M4 — max stage(5) 식물 N개에 따른 ambient halo intensity.
+  // bloomedCount는 정수 → escape 불요. CSS clamp(0.3, n*0.12, 0.7)로 강도 cap.
+  const bloomedCount = visible.reduce(
+    (n, id) => (user.plantStateByInterest[id]?.stage === 5 ? n + 1 : n),
+    0,
+  );
+  const hasBloomedClass = bloomedCount > 0 ? ' garden-grid--has-bloomed' : '';
   // eslint-disable-next-line no-restricted-syntax -- 위에서 escapeHtml 전처리 완료
-  root.innerHTML = `<div class="garden-grid">${cards}</div>`;
+  root.innerHTML = `<div class="garden-grid${hasBloomedClass}" style="--bloomed-count: ${bloomedCount};">${cards}</div>`;
 }
 
 /**
