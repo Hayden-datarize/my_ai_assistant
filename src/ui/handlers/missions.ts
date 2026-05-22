@@ -11,12 +11,14 @@
 
 import { on } from '../events';
 import { hydrateMissions } from './home';
+import { mountMissionsSparkleListener } from '../missions-sparkle';
 
 export function handleMissionsTabChanged(): void {
   hydrateMissions();
 }
 
 export function mountMissionsHandlers(): void {
+  mountMissionsSparkleListener();
   on('dg:nav:tab-changed', ({ tab }) => {
     if (tab === 'missions') {
       handleMissionsTabChanged();
