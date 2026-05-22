@@ -55,7 +55,7 @@ export async function maybeShowWelcomeGamification(): Promise<void> {
     .map(def => `<button type="button" class="badge badge--earned" aria-label="${escapeHtml(def.name)}"><span class="badge-icon">${escapeHtml(def.icon)}</span><span class="badge-name">${escapeHtml(def.name)}</span></button>`).join('');
 
   // v3.24 T3: indent 압축 (production-safe).
-  const bodyHtml = `<div class="welcome-game"><p>이미 달성한 <strong>${N}개</strong> 뱃지가 컬렉션에 추가되었어요!</p><div class="badges-grid">${miniGrid}</div><button type="button" class="btn btn-primary" id="goStatsBtn">stats 탭에서 보기</button></div>`;
+  const bodyHtml = `<div class="welcome-game modal-glass"><p>이미 달성한 <strong>${N}개</strong> 뱃지가 컬렉션에 추가되었어요!</p><div class="badges-grid">${miniGrid}</div><button type="button" class="btn btn-primary" id="goStatsBtn">stats 탭에서 보기</button></div>`;
 
   const wrap = openModal({
     title: '🎉 새 게임화 기능',

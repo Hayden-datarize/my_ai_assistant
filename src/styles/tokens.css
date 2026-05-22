@@ -18,6 +18,7 @@
   --text-secondary: #64748B;
   --text-tertiary: #94A3B8;
   --border: #E2E8F0;
+  --border-glass: rgba(0, 0, 0, 0.08);  /* v3.50 T3 M4 — glassmorphism wrapper border (light) */
   --bg-disabled: #CBD5E1;  /* slate-300 — v3.3.4 for .btn-primary:disabled */
   --shadow-sm: 0 1px 2px rgba(15,23,42,0.06), 0 1px 1px rgba(15,23,42,0.04);
   --shadow-md: 0 4px 12px rgba(15,23,42,0.08), 0 2px 4px rgba(15,23,42,0.04);
@@ -50,6 +51,7 @@
   --text-secondary: #94A3B8;
   --text-tertiary: #64748B;
   --border: #4B4D5A;
+  --border-glass: rgba(255, 255, 255, 0.12);  /* v3.50 T3 M4 — glassmorphism wrapper border (dark) */
   --bg-disabled: #475569;  /* slate-600 — v3.3.4 for .btn-primary:disabled */
   --shadow-sm: 0 1px 2px rgba(0,0,0,0.4), 0 1px 1px rgba(0,0,0,0.3);
   --shadow-md: 0 4px 12px rgba(0,0,0,0.5), 0 2px 4px rgba(0,0,0,0.3);
