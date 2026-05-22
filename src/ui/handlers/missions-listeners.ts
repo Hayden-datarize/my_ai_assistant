@@ -11,8 +11,8 @@ export function registerMissionsListeners(): () => void {
   const off = [
     on('dg:nav:tab-changed', ({ tab }) => {
       if (tab !== 'missions') return;
-      void import('./missions')
-        .then((m) => m.handleMissionsTabChanged())
+      void import('./home')
+        .then((m) => m.hydrateMissions())
         .catch((err) => {
           console.warn('[missions-listeners] tab-changed failed', err);
         });

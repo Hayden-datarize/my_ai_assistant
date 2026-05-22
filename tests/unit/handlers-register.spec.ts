@@ -17,12 +17,17 @@ const statsSpies = vi.hoisted(() => ({
 }));
 
 const missionsSpies = vi.hoisted(() => ({
-  handleMissionsTabChanged: vi.fn(),
+  hydrateMissions: vi.fn(),
 }));
 
 vi.mock('../../src/ui/handlers/archive', () => archiveSpies);
 vi.mock('../../src/ui/handlers/stats', () => statsSpies);
-vi.mock('../../src/ui/handlers/missions', () => missionsSpies);
+// v3.50 T1 (C3): handlers/missions.ts 폐기 — missions-listeners가 직접 home.hydrateMissions 호출.
+// home.ts는 다른 export가 다수이므로 importActual 병합 후 hydrateMissions만 spy 대체.
+vi.mock('../../src/ui/handlers/home', async () => ({
+  ...(await vi.importActual<typeof import('../../src/ui/handlers/home')>('../../src/ui/handlers/home')),
+  hydrateMissions: missionsSpies.hydrateMissions,
+}));
 
 describe('registerCoreHandlerListeners (v3.31 C7)', () => {
   beforeEach(() => {
@@ -98,6 +103,6 @@ describe('registerCoreHandlerListeners (v3.31 C7)', () => {
 
     document.dispatchEvent(new CustomEvent('dg:nav:tab-changed', { detail: { tab: 'missions' } }));
 
-    await vi.waitFor(() => expect(missionsSpies.handleMissionsTabChanged).toHaveBeenCalledTimes(1));
+    await vi.waitFor(() => expect(missionsSpies.hydrateMissions).toHaveBeenCalledTimes(1));
   });
 });

@@ -9,8 +9,10 @@ describe('handler listener boundary (v3.31 C7)', () => {
       'src/ui/handlers/missions-listeners.ts',
     ]) {
       const source = readFileSync(file, 'utf8');
-      expect(source).not.toMatch(/from ['"]\.\/(archive|stats|missions)['"]/);
-      expect(source).toMatch(/import\(['"]\.\/(archive|stats|missions)['"]\)/);
+      // v3.50 T1 (C3): missions-listeners는 handlers/missions.ts 폐기 후
+      // home.hydrateMissions를 dynamic-import. home도 listener에서 static-import 금지.
+      expect(source).not.toMatch(/from ['"]\.\/(archive|stats|missions|home)['"]/);
+      expect(source).toMatch(/import\(['"]\.\/(archive|stats|missions|home)['"]\)/);
     }
   });
 
