@@ -14,12 +14,32 @@ let sparkleQueue: Set<string> = new Set();
 let listenerWired = false;
 let unsubscribe: (() => void) | null = null;
 
-export function mountMissionsSparkleListener(): void {
-  if (listenerWired) return;
-  unsubscribe = on('dg:reward:mission-complete', ({ defId }) => {
+export function mountMissionsSparkleListener(): () => void {
+  if (listenerWired) {
+    // 두 번째 mount는 no-op cleanup 반환 — 첫 mount의 listener는 그대로.
+    return () => { /* no-op */ };
+  }
+
+  // local disposer capture — module-level 참조 회피 (Codex P1-4).
+  const disposer = on('dg:reward:mission-complete', ({ defId }) => {
     sparkleQueue.add(defId);
   });
   listenerWired = true;
+  // module-level `unsubscribe`는 __resetSparkleState()용으로 유지.
+  unsubscribe = disposer;
+
+  let cleaned = false;
+  return () => {
+    if (cleaned) return;       // double cleanup safety
+    cleaned = true;
+    // 본 closure가 capture한 disposer만 호출 — 다른 mount의 listener는 안 건드림.
+    disposer();
+    // 본 cleanup이 첫 mount의 것이면 module flag도 reset (재 mount 가능).
+    if (unsubscribe === disposer) {
+      unsubscribe = null;
+      listenerWired = false;
+    }
+  };
 }
 
 export function consumeSparkleQueue(): Set<string> {
