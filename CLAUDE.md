@@ -72,7 +72,7 @@ firebase deploy --only hosting   # 사용자 명시 승인 후
 
 사이클 끝(배포 직전): `npm run lint && npm test && npm run test:smoke` 3종 일괄 재확인.
 
-**Bundle 측정 표준 (v3.14.5 T5 graduation, v3.35 T4 extension)**:
+**Bundle 측정 표준 (v3.14.5 T5 graduation, v3.35 T4 extension, v3.50 T6 CSS triple-record)**:
 
 1. **Canonical (deploy gate)** — main entry size:
    `gzip -c dist/assets/index-*.js | wc -c`
@@ -81,14 +81,20 @@ firebase deploy --only hosting   # 사용자 명시 승인 후
    `gzip -c dist/assets/archive-*.js | wc -c`
    (`archive-*.js` glob은 archive handler + archive-detail modal 2 chunk 합산 매칭)
 
-사이클 retro §Bundle 측정에 두 값 모두 기록. Threshold:
+3. **CSS asset (triple record, v3.50+, UI-only 사이클 누락 catch)**:
+   `gzip -c dist/assets/*.css | wc -c`
+
+사이클 retro §Bundle 측정에 세 값 모두 기록 (CSS는 UI-only 사이클에서 main signal). Threshold:
 
 - index (canonical): GREEN ≤ +300 B / AMBER ≤ +500 B (v3.14.5 그대로)
 - archive chunk (archive 영역 변경 시만 적용): GREEN ≤ +300 B / AMBER ≤ +600 B soft (lazy load이라 first paint 영향 X, index 보다 관대)
+- CSS asset (v3.50+, 토큰/component CSS 변경 시): GREEN ≤ +500 B / AMBER ≤ +800 B (CSS는 별도 entry, first paint 영향 있으나 index보다 변동 폭 큼)
 
 vite reporter chunked estimation은 dual-record 폐기 (v3.14.4가 마지막 사례).
 
 **경위 (v3.35 T4 graduation)**: v3.34에서 ranking 코드가 archive dynamic chunk로 emitted됐으나 canonical(index entry)은 size impact를 underestimate (+1.25 kB가 +3 B로만 reflected). archive 영역에 집중되는 변경은 dual record로 가시화 필수.
+
+**경위 (v3.50 T6 graduation)**: v3.49 T0에 CSS baseline 캡처 누락 → T5에서 Δ 추적 불가, "추정"만 가능. M4 glassmorphism 같은 UI-only 사이클은 CSS가 main bundle signal인데 index/archive만 측정하면 변동을 놓친다. v3.50부터 T0에 `gzip -c dist/assets/*.css | wc -c`도 triple capture 의무.
 
 **Dead-code audit 주기 (v3.44.1 graduate, v3.44 L4 DoD note)**:
 
