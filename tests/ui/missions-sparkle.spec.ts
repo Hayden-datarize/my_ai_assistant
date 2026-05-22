@@ -70,4 +70,18 @@ describe('missions-sparkle (event-based queue)', () => {
       window.matchMedia = origMM;
     }
   });
+
+  // v3.49 T5 Codex 최종 P1 회귀 검증:
+  // production boot 경로(registerMissionsListeners)에서 sparkle listener가 실제 wire되는지 확인.
+  // 본 spec이 없으면 listener wiring을 handlers/missions.ts(dead path)에 묻어도 unit이 우회한다.
+  it('registerMissionsListeners → mission-complete dispatch → queue push (production wiring)', async () => {
+    const { registerMissionsListeners } = await import('../../src/ui/handlers/missions-listeners');
+    const cleanup = registerMissionsListeners();
+    try {
+      dispatch('dg:reward:mission-complete', { defId: 'wired-test', period: 'daily', rewardXp: 10, at: 0 });
+      expect(consumeSparkleQueue().has('wired-test')).toBe(true);
+    } finally {
+      cleanup();
+    }
+  });
 });

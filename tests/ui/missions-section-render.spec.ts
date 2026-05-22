@@ -6,7 +6,7 @@ import {
   __resetSparkleState,
 } from '../../src/ui/missions-sparkle';
 import { dispatch } from '../../src/ui/events';
-import { DAILY_POOL } from '../../src/state/missionCatalog';
+import { DAILY_POOL, MISSION_CATALOG } from '../../src/state/missionCatalog';
 
 const mkRoot = (): HTMLElement => {
   const root = document.createElement('div');
@@ -166,9 +166,10 @@ describe('renderMissionsSection (v3.49 grid)', () => {
     expect(list.hidden).toBe(true);
   });
 
-  it('catalog defId ASCII invariant (Codex P2-2)', () => {
-    const allDefs = [...DAILY_POOL]; // 또는 ALL_MISSIONS export 시 사용
-    for (const def of allDefs) {
+  it('catalog defId ASCII invariant (Codex P2-2 / 최종 N2 — MISSION_CATALOG 전체 확장)', () => {
+    // v3.49 T5 Codex 최종 N2: DAILY_POOL만 검사하면 weekly/monthly invariant 누락.
+    // data-mission-id sink 안전성을 주장하려면 MISSION_CATALOG 전체.
+    for (const def of MISSION_CATALOG) {
       expect(def.id).toMatch(/^[a-z0-9-]+$/);
     }
   });

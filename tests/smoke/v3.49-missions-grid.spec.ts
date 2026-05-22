@@ -56,12 +56,13 @@ test.describe('v3.49 missions grid', () => {
     });
   });
 
-  test('missions 탭 진입 → grid 노출 + 카드 ≥ 2개', async ({ page }) => {
+  test('missions 탭 진입 → grid 노출 + daily 그룹 카드 2개', async ({ page }) => {
     await page.goto('/');
     await page.locator('.bottom-nav .nav-item', { hasText: '미션' }).click();
     const grid = page.locator('.mission-group__grid').first();
     await expect(grid).toBeVisible({ timeout: 10_000 });
-    const cards = page.locator('.mission-card');
+    // v3.49 T5 Codex 최종 N1: 전체 .mission-card 대신 [data-period="daily"]로 좁힘 (seed 정책 변경 강건성).
+    const cards = page.locator('[data-period="daily"] .mission-card');
     await expect(cards).toHaveCount(2);
   });
 
