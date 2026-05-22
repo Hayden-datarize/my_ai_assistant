@@ -130,11 +130,10 @@ test.describe('v3.13 Mission System', () => {
     await page.locator('.bottom-nav .nav-item', { hasText: '미션' }).click();
     await expect(page.locator('#missionsSection')).toBeVisible({ timeout: 10_000 });
 
-    // hydrateMissions() → progress 1/20 반영
-    const pb = page.locator('[data-period="monthly"] [role="progressbar"]');
-    await expect(pb).toBeVisible({ timeout: 5000 });
-    await expect(pb).toHaveAttribute('aria-valuenow', '1', { timeout: 3000 });
-    await expect(pb).toHaveAttribute('aria-valuemax', '20');
-    await expect(page.locator('[data-period="monthly"] .mission-card__count')).toHaveText('1/20');
+    // hydrateMissions() → progress 1/20 반영 (v3.49 ring SVG로 마이그레이션, role=progressbar 폐기)
+    const ring = page.locator('[data-period="monthly"] .mission-card__ring');
+    await expect(ring).toBeVisible({ timeout: 5000 });
+    await expect(ring).toHaveAttribute('aria-label', '진행 1/20', { timeout: 3000 });
+    await expect(page.locator('[data-period="monthly"] .mission-card__ring-text')).toHaveText('1/20');
   });
 });
