@@ -84,7 +84,15 @@
  * Codex P1-2: 토큰 --bg-card / --border-glass 실측 정합.
  * Codex P2-1: 부모 .dg-modal-card opaque 배경을 :has()로 override.
  * ============================================ */
+/* v3.50.1 Codex P2-1: glass surface를 .modal-glass wrapper(=body 내부)가 아니라
+ * 부모 .dg-modal-card 전체에 적용 — header/title/close까지 한 장의 frosted surface로 묶어
+ * header가 backdrop 위에 떠 보이던 회귀 차단. .modal-glass wrapper는 surface를 카드에 위임하고 자신은 투명.
+ * :has() 미지원 시 카드 기본 surface(opaque) 유지 + wrapper 투명 → 회귀 0. */
 .modal-glass {
+  background: transparent;
+  border: none;
+}
+.dg-modal-card:has(.modal-glass) {
   background: var(--bg-card);
   border: 1px solid var(--border-glass);
 }
@@ -92,7 +100,7 @@
 @supports
   ((background: color-mix(in oklab, white, black))) and
   ((backdrop-filter: blur(1px)) or (-webkit-backdrop-filter: blur(1px))) {
-  .modal-glass {
+  .dg-modal-card:has(.modal-glass) {
     background: color-mix(in oklab, var(--bg-card) 75%, transparent);
     backdrop-filter: blur(20px) saturate(180%);
     -webkit-backdrop-filter: blur(20px) saturate(180%);
@@ -100,17 +108,9 @@
 }
 
 @media (prefers-reduced-transparency: reduce) {
-  .modal-glass {
+  .dg-modal-card:has(.modal-glass) {
     background: var(--bg-card);
     backdrop-filter: none;
     -webkit-backdrop-filter: none;
   }
-}
-
-/* welcome 모달이 .modal-glass child를 가질 때만 부모 .dg-modal-card transparent화.
- * 다른 모달(.dg-modal-card 단독)은 영향 X. :has() 미지원 시 glass 효과 약함(회귀 0). */
-.dg-modal-card:has(.modal-glass) {
-  background: transparent;
-  border: none;
-  box-shadow: none;
 }

@@ -35,11 +35,13 @@
       var(--primary),
       transparent 60%
     );
-    opacity: 0.4;
+    /* v3.50.1 Codex P2-2: color-mix 미지원 fallback은 full var(--primary)라
+       bloomed-count cap이 안 먹는다 → 강한 pulse(0.5~1) 대신 차분한 고정 opacity로 degrade.
+       강도 cap + pulse는 color-mix 지원 시에만 적용. */
+    opacity: 0.35;
     filter: blur(40px);
     z-index: -1;
     pointer-events: none;
-    animation: garden-bloom-pulse 6s ease-in-out infinite;
   }
   @supports (background: color-mix(in oklab, white, black)) {
     .garden-grid--has-bloomed::before {
@@ -54,6 +56,7 @@
         transparent 60%
       );
       opacity: 1;
+      animation: garden-bloom-pulse 6s ease-in-out infinite;
     }
   }
   @keyframes garden-bloom-pulse {
