@@ -62,6 +62,10 @@ test('onboarding chip selected has non-default transform (scale)', async ({ page
 test('focus-visible on first focusable shows visible outline (keyboard tab)', async ({ page }) => {
   await seedUser(page);
   await page.goto('/');
+  // v3.51 C4: hydration 완료(앱 mount + 첫 focusable 렌더) 대기 후 Tab. cold-start 시
+  // hydration 전에 Tab이 눌리면 activeElement가 body에 남아 transient flake가 났다
+  // (v3.49 retro 기록). 안정적인 다른 smoke와 동일하게 #homeTab visible을 마커로 대기.
+  await expect(page.locator('#homeTab')).toBeVisible();
   await page.keyboard.press('Tab');
   const focused = await page.evaluate(() => {
     const el = document.activeElement as HTMLElement | null;
